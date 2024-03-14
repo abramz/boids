@@ -25,3 +25,6 @@ dist-ssr
 
 # misc
 coverage/
+
+.eslintcache
+.gitignore
