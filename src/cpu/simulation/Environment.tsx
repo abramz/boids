@@ -8,6 +8,7 @@ export interface EnvironmentProps {}
 
 export default function Environment(): ReactNode {
   const { showWorldBoundary, showStorageBoundary } = useHelpers();
+
   return (
     <>
       <hemisphereLight intensity={4} />
