@@ -4,6 +4,8 @@ export const FLOCK_COUNT = 5;
 
 export const WORLD_SIZE = 30;
 
-export const OCT_TREE_CAPACITY = 4;
+export const OCT_TREE_CAPACITY = 5;
 
-export const OCT_TREE_BOUNDARY_SCALE = WORLD_SIZE * 2;
+export const OCT_TREE_BOUNDARY_SCALE = WORLD_SIZE * 0.5;
+
+export const BOID_RADIUS = 0.2;

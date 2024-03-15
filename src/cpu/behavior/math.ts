@@ -32,3 +32,42 @@ export function isInFOV(
     Math.round((fieldOfViewRad / 2) * THREE.MathUtils.RAD2DEG)
   );
 }
+
+export function getRandomScaledVelocity(
+  maxSpeed: number,
+  /* OUT */ velocity: THREE.Vector3,
+): THREE.Vector3 {
+  const theta = THREE.MathUtils.randFloatSpread(2 * Math.PI);
+  const phi = THREE.MathUtils.randFloatSpread(2 * Math.PI);
+  velocity.set(
+    Math.sin(theta) * Math.cos(phi),
+    Math.sin(theta) * Math.sin(phi),
+    Math.cos(theta),
+  );
+  velocity.multiplyScalar(maxSpeed);
+
+  return velocity;
+}
+
+export function getRandomRelativePosition(
+  horizontalRange: number,
+  verticalRange: number,
+  initialPosition: THREE.Vector3,
+  /* OUT */ target: THREE.Vector3,
+): THREE.Vector3 {
+  const theta = THREE.MathUtils.randFloatSpread(2 * Math.PI);
+  const phi = THREE.MathUtils.randFloatSpread(2 * Math.PI);
+
+  target.set(
+    THREE.MathUtils.randFloatSpread(horizontalRange) *
+      Math.sin(theta) *
+      Math.cos(phi),
+    THREE.MathUtils.randFloatSpread(verticalRange) *
+      Math.sin(theta) *
+      Math.sin(phi),
+    THREE.MathUtils.randFloatSpread(horizontalRange) * Math.cos(theta),
+  );
+  target.add(initialPosition);
+
+  return target;
+}
