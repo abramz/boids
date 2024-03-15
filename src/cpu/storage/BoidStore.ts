@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import Boid from "../behavior/Boid";
-import OctTree, { Node } from "./OctTree";
+import OctTree from "./OctTree";
 
 export default class BoidStore {
   protected boidsRecord: Record<string, Boid>;
@@ -16,7 +16,7 @@ export default class BoidStore {
       throw new Error(`boid already inserted, ${boid.coumpundId}`);
     }
 
-    const inserted = this.octTree.insert(new Node(boid.position.clone(), boid));
+    const inserted = this.octTree.insert(boid);
     if (!inserted) {
       throw new Error(`boid unable to be inserted, ${boid.coumpundId}`);
     }
@@ -25,7 +25,7 @@ export default class BoidStore {
   }
 
   public queryRange(range: THREE.Sphere): Boid[] {
-    return this.octTree.queryRange(range).map((n) => n.data);
+    return this.octTree.queryRange(range);
   }
 
   public clear(): void {
@@ -39,5 +39,9 @@ export default class BoidStore {
 
   public get boundaries(): THREE.Box3[] {
     return this.octTree.boundaries;
+  }
+
+  public get depth(): number {
+    return this.octTree.depth;
   }
 }

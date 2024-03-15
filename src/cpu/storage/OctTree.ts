@@ -2,20 +2,14 @@ import * as THREE from "three";
 
 const tempVector = new THREE.Vector3();
 
-export class Node<T> {
-  public position: THREE.Vector3;
-  public data: T;
-
-  constructor(position: THREE.Vector3, data: T) {
-    this.position = position;
-    this.data = data;
-  }
+export interface Node {
+  position: THREE.Vector3;
 }
 
-export default class OctTree<T> {
+export default class OctTree<T extends Node> {
   protected boundary: THREE.Box3;
   protected capacity: number;
-  protected nodes: Node<T>[] = [];
+  protected nodes: T[] = [];
   protected children:
     | [
         typeof this,
@@ -34,7 +28,7 @@ export default class OctTree<T> {
     this.capacity = capacity;
   }
 
-  public insert(node: Node<T>): boolean {
+  public insert(node: T): boolean {
     if (!this.boundary.containsPoint(node.position)) {
       return false; // node is out of bounds
     }
@@ -90,30 +84,38 @@ export default class OctTree<T> {
     }
   }
 
-  public queryRange(range: THREE.Sphere): Node<T>[] {
-    const nodes: Node<T>[] = [];
-
+  public queryRange(range: THREE.Sphere, result: T[] = []): T[] {
     if (this.boundary.intersectsSphere(range)) {
-      nodes.push(...Object.values(this.nodes));
+      for (const node of this.nodes) {
+        result.push(node);
+      }
 
-      for (const child of this.children ?? []) {
-        nodes.push(...child.queryRange(range));
+      if (this.children) {
+        for (const child of this.children) {
+          child.queryRange(range, result);
+        }
       }
     }
 
-    return nodes;
+    return result;
   }
 
   public clear(): void {
-    this.nodes = [];
-    for (const child of this.children ?? []) {
-      child.clear();
+    this.nodes.length = 0;
+    if (this.children) {
+      for (const child of this.children) {
+        child.clear();
+      }
     }
   }
 
   public get depth(): number {
+    if (!this.children) {
+      return 1;
+    }
+
     let maxChildDepth = 0;
-    for (const child of this.children ?? []) {
+    for (const child of this.children) {
       maxChildDepth = Math.max(maxChildDepth, child.depth);
     }
 
@@ -121,8 +123,12 @@ export default class OctTree<T> {
   }
 
   public get size(): number {
+    if (!this.children) {
+      return this.nodes.length;
+    }
+
     let childSize = 0;
-    for (const child of this.children ?? []) {
+    for (const child of this.children) {
       childSize += child.size;
     }
 
@@ -130,13 +136,14 @@ export default class OctTree<T> {
   }
 
   public get boundaries(): THREE.Box3[] {
+    if (this.children) {
+      return this.children.flatMap((child) => child.boundaries);
+    }
+
     if (this.nodes.length === 0) {
       return [];
     }
 
-    return [
-      this.boundary,
-      ...(this.children ?? []).flatMap((child) => child.boundaries),
-    ];
+    return [this.boundary];
   }
 }

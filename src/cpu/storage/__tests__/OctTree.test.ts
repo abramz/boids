@@ -14,7 +14,7 @@ function randomPointWithin(box: THREE.Box3) {
 
 let boundary: THREE.Box3;
 let capacity: number;
-let octTree: OctTree<string>;
+let octTree: OctTree<Node>;
 
 beforeEach(() => {
   boundary = new THREE.Box3(
@@ -28,47 +28,47 @@ beforeEach(() => {
 });
 
 it("inserts nodes within boundary", () => {
-  const node = new Node(new THREE.Vector3(0, 0, 0), "test");
+  const node = { position: new THREE.Vector3(0, 0, 0) };
   expect(octTree.insert(node)).toBe(true);
   expect(octTree.size).toBe(1);
 });
 
 it("does not insert nodes outside boundary", () => {
-  const node = new Node(new THREE.Vector3(20, 20, 20), "test");
+  const node = { position: new THREE.Vector3(20, 20, 20) };
   expect(octTree.insert(node)).toBe(false);
   expect(octTree.size).toBe(0);
 });
 
 it("subdivides when capacity exceeded", () => {
   for (let i = 0; i < capacity; i++) {
-    octTree.insert(new Node(randomPointWithin(boundary), "test"));
+    octTree.insert({ position: randomPointWithin(boundary) });
   }
   // Insert one more to exceed capacity and trigger subdivision
-  octTree.insert(new Node(randomPointWithin(boundary), "test_extra"));
+  octTree.insert({ position: randomPointWithin(boundary) });
   expect(octTree.depth).toEqual(2);
 });
 
 it("queries range correctly", () => {
-  octTree.insert(new Node(new THREE.Vector3(1, 1, 1), `test_0`));
-  octTree.insert(new Node(new THREE.Vector3(0.5, 0.5, 0.5), `test_1`));
-  octTree.insert(new Node(new THREE.Vector3(-0.5, -0.5, -0.5), `test_2`));
-  octTree.insert(new Node(new THREE.Vector3(-1, -1, -1), `test_3`));
-  octTree.insert(new Node(boundary.min.clone(), `test_4`));
-  octTree.insert(new Node(boundary.min.clone(), `test_5`));
-  octTree.insert(new Node(boundary.max.clone(), `test_6`));
-  octTree.insert(new Node(boundary.max.clone(), `test_7`));
+  octTree.insert({ position: new THREE.Vector3(1, 1, 1) });
+  octTree.insert({ position: new THREE.Vector3(0.5, 0.5, 0.5) });
+  octTree.insert({ position: new THREE.Vector3(-0.5, -0.5, -0.5) });
+  octTree.insert({ position: new THREE.Vector3(-1, -1, -1) });
+  octTree.insert({ position: boundary.min.clone() });
+  octTree.insert({ position: boundary.min.clone() });
+  octTree.insert({ position: boundary.max.clone() });
+  octTree.insert({ position: boundary.max.clone() });
 
   // These nodes should be within the query range
   const insideNodes = [
-    new Node(new THREE.Vector3(6, 6, 6), "inside1"),
-    new Node(new THREE.Vector3(8, 8, 8), "inside2"),
+    { position: new THREE.Vector3(6, 6, 6) },
+    { position: new THREE.Vector3(8, 8, 8) },
   ];
   insideNodes.forEach((node) => octTree.insert(node));
 
   // These nodes should be outside the query range
   const outsideNodes = [
-    new Node(new THREE.Vector3(-8, -8, -8), "outside1"),
-    new Node(new THREE.Vector3(-4, -4, -4), "outside2"),
+    { position: new THREE.Vector3(-8, -8, -8) },
+    { position: new THREE.Vector3(-4, -4, -4) },
   ];
   outsideNodes.forEach((node) => octTree.insert(node));
 
@@ -76,7 +76,6 @@ it("queries range correctly", () => {
 
   // Perform the range query
   const found = octTree.queryRange(queryRange);
-  console.log(found);
 
   // Check that only the nodes within the query range are returned
   insideNodes.forEach((node) => expect(found).toContain(node));
@@ -85,7 +84,7 @@ it("queries range correctly", () => {
 
 it("clears all nodes correctly", () => {
   for (let i = 0; i < capacity * 2; i++) {
-    octTree.insert(new Node(randomPointWithin(boundary), `test_${i}`));
+    octTree.insert({ position: randomPointWithin(boundary) });
   }
   expect(octTree.size).toEqual(capacity * 2);
 
@@ -97,13 +96,13 @@ it("clears all nodes correctly", () => {
 it("calculates total size correctly", () => {
   for (let i = 0; i < capacity * 2; i++) {
     // insert double the capacity to ensure subdivision
-    octTree.insert(new Node(randomPointWithin(boundary), `test_${i}`));
+    octTree.insert({ position: randomPointWithin(boundary) });
   }
   expect(octTree.size).toBe(capacity * 2);
 });
 
 it("retrieves boundaries correctly", () => {
-  octTree.insert(new Node(new THREE.Vector3(0, 0, 0), "test"));
+  octTree.insert({ position: new THREE.Vector3(0, 0, 0) });
   const boundaries = octTree.boundaries;
   expect(boundaries).toContainEqual(boundary);
 });
