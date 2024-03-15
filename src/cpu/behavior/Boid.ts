@@ -17,16 +17,20 @@ export type ForceFactors = {
   avoidEdgesFactor: number;
 };
 
+export type BoidProperties = {
+  perceptionRadius: number;
+  fieldOfViewDeg: number;
+  desiredSeparation: number;
+  maxSpeed: number;
+  maxForce: number;
+};
+
 export interface ApplyForcesOptions {
   neighbors: Boid[];
   boundary: THREE.Box3;
   seekTarget?: THREE.Vector3;
   avoidTarget?: THREE.Vector3;
-  perceptionRadius: number;
-  fieldOfViewRad: number;
-  desiredSeparation: number;
-  maxSpeed: number;
-  maxForce: number;
+  properties: BoidProperties;
   forceFactors: ForceFactors;
 }
 
@@ -86,17 +90,21 @@ export default class Boid {
     boundary,
     seekTarget,
     avoidTarget,
-    perceptionRadius,
-    fieldOfViewRad,
-    desiredSeparation,
-    maxSpeed,
-    maxForce,
+    properties: {
+      perceptionRadius,
+      fieldOfViewDeg,
+      desiredSeparation,
+      maxSpeed,
+      maxForce,
+    },
     forceFactors,
   }: ApplyForcesOptions): void {
     this.acceleration.set(0, 0, 0);
     tempAveragePosition.set(0, 0, 0);
     tempAverageVelocity.set(0, 0, 0);
     tempSeparationVelocity.set(0, 0, 0);
+
+    const fieldOfViewRad = fieldOfViewDeg * THREE.MathUtils.DEG2RAD;
 
     const [count, separationCount] = this.determineFlockingTargets(
       neighbors,
@@ -352,7 +360,7 @@ export default class Boid {
       outAverageVelocity.divideScalar(count);
     }
     if (separationCount > 0) {
-      outSeparationVelocity.divideScalar(count);
+      outSeparationVelocity.divideScalar(separationCount);
     }
 
     return [count, separationCount];

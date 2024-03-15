@@ -1,13 +1,14 @@
 import * as THREE from "three";
 import { beforeEach, describe, expect, it } from "vitest";
-import Boid from "../Boid";
+import Boid, { BoidProperties, ForceFactors } from "../Boid";
 
 const TEST_ID = 0;
 const TEST_PARENT_ID = 5;
 const EXPECTED_COMPOUND_ID = "5-0";
 
 const TEST_PERCEPTION_RADIUS = 10;
-const TEST_FIELD_OF_VIEW_RAD = 170 * THREE.MathUtils.DEG2RAD;
+const TEST_FIELD_OF_VIEW_DEG = 170;
+const TEST_FIELD_OF_VIEW_RAD = TEST_FIELD_OF_VIEW_DEG * THREE.MathUtils.DEG2RAD;
 const TEST_SEPARATION = 5;
 const TEST_MAX_SPEED = 5;
 const TEST_MAX_FORCE = 0.5;
@@ -26,13 +27,21 @@ const TEST_BOUNDARY = new THREE.Box3(
   ),
 );
 
-const TEST_FORCE_FACTORS = {
+const TEST_FORCE_FACTORS: ForceFactors = {
   alignmentFactor: 3,
   cohesionFactor: 3,
   separationFactor: 3,
   avoidanceFactor: 3,
   seekFactor: 3,
   avoidEdgesFactor: 3,
+};
+
+const TEST_BOID_PROPERTIES: BoidProperties = {
+  perceptionRadius: TEST_PERCEPTION_RADIUS,
+  fieldOfViewDeg: TEST_FIELD_OF_VIEW_DEG,
+  desiredSeparation: TEST_SEPARATION,
+  maxSpeed: TEST_MAX_SPEED,
+  maxForce: TEST_MAX_FORCE,
 };
 
 let TEST_BOID: Boid;
@@ -519,11 +528,7 @@ describe("applyForces", () => {
           0,
           -TEST_WORLD_BOUNDARY,
         ),
-        perceptionRadius: TEST_PERCEPTION_RADIUS,
-        fieldOfViewRad: TEST_FIELD_OF_VIEW_RAD,
-        desiredSeparation: TEST_SEPARATION,
-        maxSpeed: TEST_MAX_SPEED,
-        maxForce: TEST_MAX_FORCE,
+        properties: TEST_BOID_PROPERTIES,
         forceFactors: TEST_FORCE_FACTORS,
       });
 
@@ -544,11 +549,7 @@ describe("applyForces", () => {
       boundary: TEST_BOUNDARY,
       seekTarget: undefined,
       avoidTarget: undefined,
-      perceptionRadius: TEST_PERCEPTION_RADIUS,
-      fieldOfViewRad: TEST_FIELD_OF_VIEW_RAD,
-      desiredSeparation: TEST_SEPARATION,
-      maxSpeed: TEST_MAX_SPEED,
-      maxForce: TEST_MAX_FORCE,
+      properties: TEST_BOID_PROPERTIES,
       forceFactors: TEST_FORCE_FACTORS,
     });
 
@@ -561,11 +562,7 @@ describe("applyForces", () => {
       boundary: TEST_BOUNDARY,
       seekTarget: undefined,
       avoidTarget: undefined,
-      perceptionRadius: TEST_PERCEPTION_RADIUS,
-      fieldOfViewRad: TEST_FIELD_OF_VIEW_RAD,
-      desiredSeparation: TEST_SEPARATION,
-      maxSpeed: TEST_MAX_SPEED,
-      maxForce: TEST_MAX_FORCE,
+      properties: TEST_BOID_PROPERTIES,
       forceFactors: TEST_FORCE_FACTORS,
     });
 
@@ -578,11 +575,7 @@ describe("applyForces", () => {
       boundary: TEST_BOUNDARY,
       seekTarget: undefined,
       avoidTarget: undefined,
-      perceptionRadius: TEST_PERCEPTION_RADIUS,
-      fieldOfViewRad: TEST_FIELD_OF_VIEW_RAD,
-      desiredSeparation: TEST_SEPARATION,
-      maxSpeed: TEST_MAX_SPEED,
-      maxForce: TEST_MAX_FORCE,
+      properties: TEST_BOID_PROPERTIES,
       forceFactors: TEST_FORCE_FACTORS,
     });
 
@@ -595,11 +588,7 @@ describe("applyForces", () => {
       boundary: TEST_BOUNDARY,
       seekTarget: undefined,
       avoidTarget: undefined,
-      perceptionRadius: TEST_PERCEPTION_RADIUS,
-      fieldOfViewRad: TEST_FIELD_OF_VIEW_RAD,
-      desiredSeparation: TEST_SEPARATION,
-      maxSpeed: TEST_MAX_SPEED,
-      maxForce: TEST_MAX_FORCE,
+      properties: TEST_BOID_PROPERTIES,
       forceFactors: TEST_FORCE_FACTORS,
     });
 
@@ -612,11 +601,7 @@ describe("applyForces", () => {
       boundary: TEST_BOUNDARY,
       seekTarget: undefined,
       avoidTarget: undefined,
-      perceptionRadius: TEST_PERCEPTION_RADIUS,
-      fieldOfViewRad: TEST_FIELD_OF_VIEW_RAD,
-      desiredSeparation: TEST_SEPARATION,
-      maxSpeed: TEST_MAX_SPEED,
-      maxForce: TEST_MAX_FORCE,
+      properties: TEST_BOID_PROPERTIES,
       forceFactors: TEST_FORCE_FACTORS,
     });
 
