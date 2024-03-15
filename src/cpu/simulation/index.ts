@@ -1,1 +1,1 @@
-export { default } from "./Simulation";
+export { default } from "./Canvas";

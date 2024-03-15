@@ -1,24 +1,25 @@
-import { ReactNode } from "react";
-import { ErrorBoundary } from "react-error-boundary";
-import { Canvas } from "@react-three/fiber";
-import { WORLD_SIZE } from "../config";
-import ErrorFallback from "./ErrorFallback";
+import * as THREE from "three";
+import { ReactNode, Suspense } from "react";
+import { BOID_RADIUS } from "../config";
 import Environment from "./Environment";
+import Boids from "./Boids";
+import useBehavior from "../hooks/useBehavior";
 
-export default function Simulation(): ReactNode {
+export interface SimulationProps {
+  worldBoundary: THREE.Box3;
+}
+
+export default function Simulation({
+  worldBoundary,
+}: SimulationProps): ReactNode {
+  const storageRef = useBehavior(BOID_RADIUS, worldBoundary);
+
   return (
-    <Canvas
-      gl={{ antialias: true, pixelRatio: window.devicePixelRatio }}
-      camera={{
-        position: [0, 0, WORLD_SIZE / 2],
-        fov: 55,
-        near: 0.1,
-        far: 100,
-      }}
-    >
-      <ErrorBoundary FallbackComponent={ErrorFallback}>
-        <Environment />
-      </ErrorBoundary>
-    </Canvas>
+    <>
+      <Environment storageRef={storageRef} />
+      <Suspense fallback={null}>
+        <Boids boidRadius={BOID_RADIUS} storageRef={storageRef} />
+      </Suspense>
+    </>
   );
 }

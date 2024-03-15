@@ -1,56 +1,48 @@
 import { useControls } from "leva";
-
-export type ForceFactors = {
-  ALIGNMENT_FACTOR: number;
-  COHESION_FACTOR: number;
-  SEPARATION_FACTOR: number;
-  AVOIDANCE_FACTOR: number;
-  SEEK_FACTOR: number;
-  AVOID_EDGES_FACTOR: number;
-};
+import { ForceFactors } from "../behavior/Boid";
 
 export default function useForceFactors({
-  ALIGNMENT_FACTOR,
-  COHESION_FACTOR,
-  SEPARATION_FACTOR,
-  AVOIDANCE_FACTOR,
-  SEEK_FACTOR,
-  AVOID_EDGES_FACTOR,
+  alignmentFactor,
+  cohesionFactor,
+  separationFactor,
+  avoidanceFactor,
+  seekFactor,
+  avoidEdgesFactor,
 }: ForceFactors): ForceFactors {
   const factors = useControls(
     "Force factors",
     {
-      ALIGNMENT_FACTOR: {
+      alignmentFactor: {
         label: "Alignment",
-        value: ALIGNMENT_FACTOR,
+        value: alignmentFactor,
         min: 0,
         max: 10,
         step: 0.1,
       },
-      COHESION_FACTOR: {
+      cohesionFactor: {
         label: "Cohesion",
-        value: COHESION_FACTOR,
+        value: cohesionFactor,
         min: 0,
         max: 10,
         step: 0.1,
       },
-      SEPARATION_FACTOR: {
+      separationFactor: {
         label: "Separation",
-        value: SEPARATION_FACTOR,
+        value: separationFactor,
         min: 0,
         max: 10,
         step: 0.1,
       },
-      AVOIDANCE_FACTOR: {
+      avoidanceFactor: {
         label: "Avoid",
-        value: AVOIDANCE_FACTOR,
+        value: avoidanceFactor,
         min: 0,
         max: 10,
         step: 0.1,
       },
-      SEEK_FACTOR: {
+      seekFactor: {
         label: "Seek",
-        value: SEEK_FACTOR,
+        value: seekFactor,
         min: 0,
         max: 10,
         step: 0.1,
@@ -61,6 +53,6 @@ export default function useForceFactors({
 
   return {
     ...factors,
-    AVOID_EDGES_FACTOR,
+    avoidEdgesFactor,
   };
 }

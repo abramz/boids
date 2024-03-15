@@ -1,46 +1,39 @@
 import { useControls } from "leva";
 import { WORLD_SIZE } from "../config";
-
-export type BoidProperties = {
-  PERCEPTION_RADIUS: number;
-  FIELD_OF_VIEW_DEG: number;
-  DESIRED_SEPARATION: number;
-  MAX_SPEED: number;
-  MAX_FORCE: number;
-};
+import { BoidProperties } from "../behavior/Boid";
 
 export default function useBoidProperties({
-  PERCEPTION_RADIUS,
-  FIELD_OF_VIEW_DEG,
-  DESIRED_SEPARATION,
-  MAX_SPEED,
-  MAX_FORCE,
+  perceptionRadius,
+  fieldOfViewDeg,
+  desiredSeparation,
+  maxSpeed,
+  maxForce,
 }: BoidProperties): BoidProperties {
   return useControls(
     "Boid Properties",
     {
-      PERCEPTION_RADIUS: {
+      perceptionRadius: {
         label: "Perception radius",
-        value: PERCEPTION_RADIUS,
+        value: perceptionRadius,
         min: 0,
         max: WORLD_SIZE,
       },
-      FIELD_OF_VIEW_DEG: {
+      fieldOfViewDeg: {
         label: "Field of view (deg)",
-        value: FIELD_OF_VIEW_DEG,
+        value: fieldOfViewDeg,
         min: 0,
         max: 360,
       },
-      DESIRED_SEPARATION: {
+      desiredSeparation: {
         label: "Desired separation",
-        value: DESIRED_SEPARATION,
+        value: desiredSeparation,
         min: 0,
         max: WORLD_SIZE,
       },
-      MAX_SPEED: { label: "Max speed", value: MAX_SPEED, min: 0, max: 30 },
-      MAX_FORCE: {
+      maxSpeed: { label: "Max speed", value: maxSpeed, min: 0, max: 30 },
+      maxForce: {
         label: "Max force",
-        value: MAX_FORCE,
+        value: maxForce,
         min: 0,
         max: 10,
         step: 0.1,

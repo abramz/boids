@@ -18,6 +18,7 @@
     "@types/node": "^20.11.24",
     "@types/react": "^18.2.63",
     "@types/react-dom": "^18.2.20",
+    "@types/react-page-visibility": "^6.4.4",
     "@types/three": "^0.162.0",
     "@typescript-eslint/eslint-plugin": "^7.1.1",
     "@typescript-eslint/parser": "^7.1.1",
@@ -39,9 +40,11 @@
     "@react-three/drei": "^9.102.3",
     "@react-three/fiber": "^8.15.19",
     "leva": "^0.9.35",
+    "nice-color-palettes": "^3.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-error-boundary": "^4.0.13",
+    "react-page-visibility": "^7.0.0",
     "three": "^0.162.0"
   },
   "lint-staged": {
