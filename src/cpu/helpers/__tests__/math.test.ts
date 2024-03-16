@@ -1,6 +1,13 @@
 import * as THREE from "three";
 import { describe, expect, it } from "vitest";
-import { limit, isInFOV } from "../math";
+import {
+  limit,
+  isInFOV,
+  getRandomScaledVelocity,
+  getRandomRelativePosition,
+} from "../math";
+
+const acceptableDiff = 0.00000001; // JS numbers are weird
 
 describe("limit", () => {
   it("should leave the vector untouched if it is below the limit", () => {
@@ -48,7 +55,7 @@ describe("isInFOV", () => {
     ).toEqual(true);
   });
 
-  it.only("should return false when the target is just outside of the FOV", () => {
+  it("should return false when the target is just outside of the FOV", () => {
     expect(
       isInFOV(
         new THREE.Vector3(Math.sqrt(2), 0.9, 0).normalize(), // just outside of 45deg
@@ -66,5 +73,43 @@ describe("isInFOV", () => {
         FOV * THREE.MathUtils.DEG2RAD,
       ),
     ).toEqual(false);
+  });
+});
+
+describe("getRandomScaledVelocity", () => {
+  it("should return a vector with a magnitude equal to maxSpeed", () => {
+    const actual = new THREE.Vector3();
+
+    getRandomScaledVelocity(5, actual);
+    expect(5 - actual.length()).toBeLessThan(acceptableDiff);
+
+    getRandomScaledVelocity(2, actual);
+    expect(2 - actual.length()).toBeLessThan(acceptableDiff);
+
+    getRandomScaledVelocity(10, actual);
+    expect(10 - actual.length()).toBeLessThan(acceptableDiff);
+
+    getRandomScaledVelocity(7, actual);
+    expect(7 - actual.length()).toBeLessThan(acceptableDiff);
+  });
+});
+
+describe("getRandomRelativePosition", () => {
+  it("should return a vector within the range of the reference position", () => {
+    const reference = new THREE.Vector3();
+    const actual = new THREE.Vector3();
+
+    getRandomRelativePosition(5, reference, actual);
+
+    expect(Math.abs(actual.x - reference.x)).toBeLessThan(2.5);
+    expect(Math.abs(actual.y - reference.y)).toBeLessThan(2.5);
+    expect(Math.abs(actual.z - reference.z)).toBeLessThan(2.5);
+
+    reference.set(-30, 5, 72);
+    getRandomRelativePosition(10, reference, actual);
+
+    expect(Math.abs(actual.x - reference.x)).toBeLessThan(5);
+    expect(Math.abs(actual.y - reference.y)).toBeLessThan(5);
+    expect(Math.abs(actual.z - reference.z)).toBeLessThan(5);
   });
 });
