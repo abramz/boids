@@ -6,9 +6,8 @@
   "scripts": {
     "dev:cpu": "vite --open boids/cpu.html",
     "dev:gpu": "vite --open boids/gpu.html",
-    "build": "npm run build:src && npm run build:md",
+    "build": "npm run build:src",
     "build:src": "tsc && vite build",
-    "build:md": "cp README.md ABOUT.md dist/",
     "preview": "vite preview",
     "test": "vitest",
     "coverage": "vitest run --coverage",
