@@ -124,15 +124,11 @@ export default class OctTree<T extends Node> {
   }
 
   /**
-   * Removes all nodes from the tree
+   * Removes all nodes & children
    */
   public clear(): void {
-    this.nodes.length = 0;
-    if (this.children) {
-      for (const child of this.children) {
-        child.clear();
-      }
-    }
+    this.nodes = [];
+    this.children = undefined;
   }
 
   /**
