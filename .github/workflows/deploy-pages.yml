@@ -42,10 +42,10 @@ jobs:
         run: npm run build
       - name: Build docs
         uses: actions/jekyll-build-pages@v1
-        with:
-          verbose: true
       - name: Move docs to artifact
-        run: cp -r _site/assets/* _site/ABOUT.html _site/index.html dist/
+        run: |
+          cp -r _site/assets/* dist/assets/
+          cp _site/ABOUT.html _site/index.html dist/
       - name: Setup Pages
         uses: actions/configure-pages@v3
       - name: Upload artifact
