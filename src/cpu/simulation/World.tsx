@@ -18,7 +18,7 @@ export default function Simulation({
     [worldBoundary],
   );
   const { trackingStateRef, trackingTargetRef } = useMouseTracking();
-  const storage = useBehavior(
+  const [storage, boids] = useBehavior(
     BOID_RADIUS,
     worldBoundary,
     storageBoundary,
@@ -35,7 +35,7 @@ export default function Simulation({
         trackingStateRef={trackingStateRef}
         trackingTargetRef={trackingTargetRef}
       />
-      <Boids boidRadius={BOID_RADIUS} storage={storage} />
+      <Boids boidRadius={BOID_RADIUS} boids={boids} />
     </>
   );
 }

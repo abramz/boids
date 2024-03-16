@@ -20,16 +20,23 @@ body {
   display: flex;
 }
 
-#simulation-root {
+#root {
   flex: 1;
+  overflow: hidden;
 }
 
-#ui-root {
-  position: absolute;
+#root canvas {
+  display: block;
 }
 
 .alert {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
   width: 30vw;
+  min-width: 335px;
   border: 2px solid red;
   padding: 16px;
   background-color: #193c3c;

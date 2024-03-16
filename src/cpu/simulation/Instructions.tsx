@@ -1,5 +1,5 @@
-import { Html } from "@react-three/drei";
 import { ReactNode, useState } from "react";
+import Alert from "./Alert";
 
 /**
  * Crude instructions window
@@ -8,7 +8,7 @@ export default function Instructions(): ReactNode {
   const [isOpen, setIsOpen] = useState(true);
 
   return isOpen ? (
-    <Html center role="alert" className="alert">
+    <Alert>
       <h1>Instructions</h1>
       <p>Control the camera with the mouse</p>
       <ul>
@@ -36,7 +36,7 @@ export default function Instructions(): ReactNode {
         simulation. Changes will begin taking effect in future frames.
       </p>
       <button onClick={() => setIsOpen(false)}>{"Close"}</button>
-    </Html>
+    </Alert>
   ) : (
     <></>
   );

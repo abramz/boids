@@ -6,7 +6,13 @@ import react from "@vitejs/plugin-react";
 // https://vitejs.dev/config/
 export default defineConfig({
   base: "/boids",
-  plugins: [react()],
+  plugins: [
+    react({
+      babel: {
+        plugins: ["module:@react-three/babel"],
+      },
+    }),
+  ],
   build: {
     rollupOptions: {
       input: {

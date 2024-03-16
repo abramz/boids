@@ -1,7 +1,5 @@
 import "../style.css";
-import { createRoot } from "react-dom/client";
-import Simulation from "./simulation";
-import UI from "./ui";
+import { createRoot as createDOMRoot } from "react-dom/client";
+import Canvas from "./dom/Canvas";
 
-createRoot(document.getElementById("simulation-root")!).render(<Simulation />);
-createRoot(document.getElementById("ui-root")!).render(<UI />);
+createDOMRoot(document.getElementById("root")!).render(<Canvas />);

@@ -2,26 +2,27 @@ import * as THREE from "three";
 import { MutableRefObject, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import BoidStore from "../storage/BoidStore";
-import OctTree from "../storage/OctTree";
-import { FLOCK_COUNT, FLOCK_SIZE, OCT_TREE_CAPACITY } from "../config";
-import Boid from "../behavior/Boid";
+import {
+  ALIGNMENT_FACTOR,
+  AVOIDANCE_FACTOR,
+  AVOID_EDGES_FACTOR,
+  COHESION_FACTOR,
+  DESIRED_SEPARATION,
+  FIELD_OF_VIEW_DEG,
+  FLOCK_COUNT,
+  FLOCK_SIZE,
+  MAX_FORCE,
+  MAX_SPEED,
+  PERCEPTION_RADIUS,
+  SEEK_FACTOR,
+  SEPARATION_FACTOR,
+} from "../config";
+import Boid, { BoidProperties, ForceFactors } from "../behavior/Boid";
 import initialize from "../behavior/initialize";
+import suspend from "../helpers/suspend";
 import useForceFactors from "./useForceFactors";
 import useBoidProperties from "./useBoidProperties";
 import { MouseTrackingState } from "./useMouseTracking";
-
-const PERCEPTION_RADIUS = 5;
-const FIELD_OF_VIEW_DEG = 230;
-const DESIRED_SEPARATION = 1;
-const MAX_SPEED = 15;
-const MAX_FORCE = 0.8;
-
-const ALIGNMENT_FACTOR = 1.0;
-const COHESION_FACTOR = 1.0;
-const SEPARATION_FACTOR = 1.0;
-const AVOIDANCE_FACTOR = 1.0;
-const SEEK_FACTOR = 1.0;
-const AVOID_EDGES_FACTOR = 50.0;
 
 const tempBoundary = new THREE.Sphere();
 
@@ -31,7 +32,7 @@ export default function useBehavior(
   storageBoundary: THREE.Box3,
   trackingStateRef: MutableRefObject<MouseTrackingState>,
   trackingTargetRef: MutableRefObject<THREE.Vector3>,
-): BoidStore {
+): [BoidStore, Boid[], BoidProperties, ForceFactors] {
   const properties = useBoidProperties({
     perceptionRadius: PERCEPTION_RADIUS,
     fieldOfViewDeg: FIELD_OF_VIEW_DEG,
@@ -57,15 +58,14 @@ export default function useBehavior(
     [properties.desiredSeparation, boidRadius],
   );
 
-  const storage = useMemo<BoidStore>(() => {
-    const s = new BoidStore(
-      new OctTree<Boid>(storageBoundary, OCT_TREE_CAPACITY),
-    );
-
-    initialize(FLOCK_SIZE, FLOCK_COUNT, properties.maxSpeed, worldBoundary, s);
-
-    return s;
-  }, [worldBoundary, storageBoundary, properties.maxSpeed]);
+  const storage: BoidStore = suspend(initialize, [
+    FLOCK_SIZE,
+    FLOCK_COUNT,
+    properties.maxSpeed,
+    worldBoundary,
+    storageBoundary,
+  ]);
+  const allBoids = storage.boids; // we can get this once and use it forever since we don't create/destroy boid references after this
 
   /* we will only deal with half of the boids per frame */
   const frameRef = useRef<number>(1);
@@ -75,7 +75,6 @@ export default function useBehavior(
       return;
     }
 
-    const allBoids = storage.boids;
     const halfSize = Math.floor(allBoids.length / 2);
 
     let boidSlice: Boid[];
@@ -125,5 +124,5 @@ export default function useBehavior(
     frameRef.current *= -1; // switch frames
   });
 
-  return storage;
+  return [storage, allBoids, properties, forceFactors];
 }

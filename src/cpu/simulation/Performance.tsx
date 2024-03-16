@@ -1,4 +1,5 @@
 import {
+  AdaptiveDpr,
   PerformanceMonitor,
   PerformanceMonitorApi,
   StatsGl,
@@ -37,6 +38,7 @@ export default function Performance({
 
   return (
     <PerformanceMonitor onIncline={onIncline} onDecline={onDecline}>
+      <AdaptiveDpr />
       {children}
       <StatsGl />
     </PerformanceMonitor>

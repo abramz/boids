@@ -50,6 +50,7 @@ export default class BoidStore {
    * Get all the boids that have been stored
    * This is meant as a convenience to keep references to all the boids
    * as the OctTree is re-generated frequently
+   * We don't want a reference that will get `clear`ed
    */
   public get boids(): Boid[] {
     return Object.values(this.boidsRecord);
