@@ -28,6 +28,24 @@ body {
   position: absolute;
 }
 
+.alert {
+  width: 30vw;
+  border: 2px solid red;
+  padding: 16px;
+  background-color: #193c3c;
+  font-size: 18px;
+}
+
+.alert pre {
+  color: red;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.alert h1 {
+  font-size: 24px;
+}
+
 @media (prefers-color-scheme: light) {
   :root {
     color: #193c3c;

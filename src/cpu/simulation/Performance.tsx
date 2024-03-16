@@ -1,5 +1,4 @@
 import {
-  AdaptiveDpr,
   PerformanceMonitor,
   PerformanceMonitorApi,
   StatsGl,
@@ -13,6 +12,11 @@ export interface PerformanceProps {
   onDecline?: (api: PerformanceMonitorApi) => void;
 }
 
+/**
+ * Handle performance related tasks
+ * - at the moment it just pauses the clock when the page is not being viewed
+ * - some day it would be nice to change aspects of the simulation based on performance
+ */
 export default function Performance({
   onIncline,
   onDecline,
@@ -33,7 +37,6 @@ export default function Performance({
 
   return (
     <PerformanceMonitor onIncline={onIncline} onDecline={onDecline}>
-      <AdaptiveDpr />
       {children}
       <StatsGl />
     </PerformanceMonitor>

@@ -33,41 +33,44 @@ export function isInFOV(
   );
 }
 
+/**
+ * Get a velocity of the specified magnitude in a random direction
+ * @param maxSpeed scalar to scale the velocity with
+ * @param velocity the output velocity
+ * @returns
+ */
+const tempSpherical = new THREE.Spherical();
 export function getRandomScaledVelocity(
   maxSpeed: number,
   /* OUT */ velocity: THREE.Vector3,
 ): THREE.Vector3 {
-  const theta = THREE.MathUtils.randFloatSpread(2 * Math.PI);
-  const phi = THREE.MathUtils.randFloatSpread(2 * Math.PI);
-  velocity.set(
-    Math.sin(theta) * Math.cos(phi),
-    Math.sin(theta) * Math.sin(phi),
-    Math.cos(theta),
-  );
-  velocity.multiplyScalar(maxSpeed);
+  const theta = THREE.MathUtils.randFloat(0, 2 * Math.PI);
+  const phi = THREE.MathUtils.randFloat(0, Math.PI);
 
-  return velocity;
+  tempSpherical.set(maxSpeed, phi, theta);
+
+  return velocity.setFromSpherical(tempSpherical);
 }
 
+/**
+ * Get a random position within the specified range of a reference position
+ * @param range range within which the random position will be
+ * @param referencePosition a position to base the random position on
+ * @param target the output position
+ * @returns the target
+ */
 export function getRandomRelativePosition(
-  horizontalRange: number,
-  verticalRange: number,
-  initialPosition: THREE.Vector3,
+  range: number,
+  referencePosition: THREE.Vector3,
   /* OUT */ target: THREE.Vector3,
 ): THREE.Vector3 {
-  const theta = THREE.MathUtils.randFloatSpread(2 * Math.PI);
-  const phi = THREE.MathUtils.randFloatSpread(2 * Math.PI);
-
-  target.set(
-    THREE.MathUtils.randFloatSpread(horizontalRange) *
-      Math.sin(theta) *
-      Math.cos(phi),
-    THREE.MathUtils.randFloatSpread(verticalRange) *
-      Math.sin(theta) *
-      Math.sin(phi),
-    THREE.MathUtils.randFloatSpread(horizontalRange) * Math.cos(theta),
-  );
-  target.add(initialPosition);
+  target
+    .set(
+      THREE.MathUtils.randFloatSpread(range),
+      THREE.MathUtils.randFloatSpread(range),
+      THREE.MathUtils.randFloatSpread(range),
+    )
+    .add(referencePosition);
 
   return target;
 }

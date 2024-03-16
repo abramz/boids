@@ -1,25 +1,45 @@
 import * as THREE from "three";
-import { ReactNode, Suspense } from "react";
-import { BOID_RADIUS } from "../config";
-import Environment from "./Environment";
-import Boids from "./Boids";
-import useBehavior from "../hooks/useBehavior";
+import { ReactNode, useMemo } from "react";
+import { ErrorBoundary } from "react-error-boundary";
+import { Canvas } from "@react-three/fiber";
+import { OrbitControls } from "@react-three/drei";
+import { WORLD_SIZE } from "../config";
+import ErrorFallback from "./ErrorFallback";
+import Performance from "./Performance";
+import World from "./World";
+import Instructions from "./Instructions";
 
-export interface SimulationProps {
-  worldBoundary: THREE.Box3;
-}
+/**
+ * Set up the scene & world
+ */
+export default function Simulation(): ReactNode {
+  const worldBoundary = useMemo(() => {
+    const halfSize = WORLD_SIZE / 2;
 
-export default function Simulation({
-  worldBoundary,
-}: SimulationProps): ReactNode {
-  const storageRef = useBehavior(BOID_RADIUS, worldBoundary);
+    return new THREE.Box3(
+      new THREE.Vector3(-halfSize, -halfSize, -halfSize),
+      new THREE.Vector3(halfSize, halfSize, halfSize),
+    );
+  }, []);
 
   return (
-    <>
-      <Environment storageRef={storageRef} />
-      <Suspense fallback={null}>
-        <Boids boidRadius={BOID_RADIUS} storageRef={storageRef} />
-      </Suspense>
-    </>
+    <Canvas
+      gl={{ antialias: true, pixelRatio: window.devicePixelRatio }}
+      camera={{
+        position: [0, 0, WORLD_SIZE / 2],
+        fov: 55,
+        near: 0.1,
+        far: 1000,
+      }}
+    >
+      <ErrorBoundary FallbackComponent={ErrorFallback}>
+        <Performance>
+          <hemisphereLight intensity={4} />
+          <Instructions />
+          <World worldBoundary={worldBoundary} />
+          <OrbitControls autoRotateSpeed={0.5} zoomSpeed={0.5} />
+        </Performance>
+      </ErrorBoundary>
+    </Canvas>
   );
 }

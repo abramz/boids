@@ -15,7 +15,7 @@ export default function useHelpers() {
         value: false,
       },
       showStorageSegmentation: {
-        label: "Show storage segmentation",
+        label: "Show storage segmentation (slow)",
         toggle: true,
         value: false,
       },

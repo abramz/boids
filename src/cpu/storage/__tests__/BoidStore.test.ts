@@ -1,8 +1,8 @@
 import * as THREE from "three";
+import { it, beforeEach, expect } from "vitest";
 import Boid from "../../behavior/Boid";
 import OctTree from "../OctTree";
 import BoidStore from "../BoidStore";
-import { it, beforeEach, expect } from "vitest";
 
 let store: BoidStore;
 let octTree: OctTree<Boid>;

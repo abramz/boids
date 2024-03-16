@@ -1,5 +1,7 @@
 import * as THREE from "three";
-import { isInFOV, limit } from "./math";
+import { isInFOV, limit } from "../helpers/math";
+import { Node } from "../storage/OctTree";
+import { WORLD_SIZE } from "../config";
 
 export interface BoidOptions {
   id: number;
@@ -48,7 +50,7 @@ const tempDiff = new THREE.Vector3();
 const tempForward = new THREE.Vector3();
 const tempAccelerationVector = new THREE.Vector3();
 
-export default class Boid {
+export default class Boid implements Node {
   public readonly id: number;
   public readonly parentId: number;
   public readonly position: THREE.Vector3;
@@ -146,26 +148,6 @@ export default class Boid {
       );
     }
 
-    // AVOID
-    if (avoidTarget) {
-      this.determineForce(
-        this.avoid,
-        [avoidTarget, maxSpeed, maxForce],
-        forceFactors.avoidanceFactor,
-        this.forces.avoidance,
-      );
-    }
-
-    // SEEK
-    if (seekTarget) {
-      this.determineForce(
-        this.seekPosition,
-        [seekTarget, desiredSeparation, maxSpeed, maxForce],
-        forceFactors.seekFactor,
-        this.forces.seek,
-      );
-    }
-
     // AVOID EDGES
     this.determineForce(
       this.avoidEdges,
@@ -173,6 +155,36 @@ export default class Boid {
       forceFactors.avoidEdgesFactor,
       this.forces.avoidEdges,
     );
+
+    // Don't do these things if we are avoiding the edges
+    if (
+      this.forces.avoidEdges[0] === 0 &&
+      this.forces.avoidEdges[1] === 0 &&
+      this.forces.avoidEdges[2] === 0
+    ) {
+      // AVOID
+      if (
+        avoidTarget &&
+        Math.abs(this.position.distanceTo(avoidTarget)) < WORLD_SIZE / 8
+      ) {
+        this.determineForce(
+          this.avoid,
+          [avoidTarget, maxSpeed, maxForce],
+          forceFactors.avoidanceFactor,
+          this.forces.avoidance,
+        );
+      }
+
+      // SEEK
+      if (seekTarget) {
+        this.determineForce(
+          this.seekPosition,
+          [seekTarget, desiredSeparation, maxSpeed, maxForce],
+          forceFactors.seekFactor,
+          this.forces.seek,
+        );
+      }
+    }
 
     limit(this.acceleration, maxForce);
   }

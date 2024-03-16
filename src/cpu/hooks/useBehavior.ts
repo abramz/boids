@@ -1,18 +1,14 @@
 import * as THREE from "three";
 import { MutableRefObject, useMemo, useRef } from "react";
-import useBoidProperties from "./useBoidProperties";
-import useForceFactors from "./useForceFactors";
+import { useFrame } from "@react-three/fiber";
 import BoidStore from "../storage/BoidStore";
 import OctTree from "../storage/OctTree";
-import {
-  FLOCK_COUNT,
-  FLOCK_SIZE,
-  OCT_TREE_BOUNDARY_SCALE,
-  OCT_TREE_CAPACITY,
-} from "../config";
+import { FLOCK_COUNT, FLOCK_SIZE, OCT_TREE_CAPACITY } from "../config";
 import Boid from "../behavior/Boid";
-import { useFrame } from "@react-three/fiber";
 import initialize from "../behavior/initialize";
+import useForceFactors from "./useForceFactors";
+import useBoidProperties from "./useBoidProperties";
+import { MouseTrackingState } from "./useMouseTracking";
 
 const PERCEPTION_RADIUS = 5;
 const FIELD_OF_VIEW_DEG = 230;
@@ -32,7 +28,10 @@ const tempBoundary = new THREE.Sphere();
 export default function useBehavior(
   boidRadius: number,
   worldBoundary: THREE.Box3,
-): MutableRefObject<BoidStore> {
+  storageBoundary: THREE.Box3,
+  trackingStateRef: MutableRefObject<MouseTrackingState>,
+  trackingTargetRef: MutableRefObject<THREE.Vector3>,
+): BoidStore {
   const properties = useBoidProperties({
     perceptionRadius: PERCEPTION_RADIUS,
     fieldOfViewDeg: FIELD_OF_VIEW_DEG,
@@ -58,37 +57,25 @@ export default function useBehavior(
     [properties.desiredSeparation, boidRadius],
   );
 
-  const storageRef = useRef<BoidStore>();
-  if (!storageRef.current) {
-    storageRef.current = new BoidStore(
-      new OctTree<Boid>(
-        worldBoundary.clone().expandByScalar(OCT_TREE_BOUNDARY_SCALE),
-        OCT_TREE_CAPACITY,
-      ),
+  const storage = useMemo<BoidStore>(() => {
+    const s = new BoidStore(
+      new OctTree<Boid>(storageBoundary, OCT_TREE_CAPACITY),
     );
 
-    initialize(
-      FLOCK_SIZE,
-      FLOCK_COUNT,
-      properties.maxSpeed,
-      worldBoundary,
-      storageRef.current,
-    );
-  }
+    initialize(FLOCK_SIZE, FLOCK_COUNT, properties.maxSpeed, worldBoundary, s);
+
+    return s;
+  }, [worldBoundary, storageBoundary, properties.maxSpeed]);
 
   /* we will only deal with half of the boids per frame */
   const frameRef = useRef<number>(1);
   useFrame((_, delta) => {
-    if (!storageRef.current) {
-      return;
-    }
-
     if (delta > 1) {
       console.log("skipped excessive delta");
       return;
     }
 
-    const allBoids = storageRef.current.boids;
+    const allBoids = storage.boids;
     const halfSize = Math.floor(allBoids.length / 2);
 
     let boidSlice: Boid[];
@@ -101,10 +88,19 @@ export default function useBehavior(
     /* apply forces to all boids before computing position & velocity*/
     boidSlice.forEach((boid) => {
       tempBoundary.set(boid.position, boidRadius);
-      const neighbors = storageRef.current!.queryRange(tempBoundary);
+      const neighbors = storage.queryRange(tempBoundary);
+
       boid.applyForces({
         neighbors,
         boundary: worldBoundary,
+        seekTarget:
+          trackingStateRef.current === MouseTrackingState.seek
+            ? trackingTargetRef.current
+            : undefined,
+        avoidTarget:
+          trackingStateRef.current === MouseTrackingState.avoid
+            ? trackingTargetRef.current
+            : undefined,
         properties: {
           ...properties,
           perceptionRadius,
@@ -122,12 +118,12 @@ export default function useBehavior(
 
     // re-structure storage every other frame to balance accuracy & performance
     if (frameRef.current < 0) {
-      storageRef.current.clear();
-      allBoids.forEach((boid) => storageRef.current!.insert(boid));
+      storage.clear();
+      allBoids.forEach((boid) => storage.insert(boid));
     }
 
     frameRef.current *= -1; // switch frames
   });
 
-  return storageRef as MutableRefObject<BoidStore>; // we know that the ref was initialized
+  return storage;
 }
