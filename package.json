@@ -8,7 +8,7 @@
     "dev:gpu": "vite --open boids/gpu.html",
     "build": "npm run build:src && npm run build:md",
     "build:src": "tsc && vite build",
-    "build:md": "cp README.md dist/index.md && cp ABOUT.md dist/about.md",
+    "build:md": "cp README.md ABOUT.md dist/",
     "preview": "vite preview",
     "test": "vitest",
     "coverage": "vitest run --coverage",
