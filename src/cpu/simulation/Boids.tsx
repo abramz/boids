@@ -5,17 +5,14 @@ import niceColors from "nice-color-palettes/500.json";
 import Boid from "../behavior/Boid";
 
 export interface BoidProps {
-  boidRadius: number;
+  boidSize: number;
   boids: Boid[];
 }
 
 const tempColor = new THREE.Color();
 const tempObject = new THREE.Object3D();
-const tempMatrix = new THREE.Matrix4();
-const tempQuaternion = new THREE.Quaternion();
-const tempScale = new THREE.Vector3();
 
-export default function Boids({ boidRadius, boids }: BoidProps): ReactNode {
+export default function Boids({ boidSize, boids }: BoidProps): ReactNode {
   const groupRef = useRef<THREE.Group | null>(null);
   const meshRef = useRef<THREE.InstancedMesh | null>(null);
   const colors = useMemo(() => {
@@ -50,10 +47,7 @@ export default function Boids({ boidRadius, boids }: BoidProps): ReactNode {
     }
 
     boids.forEach((boid) => {
-      meshRef.current!.getMatrixAt(boid.id, tempMatrix);
       tempObject.clear();
-      tempMatrix.decompose(tempObject.position, tempQuaternion, tempScale);
-
       tempObject.position.copy(boid.position);
       tempObject.updateMatrix();
 
@@ -65,7 +59,7 @@ export default function Boids({ boidRadius, boids }: BoidProps): ReactNode {
   return (
     <group ref={groupRef}>
       <instancedMesh ref={meshRef} args={[undefined, undefined, boids.length]}>
-        <boxGeometry args={[boidRadius, boidRadius, boidRadius]}>
+        <boxGeometry args={[boidSize, boidSize, boidSize]}>
           <instancedBufferAttribute
             attach="attributes-color"
             args={[colors, 3]}

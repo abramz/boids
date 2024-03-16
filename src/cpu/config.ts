@@ -8,7 +8,7 @@ export const OCT_TREE_CAPACITY = 8;
 
 export const OCT_TREE_BOUNDARY_SCALE = WORLD_SIZE * 0.5;
 
-export const BOID_RADIUS = 0.2;
+export const BOID_SIZE = 0.2;
 
 export const PERCEPTION_RADIUS = 3;
 export const FIELD_OF_VIEW_DEG = 170;

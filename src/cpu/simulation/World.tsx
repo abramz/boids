@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { ReactNode, useMemo } from "react";
-import { BOID_RADIUS, OCT_TREE_BOUNDARY_SCALE } from "../config";
+import { BOID_SIZE, OCT_TREE_BOUNDARY_SCALE } from "../config";
 import useBehavior from "../hooks/useBehavior";
 import useMouseTracking from "../hooks/useMouseTracking";
 import Helpers from "./Helpers";
@@ -10,16 +10,14 @@ export interface SimulationProps {
   worldBoundary: THREE.Box3;
 }
 
-export default function Simulation({
-  worldBoundary,
-}: SimulationProps): ReactNode {
+export default function World({ worldBoundary }: SimulationProps): ReactNode {
   const storageBoundary = useMemo(
     () => worldBoundary.clone().expandByScalar(OCT_TREE_BOUNDARY_SCALE),
     [worldBoundary],
   );
   const { trackingStateRef, trackingTargetRef } = useMouseTracking();
   const [storage, boids] = useBehavior(
-    BOID_RADIUS,
+    BOID_SIZE,
     worldBoundary,
     storageBoundary,
     trackingStateRef,
@@ -35,7 +33,7 @@ export default function Simulation({
         trackingStateRef={trackingStateRef}
         trackingTargetRef={trackingTargetRef}
       />
-      <Boids boidRadius={BOID_RADIUS} boids={boids} />
+      <Boids boidSize={BOID_SIZE} boids={boids} />
     </>
   );
 }

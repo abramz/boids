@@ -16,6 +16,7 @@
   },
   "devDependencies": {
     "@react-three/babel": "^1.0.2",
+    "@react-three/test-renderer": "^8.2.1",
     "@types/node": "^20.11.24",
     "@types/react": "^18.2.63",
     "@types/react-dom": "^18.2.20",
