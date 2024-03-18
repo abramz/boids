@@ -15,7 +15,12 @@ export default function useHelpers() {
         value: false,
       },
       showStorageSegmentation: {
-        label: "Show storage segmentation (slow)",
+        label: "Show storage segmentation",
+        toggle: true,
+        value: false,
+      },
+      showMouseTrackingPosition: {
+        label: "Show mouse when tracking",
         toggle: true,
         value: false,
       },

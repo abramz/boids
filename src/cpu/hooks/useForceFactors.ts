@@ -1,4 +1,5 @@
 import { useControls } from "leva";
+import { useMemo } from "react";
 import { ForceFactors } from "../behavior/Boid";
 
 export default function useForceFactors({
@@ -51,8 +52,11 @@ export default function useForceFactors({
     { order: 0 },
   );
 
-  return {
-    ...factors,
-    avoidEdgesFactor,
-  };
+  return useMemo(
+    () => ({
+      ...factors,
+      avoidEdgesFactor,
+    }),
+    [factors, avoidEdgesFactor],
+  );
 }

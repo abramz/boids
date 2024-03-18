@@ -37,15 +37,19 @@ export function isInFOV(
  * Get a velocity of the specified magnitude in a random direction
  * @param maxSpeed scalar to scale the velocity with
  * @param velocity the output velocity
- * @returns
+ * @param seedPhi an optional seed for Phi to make testing easier
+ * @param seedTheta an optional seed for Theta to make testing easier
+ * @returns the velocity
  */
 const tempSpherical = new THREE.Spherical();
 export function getRandomScaledVelocity(
   maxSpeed: number,
   /* OUT */ velocity: THREE.Vector3,
+  seedPhi?: number,
+  seedTheta?: number,
 ): THREE.Vector3 {
-  const theta = THREE.MathUtils.randFloat(0, 2 * Math.PI);
-  const phi = THREE.MathUtils.randFloat(0, Math.PI);
+  const phi = seededRandom(0, Math.PI, seedPhi);
+  const theta = seededRandom(0, 2 * Math.PI, seedTheta);
 
   tempSpherical.set(maxSpeed, phi, theta);
 
@@ -57,20 +61,44 @@ export function getRandomScaledVelocity(
  * @param range range within which the random position will be
  * @param referencePosition a position to base the random position on
  * @param target the output position
+ * @param seedX an optional seed for X to make testing easier
+ * @param seedY an optional seed for Y to make testing easier
+ * @param seedZ an optional seed for Z to make testing easier
  * @returns the target
  */
 export function getRandomRelativePosition(
   range: number,
   referencePosition: THREE.Vector3,
   /* OUT */ target: THREE.Vector3,
+  seedX?: number,
+  seedY?: number,
+  seedZ?: number,
 ): THREE.Vector3 {
+  const min = -range / 2;
+  const max = range / 2;
   target
     .set(
-      THREE.MathUtils.randFloatSpread(range),
-      THREE.MathUtils.randFloatSpread(range),
-      THREE.MathUtils.randFloatSpread(range),
+      seededRandom(min, max, seedX),
+      seededRandom(min, max, seedY),
+      seededRandom(min, max, seedZ),
     )
     .add(referencePosition);
 
   return target;
+}
+
+/**
+ * Map a seeded random number to a range [min,max]
+ * @param min inclusive minimum for the random number
+ * @param max inclsuvie maximum for the random number
+ * @param seed an optional seed
+ */
+export function seededRandom(min: number, max: number, seed?: number): number {
+  return THREE.MathUtils.mapLinear(
+    seed ? THREE.MathUtils.seededRandom(seed) : THREE.MathUtils.randFloat(0, 1),
+    0,
+    1,
+    min,
+    max,
+  );
 }

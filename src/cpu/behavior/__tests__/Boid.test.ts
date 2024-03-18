@@ -42,6 +42,7 @@ const TEST_BOID_PROPERTIES: BoidProperties = {
   desiredSeparation: TEST_SEPARATION,
   maxSpeed: TEST_MAX_SPEED,
   maxForce: TEST_MAX_FORCE,
+  boidSize: 1,
 };
 
 let TEST_BOID: Boid;

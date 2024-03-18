@@ -4,6 +4,8 @@ import { useFrame } from "@react-three/fiber";
 import niceColors from "nice-color-palettes/500.json";
 import Boid from "../behavior/Boid";
 
+export const GROUP_NAME = "Boids";
+
 export interface BoidProps {
   boidSize: number;
   boids: Boid[];
@@ -27,10 +29,6 @@ export default function Boids({ boidSize, boids }: BoidProps): ReactNode {
   }, [boids]);
 
   useLayoutEffect(() => {
-    if (!groupRef.current || !meshRef.current) {
-      return;
-    }
-
     boids.forEach((boid) => {
       tempObject.clear();
       tempObject.position.copy(boid.position);
@@ -38,26 +36,21 @@ export default function Boids({ boidSize, boids }: BoidProps): ReactNode {
       meshRef.current!.setMatrixAt(boid.id, tempObject.matrix);
     });
 
-    meshRef.current.instanceMatrix.needsUpdate = true;
+    meshRef.current!.instanceMatrix.needsUpdate = true;
   }, [boids]);
 
   useFrame(() => {
-    if (!groupRef.current || !meshRef.current) {
-      return;
-    }
-
     boids.forEach((boid) => {
-      tempObject.clear();
       tempObject.position.copy(boid.position);
       tempObject.updateMatrix();
 
       meshRef.current!.setMatrixAt(boid.id, tempObject.matrix);
     });
-    meshRef.current.instanceMatrix.needsUpdate = true;
+    meshRef.current!.instanceMatrix.needsUpdate = true;
   });
 
   return (
-    <group ref={groupRef}>
+    <group ref={groupRef} name={GROUP_NAME}>
       <instancedMesh ref={meshRef} args={[undefined, undefined, boids.length]}>
         <boxGeometry args={[boidSize, boidSize, boidSize]}>
           <instancedBufferAttribute

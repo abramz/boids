@@ -6,6 +6,8 @@ let result: unknown | undefined;
 let error: any | undefined;
 let promise: Promise<unknown> | undefined;
 
+export type SuspendFn = typeof suspend;
+
 /**
  * Make a function work with React's <Suspense>
  * *NB*: this can only be used in one place, which is fine, because that is my intent

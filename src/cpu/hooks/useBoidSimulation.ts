@@ -2,68 +2,67 @@ import * as THREE from "three";
 import { MutableRefObject, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import BoidStore from "../storage/BoidStore";
-import {
-  ALIGNMENT_FACTOR,
-  AVOIDANCE_FACTOR,
-  AVOID_EDGES_FACTOR,
-  COHESION_FACTOR,
-  DESIRED_SEPARATION,
-  FIELD_OF_VIEW_DEG,
-  FLOCK_COUNT,
-  FLOCK_SIZE,
-  MAX_FORCE,
-  MAX_SPEED,
-  PERCEPTION_RADIUS,
-  SEEK_FACTOR,
-  SEPARATION_FACTOR,
-} from "../config";
 import Boid, { BoidProperties, ForceFactors } from "../behavior/Boid";
 import initialize from "../behavior/initialize";
 import suspend from "../helpers/suspend";
-import useForceFactors from "./useForceFactors";
-import useBoidProperties from "./useBoidProperties";
 import { MouseTrackingState } from "./useMouseTracking";
 
 const tempBoundary = new THREE.Sphere();
 
-export default function useBehavior(
-  boidRadius: number,
-  worldBoundary: THREE.Box3,
-  storageBoundary: THREE.Box3,
-  trackingStateRef: MutableRefObject<MouseTrackingState>,
-  trackingTargetRef: MutableRefObject<THREE.Vector3>,
-): [BoidStore, Boid[], BoidProperties, ForceFactors] {
-  const properties = useBoidProperties({
-    perceptionRadius: PERCEPTION_RADIUS,
-    fieldOfViewDeg: FIELD_OF_VIEW_DEG,
-    desiredSeparation: DESIRED_SEPARATION,
-    maxSpeed: MAX_SPEED,
-    maxForce: MAX_FORCE,
-  });
-  const forceFactors = useForceFactors({
-    alignmentFactor: ALIGNMENT_FACTOR,
-    cohesionFactor: COHESION_FACTOR,
-    separationFactor: SEPARATION_FACTOR,
-    avoidanceFactor: AVOIDANCE_FACTOR,
-    seekFactor: SEEK_FACTOR,
-    avoidEdgesFactor: AVOID_EDGES_FACTOR,
-  });
+export interface UseBehaviorOptions {
+  flockSize: number;
+  flockCount: number;
+  boidProperties: BoidProperties;
+  forceFactors: ForceFactors;
+  worldBoundary: THREE.Box3;
+  storageBoundary: THREE.Box3;
+  trackingStateRef: MutableRefObject<MouseTrackingState>;
+  trackingTargetRef: MutableRefObject<THREE.Vector3>;
+  seedX?: number[];
+  seedY?: number[];
+  seedZ?: number[];
+  seedPhi?: number[];
+  seedTheta?: number[];
+  seedStorageStart?: number;
+}
 
+export default function useBoidSimulation({
+  flockSize,
+  flockCount,
+  boidProperties,
+  forceFactors,
+  worldBoundary,
+  storageBoundary,
+  trackingStateRef,
+  trackingTargetRef,
+  seedX,
+  seedY,
+  seedZ,
+  seedPhi,
+  seedTheta,
+  seedStorageStart,
+}: UseBehaviorOptions): [BoidStore, Boid[]] {
   const perceptionRadius = useMemo(
-    () => properties.perceptionRadius + boidRadius,
-    [properties.perceptionRadius, boidRadius],
+    () => boidProperties.perceptionRadius + boidProperties.boidSize,
+    [boidProperties.perceptionRadius, boidProperties.boidSize],
   );
   const desiredSeparation = useMemo(
-    () => properties.desiredSeparation + boidRadius,
-    [properties.desiredSeparation, boidRadius],
+    () => boidProperties.desiredSeparation + boidProperties.boidSize,
+    [boidProperties.desiredSeparation, boidProperties.boidSize],
   );
 
   const storage: BoidStore = suspend(initialize, [
-    FLOCK_SIZE,
-    FLOCK_COUNT,
-    properties.maxSpeed,
+    flockSize,
+    flockCount,
+    boidProperties.maxSpeed,
     worldBoundary,
     storageBoundary,
+    seedX,
+    seedY,
+    seedZ,
+    seedPhi,
+    seedTheta,
+    seedStorageStart,
   ]);
   const allBoids = storage.boids; // we can get this once and use it forever since we don't create/destroy boid references after this
 
@@ -86,7 +85,7 @@ export default function useBehavior(
 
     /* apply forces to all boids before computing position & velocity*/
     boidSlice.forEach((boid) => {
-      tempBoundary.set(boid.position, boidRadius);
+      tempBoundary.set(boid.position, boidProperties.boidSize);
       const neighbors = storage.queryRange(tempBoundary);
 
       boid.applyForces({
@@ -101,7 +100,7 @@ export default function useBehavior(
             ? trackingTargetRef.current
             : undefined,
         properties: {
-          ...properties,
+          ...boidProperties,
           perceptionRadius,
           desiredSeparation,
         },
@@ -111,7 +110,7 @@ export default function useBehavior(
 
     /* apply acceleration & velocity to update the boids' positions */
     boidSlice.forEach((boid) => {
-      boid.applyAccleration(properties.maxSpeed);
+      boid.applyAccleration(boidProperties.maxSpeed);
       boid.applyVelocity(delta);
     });
 
@@ -124,5 +123,5 @@ export default function useBehavior(
     frameRef.current *= -1; // switch frames
   });
 
-  return [storage, allBoids, properties, forceFactors];
+  return [storage, allBoids];
 }

@@ -19,8 +19,9 @@ const tempWorldSize = new THREE.Vector3();
  * @param maybeFlockSize the number of boids that we would like to be in each flock
  * @param numFlocks the number of flocks
  * @param maxSpeed the maximum magnitude of the boid's speed
+ * @param storageBoundary the world's bounding box
  * @param worldBoundary the world's bounding box
- * @param storage the boid store for the simulation
+ * @param seed* optional seeds for testing
  */
 export default async function initialize(
   maybeFlockSize: number,
@@ -28,11 +29,17 @@ export default async function initialize(
   maxSpeed: number,
   worldBoundary: THREE.Box3,
   storageBoundary: THREE.Box3,
+  seedX?: number[],
+  seedY?: number[],
+  seedZ?: number[],
+  seedPhi?: number[],
+  seedTheta?: number[],
+  seedStorageStart?: number,
 ): Promise<BoidStore> {
   const flockSize = await determineFlockSize(maybeFlockSize);
 
   const storage = new BoidStore(
-    new OctTree<Boid>(storageBoundary, OCT_TREE_CAPACITY),
+    new OctTree<Boid>(storageBoundary, OCT_TREE_CAPACITY, seedStorageStart),
   );
   worldBoundary.getSize(tempWorldSize);
 
@@ -44,10 +51,18 @@ export default async function initialize(
         tempWorldSize.x, // world is a cube
         DEFAULT_POSITION,
         position,
+        (seedX ?? [])[idx],
+        (seedY ?? [])[idx],
+        (seedZ ?? [])[idx],
       );
 
       const velocity = new THREE.Vector3();
-      getRandomScaledVelocity(maxSpeed, velocity);
+      getRandomScaledVelocity(
+        maxSpeed,
+        velocity,
+        (seedPhi ?? [])[idx],
+        (seedTheta ?? [])[idx],
+      );
 
       storage.insert(
         new Boid({

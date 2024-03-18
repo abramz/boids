@@ -1,9 +1,12 @@
 import * as THREE from "three";
-import { MutableRefObject, ReactNode, useRef } from "react";
-import { useFrame } from "@react-three/fiber";
+import { MutableRefObject, ReactNode } from "react";
 import useHelpers from "../hooks/useHelpers";
 import BoidStore from "../storage/BoidStore";
 import { MouseTrackingState } from "../hooks/useMouseTracking";
+import StorageVisualizer from "./helpers/StorageVisualizer";
+import MouseVisualizer from "./helpers/MouseVisualizer";
+
+export const GROUP_NAME = "Helpers";
 
 export interface HelpersProps {
   worldBoundary: THREE.Box3;
@@ -13,9 +16,6 @@ export interface HelpersProps {
   trackingTargetRef: MutableRefObject<THREE.Vector3>;
 }
 
-const tempObject = new THREE.Object3D();
-const tempColor = new THREE.Color();
-
 export default function Helpers({
   worldBoundary,
   storageBoundary,
@@ -23,55 +23,14 @@ export default function Helpers({
   trackingStateRef,
   trackingTargetRef,
 }: HelpersProps): ReactNode {
-  const storageMeshRef = useRef<THREE.InstancedMesh | null>(null);
-  const trackingTargetMeshRef = useRef<THREE.Mesh<
-    THREE.SphereGeometry,
-    THREE.MeshStandardMaterial
-  > | null>(null);
-  const { showWorldBoundary, showStorageBoundary, showStorageSegmentation } =
-    useHelpers();
-
-  useFrame(() => {
-    if (!storageMeshRef.current || !trackingTargetMeshRef.current) {
-      return;
-    }
-
-    if (showStorageSegmentation) {
-      const boundaries = storage.boundaries;
-      for (let i = 0; i < 10000; i++) {
-        tempObject.clear();
-
-        const boundary = boundaries[i];
-        if (boundary) {
-          boundary.getCenter(tempObject.position);
-          boundary.getSize(tempObject.scale);
-        } else {
-          tempObject.scale.setScalar(0); // "hide" it
-        }
-
-        tempObject.updateMatrix();
-        storageMeshRef.current!.setMatrixAt(i, tempObject.matrix);
-      }
-
-      storageMeshRef.current.instanceMatrix.needsUpdate = true;
-    }
-
-    if (trackingStateRef.current == MouseTrackingState.none) {
-      trackingTargetMeshRef.current.visible = false;
-    } else {
-      trackingTargetMeshRef.current.visible = true;
-      tempColor.set(
-        trackingStateRef.current === MouseTrackingState.seek
-          ? "royalblue"
-          : "hotpink",
-      );
-      trackingTargetMeshRef.current.material.color = tempColor;
-      trackingTargetMeshRef.current.position.copy(trackingTargetRef.current);
-    }
-  });
-
+  const {
+    showWorldBoundary,
+    showStorageBoundary,
+    showStorageSegmentation,
+    showMouseTrackingPosition,
+  } = useHelpers();
   return (
-    <>
+    <group name={GROUP_NAME}>
       <box3Helper
         args={[worldBoundary, "royalblue"]}
         visible={showWorldBoundary}
@@ -80,21 +39,12 @@ export default function Helpers({
         args={[storageBoundary, "red"]}
         visible={showStorageBoundary}
       />
-      <instancedMesh
-        ref={storageMeshRef}
-        args={[undefined, undefined, 10000]}
-        visible={showStorageSegmentation}
-      >
-        <boxGeometry args={[1, 1, 1]} />
-        <meshBasicMaterial color="#a0a0a0" wireframe />
-      </instancedMesh>
-      <mesh
-        ref={trackingTargetMeshRef}
-        visible={trackingStateRef.current !== MouseTrackingState.none}
-      >
-        <sphereGeometry args={[0.2, 64, 64]} />
-        <meshStandardMaterial />
-      </mesh>
-    </>
+      <StorageVisualizer show={showStorageSegmentation} storage={storage} />
+      <MouseVisualizer
+        show={showMouseTrackingPosition}
+        trackingStateRef={trackingStateRef}
+        trackingTargetRef={trackingTargetRef}
+      />
+    </group>
   );
 }

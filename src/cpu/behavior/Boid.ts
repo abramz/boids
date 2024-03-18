@@ -1,7 +1,6 @@
 import * as THREE from "three";
 import { isInFOV, limit } from "../helpers/math";
 import { Node } from "../storage/OctTree";
-import { WORLD_SIZE } from "../config";
 
 export interface BoidOptions {
   id: number;
@@ -25,6 +24,7 @@ export type BoidProperties = {
   desiredSeparation: number;
   maxSpeed: number;
   maxForce: number;
+  boidSize: number;
 };
 
 export interface ApplyForcesOptions {
@@ -165,7 +165,7 @@ export default class Boid implements Node {
       // AVOID
       if (
         avoidTarget &&
-        Math.abs(this.position.distanceTo(avoidTarget)) < WORLD_SIZE / 8
+        Math.abs(this.position.distanceTo(avoidTarget)) < desiredSeparation * 10
       ) {
         this.determineForce(
           this.avoid,

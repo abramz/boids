@@ -37,7 +37,5 @@ export default function Instructions(): ReactNode {
       </p>
       <button onClick={() => setIsOpen(false)}>{"Close"}</button>
     </Alert>
-  ) : (
-    <></>
-  );
+  ) : null;
 }

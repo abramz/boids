@@ -17,24 +17,12 @@ In the first stage, I am going to treat this more like a "game" with "game objec
 I want to use this as an opportunity to figure out a few things
 
 > 1. Freshen up on the maths and doing things in 3d.
-
-I am def still slow here but I think we got there.
-
 > 2. Learning how to work with three.js, how to think about testing in the space, etc.
-
-Same. With some testing WIP.
-
 > 3. Adjusting the number of objects in the system based on the system performance.
-
-I would like to revist this.
-
 > 4. Implement some patterns/flight paths that I might like to see.
-
-WIP
-
 > 5. Implement multiple flocks with different behaviors/flight paths.
 
-WIP
+So far, I think I have accomplished the majority of these things, though I am still thinking about how I want to accomplish the "have patterns/flight path" objective type things
 
 ### GPU Space
 

@@ -6,7 +6,7 @@ export const WORLD_SIZE = 30;
 
 export const OCT_TREE_CAPACITY = 8;
 
-export const OCT_TREE_BOUNDARY_SCALE = WORLD_SIZE * 0.5;
+export const OCT_TREE_BOUNDARY_SCALE = WORLD_SIZE * 0.3;
 
 export const BOID_SIZE = 0.2;
 

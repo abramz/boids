@@ -1,4 +1,5 @@
 import { useControls } from "leva";
+import { useMemo } from "react";
 import { WORLD_SIZE } from "../config";
 import { BoidProperties } from "../behavior/Boid";
 
@@ -8,8 +9,9 @@ export default function useBoidProperties({
   desiredSeparation,
   maxSpeed,
   maxForce,
+  boidSize,
 }: BoidProperties): BoidProperties {
-  return useControls(
+  const values = useControls(
     "Boid Properties",
     {
       perceptionRadius: {
@@ -40,5 +42,13 @@ export default function useBoidProperties({
       },
     },
     { collapsed: true, order: 1 },
+  );
+
+  return useMemo(
+    () => ({
+      ...values,
+      boidSize,
+    }),
+    [values, boidSize],
   );
 }

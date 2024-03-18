@@ -15,6 +15,7 @@ function randomPointWithin(box: THREE.Box3) {
 let boundary: THREE.Box3;
 let capacity: number;
 let octTree: OctTree<Node>;
+const seed = 1234567;
 
 beforeEach(() => {
   boundary = new THREE.Box3(
@@ -24,7 +25,7 @@ beforeEach(() => {
 
   capacity = 4;
 
-  octTree = new OctTree(boundary, capacity);
+  octTree = new OctTree(boundary, capacity, seed);
 });
 
 it("inserts nodes within boundary", () => {
@@ -110,4 +111,28 @@ it("retrieves boundaries correctly", () => {
 it("doesn't return a boundary if there are no inserted nodes", () => {
   const boundaries = octTree.boundaries;
   expect(boundaries).toHaveLength(0);
+});
+
+it("calcualtes trees correctly", () => {
+  const position = new THREE.Vector3();
+  for (let i = 0; i < capacity; i++) {
+    octTree.insert({ position });
+  }
+  expect(octTree.trees).toBe(1);
+
+  // subdivision
+  octTree.insert({ position });
+  expect(octTree.trees).toBe(9);
+
+  // subdivision on last insert
+  for (let i = 0; i < capacity; i++) {
+    octTree.insert({ position });
+  }
+  expect(octTree.trees).toBe(17);
+
+  // subdivision on last insert
+  for (let i = 0; i < capacity; i++) {
+    octTree.insert({ position });
+  }
+  expect(octTree.trees).toBe(25);
 });

@@ -31,6 +31,7 @@ export default function useMouseTracking(): {
         return;
       }
 
+      window.addEventListener("pointermove", setMousePosition);
       if (event.shiftKey) {
         trackMouse.current = MouseTrackingState.seek;
       } else if (event.ctrlKey) {
@@ -39,17 +40,17 @@ export default function useMouseTracking(): {
     };
 
     const ignore = () => {
+      window.removeEventListener("pointermove", setMousePosition);
       trackMouse.current = MouseTrackingState.none;
     };
 
-    document.addEventListener("mousemove", setMousePosition);
-    document.addEventListener("keydown", track);
-    document.addEventListener("keyup", ignore);
+    window.addEventListener("keydown", track);
+    window.addEventListener("keyup", ignore);
 
     return () => {
-      document.removeEventListener("keydown", track);
-      document.removeEventListener("keyup", ignore);
-      document.removeEventListener("mousemove", setMousePosition);
+      window.removeEventListener("keydown", track);
+      window.removeEventListener("keyup", ignore);
+      window.removeEventListener("pointermove", setMousePosition);
     };
   }, []);
 

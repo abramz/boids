@@ -68,6 +68,8 @@ it("should position the instances to match the positions of the boids", async ()
     <Boids boidSize={BOID_RADIUS} boids={BOIDS} />,
   );
 
+  await renderer.advanceFrames(1, 0.01);
+
   const mesh = renderer.scene.findByType("Mesh")
     .instance as unknown as THREE.InstancedMesh;
 
@@ -87,6 +89,8 @@ it("should update the instances' position if the boids move", async () => {
   const renderer = await ReactThreeTestRenderer.create(
     <Boids boidSize={BOID_RADIUS} boids={BOIDS} />,
   );
+
+  await renderer.advanceFrames(1, 0.01);
 
   BOIDS.forEach((boid) =>
     boid.position.set(boid.parentId, boid.parentId, boid.parentId),

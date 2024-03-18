@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { seededRandom } from "../helpers/math";
 
 const tempVector = new THREE.Vector3();
 
@@ -13,6 +14,7 @@ export interface Node {
 export default class OctTree<T extends Node> {
   protected boundary: THREE.Box3;
   protected capacity: number;
+  protected seed: number | undefined;
   protected nodes: T[] = [];
   protected children:
     | [
@@ -27,9 +29,10 @@ export default class OctTree<T extends Node> {
       ]
     | undefined;
 
-  constructor(boundary: THREE.Box3, capacity: number) {
+  constructor(boundary: THREE.Box3, capacity: number, seed?: number) {
     this.boundary = boundary;
     this.capacity = capacity;
+    this.seed = seed;
   }
 
   /**
@@ -51,7 +54,10 @@ export default class OctTree<T extends Node> {
       this.subdivide();
     }
 
-    for (const child of this.children!) {
+    // randomly select a starting index so we spread the load more
+    const randomStart = Math.round(seededRandom(1, 8, this.seed));
+    for (let i = randomStart; i < randomStart + 8; i++) {
+      const child = this.children![i % 8];
       const inserted = child.insert(node);
 
       if (inserted) {
@@ -59,7 +65,9 @@ export default class OctTree<T extends Node> {
       }
     }
 
-    return false;
+    throw new Error(
+      "an unknown error occurred and the node could not be inserted",
+    );
   }
 
   /**
@@ -87,8 +95,7 @@ export default class OctTree<T extends Node> {
             new ctor(
               new THREE.Box3().setFromCenterAndSize(tempVector, size),
               this.capacity,
-              undefined,
-              false,
+              this.seed,
             ),
           );
         }
@@ -161,6 +168,21 @@ export default class OctTree<T extends Node> {
     }
 
     return this.nodes.length + childSize;
+  }
+
+  /**
+   * Return the total number of trees
+   */
+  public get trees(): number {
+    if (!this.children) {
+      return 1;
+    }
+
+    let childSize = 0;
+    for (const child of this.children) {
+      childSize += child.trees;
+    }
+    return 1 + childSize;
   }
 
   /**
