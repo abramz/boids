@@ -10,7 +10,8 @@
     "build:src": "tsc && vite build",
     "preview": "vite preview",
     "test": "vitest",
-    "coverage": "vitest run --coverage",
+    "test:ci": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "prepare": "husky",
     "lint": "eslint src"
   },
