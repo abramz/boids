@@ -49,7 +49,7 @@ jobs:
       - name: Move docs to artifact
         run: |
           cp -r _site/assets/* dist/assets/
-          cp _site/ABOUT.html _site/index.html dist/
+          cp _site/ABOUT.html dist/index.html
       - name: Setup Pages
         uses: actions/configure-pages@v3
       - name: Upload artifact

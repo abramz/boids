@@ -1,4 +1,10 @@
-## Calling the shot
+---
+layout: default
+---
+
+# Boids
+
+## What is this?
 
 I am going to make a series of toys to mess around with [three.js](https://threejs.org) and the concept of [boids](https://www.red3d.com/cwr/boids).
 
@@ -6,41 +12,40 @@ While I expect these to be toys, I want to make sure I can write automated tests
 
 I am going to do this in a few stages
 
-### Figure out a build process
+## (WIP) Stage 1
 
-I want to publish this to github pages and don't want to fuss with it later, so figure that bit out now.
+[Source](https://github.com/abramz/boids/tree/main/src/gpu) • [Demo](http://andrewshapro.com/boids/gpu)
 
-### CPU Space
+Having not done 3d programming in over a decade, I am starting off by refamiliarizing myself with the math and getting to know three.js and the other tools.
+While I will try to do things efficiently, I will also try to stay way form using things like shaders/GPU computations myself.
 
-I haven't done 3d programming in over a decade and I am very new to three.js.
-In the first stage, I am going to treat this more like a "game" with "game objects" all in CPU space.
-I want to use this as an opportunity to figure out a few things
+Going into this, I have the following goals:
 
-> 1. Freshen up on the maths and doing things in 3d.
-> 2. Learning how to work with three.js, how to think about testing in the space, etc.
-> 3. Adjusting the number of objects in the system based on the system performance.
-> 4. Implement some patterns/flight paths that I might like to see.
-> 5. Implement multiple flocks with different behaviors/flight paths.
+1. Freshen up on the math.
+2. Learn how to work with three.js, how to think about testing in the space, etc.
+3. (NYI) Somehow adjust the number of objects in the system based on the system performance.
+4. Implement some patterns/flight paths that I might like to see.
+5. Implement multiple flocks, potentially with different behaviors/flight paths.
 
-So far, I think I have accomplished the majority of these things, though I am still thinking about how I want to accomplish the "have patterns/flight path" objective type things
+## (NYI) Stage 2
 
-### GPU Space
+[Source](https://github.com/abramz/boids/tree/main/src/cpu) • [Demo](http://andrewshapro.com/boids/cpu)
 
-In this stage I am going to move a lot of the math to the GPU using shaders.
-The idea here would be to produce something very similar in behavior to the CPU stage, but off-loading anything that makes sense to the GPU (velocity & positon calculations, etc)
+In this stage, I am going to see if I can use the GPU to make a lot more boids.
+The idea here will be to produce something very similar in behavior to the first stage.
 
-The goals here would be
+I have the following goals for this stage:
 
-1. Learning how to work in shaders, how to think about testing in the space, etc.
-2. Producing something with similar behavior to the CPU stage.
-3. Getting better performance.
+1. Learn how to work in shaders, how to think about testing in the space, etc.
+2. Produce something with similar behavior to the first stage.
+3. Get more objects/better performance.
 
 ### Tools
 
 #### Development:
 
 - [three.js](https://github.com/mrdoob/three.js) - all of the examples are super helpful and it is a pretty mature project with a lot of usage
-- [@react-three/fiber](https://github.com/pmndrs/react-three-fiber) - the [ecosystem](https://docs.pmnd.rs/react-three-fiber/getting-started/introduction#eco-system) seems to have alot of tools that could be useful for implementation & automated testing
+- [@react-three/fiber](https://github.com/pmndrs/react-three-fiber) - the [ecosystem](https://docs.pmnd.rs/react-three-fiber/getting-started/introduction#eco-system) seems to have a lot of tools that could be useful for implementation & automated testing
 - [@react-three/drei](https://github.com/pmndrs/drei) - using some helpful components
 - [leva](https://github.com/pmndrs/leva) - UI controls
 - [nice-color-palettes](https://www.npmjs.com/package/nice-color-palettes) - saw it in some three.js demos and it has some...nice...color palettes
@@ -50,7 +55,7 @@ The goals here would be
 
 - [vitest](https://vitest.dev) - I am already using vite and it has an experimental feature to run in the browser which may come in handy later.
 
-For the 2nd stage, since behavior and maths should largely live in shader files, testing things will get more complicated, though, if I have the tests running in the browser, I could get the results from the shaders and check their data buffers.
+For the 2nd stage, since behavior and math should largely live in shader files, testing things will get more complicated, though, if I have the tests running in the browser, I could get the results from the shaders and check their data buffers.
 
 #### Build:
 
