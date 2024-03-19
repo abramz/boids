@@ -40,9 +40,9 @@ I have the following goals for this stage:
 2. Produce something with similar behavior to the first stage.
 3. Get more objects/better performance.
 
-### Tools
+## Tools
 
-#### Development:
+### Development:
 
 - [three.js](https://github.com/mrdoob/three.js) - all of the examples are super helpful and it is a pretty mature project with a lot of usage
 - [@react-three/fiber](https://github.com/pmndrs/react-three-fiber) - the [ecosystem](https://docs.pmnd.rs/react-three-fiber/getting-started/introduction#eco-system) seems to have a lot of tools that could be useful for implementation & automated testing
@@ -51,17 +51,17 @@ I have the following goals for this stage:
 - [nice-color-palettes](https://www.npmjs.com/package/nice-color-palettes) - saw it in some three.js demos and it has some...nice...color palettes
 - [react-page-visibility](https://www.npmjs.com/package/react-page-visibility) - I was lazy and didn't want to implement this hook myself
 
-#### Testing
+### Testing
 
 - [vitest](https://vitest.dev) - I am already using vite and it has an experimental feature to run in the browser which may come in handy later.
 
 For the 2nd stage, since behavior and math should largely live in shader files, testing things will get more complicated, though, if I have the tests running in the browser, I could get the results from the shaders and check their data buffers.
 
-#### Build:
+### Build:
 
 - [vite](https://github.com/vitejs/vite) - haven't used it before but seems to be pretty easy to use. I know there is a plugin for glsl files which will come in handy for the shader code.
 - The usual super helpful tools: eslint, prettier, husky, and lint-staged
 
-#### Deploy
+### Deploy
 
-- Deploying to github pages using an action
+- Deploying to github pages
