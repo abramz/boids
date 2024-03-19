@@ -14,7 +14,7 @@ I am going to do this in a few stages
 
 ## (WIP) Stage 1
 
-[Source](https://github.com/abramz/boids/tree/main/src/gpu) • [Demo](http://andrewshapro.com/boids/gpu)
+[Source](https://github.com/abramz/boids/tree/main/src/cpu) • [Demo](http://andrewshapro.com/boids/cpu)
 
 Having not done 3d programming in over a decade, I am starting off by refamiliarizing myself with the math and getting to know three.js and the other tools.
 While I will try to do things efficiently, I will also try to stay way form using things like shaders/GPU computations myself.
@@ -29,7 +29,7 @@ Going into this, I have the following goals:
 
 ## (NYI) Stage 2
 
-[Source](https://github.com/abramz/boids/tree/main/src/cpu) • [Demo](http://andrewshapro.com/boids/cpu)
+[Source](https://github.com/abramz/boids/tree/main/src/gpu) • [Demo](http://andrewshapro.com/boids/gpu)
 
 In this stage, I am going to see if I can use the GPU to make a lot more boids.
 The idea here will be to produce something very similar in behavior to the first stage.
