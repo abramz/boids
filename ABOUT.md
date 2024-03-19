@@ -2,7 +2,7 @@
 layout: default
 ---
 
-# Boids
+# About
 
 ## What is this?
 
