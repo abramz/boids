@@ -1,11 +1,18 @@
 import { ReactNode, useState } from "react";
+import { button, useControls } from "leva";
 import Alert from "./Alert";
 
 /**
  * Crude instructions window
  */
 export default function Instructions(): ReactNode {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
+  useControls(
+    {
+      "Show instructions": button(() => setIsOpen(true)),
+    },
+    { order: 10000 },
+  );
 
   return isOpen ? (
     <Alert>

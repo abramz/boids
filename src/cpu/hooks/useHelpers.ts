@@ -25,6 +25,6 @@ export default function useHelpers() {
         value: false,
       },
     },
-    { collapsed: true, order: 3 },
+    { collapsed: true, order: 1000 },
   );
 }

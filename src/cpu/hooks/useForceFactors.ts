@@ -49,7 +49,7 @@ export default function useForceFactors({
         step: 0.1,
       },
     },
-    { order: 0 },
+    { order: 10 },
   );
 
   return useMemo(

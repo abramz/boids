@@ -41,7 +41,7 @@ export default function useBoidProperties({
         step: 0.1,
       },
     },
-    { collapsed: true, order: 1 },
+    { collapsed: true, order: 100 },
   );
 
   return useMemo(
