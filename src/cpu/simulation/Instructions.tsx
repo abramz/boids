@@ -11,7 +11,7 @@ export default function Instructions(): ReactNode {
     {
       "Show instructions": button(() => setIsOpen(true)),
     },
-    { order: 10000 },
+    { order: 50 },
   );
 
   return isOpen ? (

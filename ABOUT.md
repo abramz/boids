@@ -6,13 +6,13 @@ layout: default
 
 ## What is this?
 
-I am going to make a series of toys to mess around with [three.js](https://threejs.org) and the concept of [boids](https://www.red3d.com/cwr/boids).
+I am going to make a series of toys to play around with [three.js](https://threejs.org) and the concept of [boids](https://www.red3d.com/cwr/boids).
 
 While I expect these to be toys, I want to make sure I can write automated tests to verify behavior.
 
 I am going to do this in a few stages
 
-## (WIP) Stage 1
+## Stage 1
 
 [Source](https://github.com/abramz/boids/tree/main/src/cpu) • [Demo](http://andrewshapro.com/boids/cpu)
 
@@ -23,7 +23,7 @@ Going into this, I have the following goals:
 
 1. Freshen up on the math.
 2. Learn how to work with three.js, how to think about testing in the space, etc.
-3. (NYI) Somehow adjust the number of objects in the system based on the system performance.
+3. Somehow adjust the number of objects in the system based on the system performance.
 4. Implement some patterns/flight paths that I might like to see.
 5. Implement multiple flocks, potentially with different behaviors/flight paths.
 

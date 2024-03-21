@@ -78,7 +78,7 @@ export function InternalWorld({
 export default function World(): ReactNode {
   const camera = useThree((state) => state.camera);
   const glContext = useThree((state) => state.gl.getContext());
-  const gpuResult = useDetectGPU({ glContext: glContext });
+  const gpuResult = useDetectGPU({ glContext });
 
   const defaults = useMemo(() => {
     // this has seemed like a good benchmark for flock size
