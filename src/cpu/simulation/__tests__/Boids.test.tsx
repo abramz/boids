@@ -43,16 +43,17 @@ it("should render a box geometery with a size equal to the boidSize", async () =
   expect(box.parameters.depth).toEqual(BOID_RADIUS);
 });
 
-it("should render a box geometery with a color for each boid", async () => {
+it("should render a box geometery", async () => {
   const renderer = await ReactThreeTestRenderer.create(
     <Boids boidSize={BOID_RADIUS} boids={BOIDS} />,
   );
 
   const box = renderer.scene.findByType("BoxGeometry")
     .instance as unknown as THREE.BoxGeometry;
-  const colors = box.getAttribute("color");
 
-  expect(colors.array).toHaveLength(BOID_COUNT * 3);
+  expect(box.parameters).toHaveProperty("width", BOID_RADIUS);
+  expect(box.parameters).toHaveProperty("height", BOID_RADIUS);
+  expect(box.parameters).toHaveProperty("depth", BOID_RADIUS);
 });
 
 it("should render a standard material", async () => {
@@ -90,13 +91,13 @@ it("should update the instances' position if the boids move", async () => {
     <Boids boidSize={BOID_RADIUS} boids={BOIDS} />,
   );
 
-  await renderer.advanceFrames(1, 0.01);
+  await renderer.advanceFrames(2, 0.01); // the Instances component is 1 frame behind, so skip 2
 
   BOIDS.forEach((boid) =>
     boid.position.set(boid.parentId, boid.parentId, boid.parentId),
   );
 
-  await renderer.advanceFrames(1, 0.01);
+  await renderer.advanceFrames(2, 0.01);
 
   const mesh = renderer.scene.findByType("Mesh")
     .instance as unknown as THREE.InstancedMesh;

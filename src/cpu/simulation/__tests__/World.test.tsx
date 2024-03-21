@@ -2,8 +2,9 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { create, waitFor } from "@react-three/test-renderer";
 import SeededWorld from "../../__mocks__/SeededWorld";
 import { GROUP_NAME as HELPER_GROUP_NAME } from "../Helpers";
-import { GROUP_NAME as BOIDS_GROUP_NAME } from "../Boids";
 import { GROUP_NAME as WORLD_GROUP_NAME } from "../World";
+import { GROUP_NAME as BOIDS_GROUP_NAME } from "../Boids";
+import { FLOCK_SIZE, FLOCK_COUNT } from "../../__mocks__/seededConfig";
 
 vi.mock("../../hooks/useHelpers", () => ({
   default: vi.fn().mockReturnValue({
@@ -35,7 +36,9 @@ async function render(): ReturnType<typeof create> {
 it("should render the world in all of its glory", async () => {
   const renderer = await render();
 
-  expect(renderer.scene.findAllByType("Group")).toHaveLength(3);
+  expect(renderer.scene.findAllByType("Group")).toHaveLength(
+    2 + FLOCK_SIZE * FLOCK_COUNT, // each Instance has a group
+  );
   const worldGroup = renderer.scene.findAllByType("Group")[0];
   expect(worldGroup.instance.name).toEqual(WORLD_GROUP_NAME);
 
@@ -44,7 +47,8 @@ it("should render the world in all of its glory", async () => {
   expect(helperGroup.findAllByType("Box3Helper")).toHaveLength(2);
   expect(helperGroup.findAllByType("Mesh")).toHaveLength(2);
 
-  const boidsGroup = renderer.scene.findAllByType("Group")[2];
+  const meshes = renderer.scene.findAllByType("Mesh");
+  const boidsGroup = meshes[meshes.length - 1];
   expect(boidsGroup.instance.name).toEqual(BOIDS_GROUP_NAME);
   expect(boidsGroup.findAllByType("Mesh")).toHaveLength(1);
 });

@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { BoidProperties, ForceFactors } from "../behavior/Boid";
+import { OCT_TREE_BOUNDARY_SCALE } from "../config";
 
 export const FLOCK_SIZE = 5;
 export const FLOCK_COUNT = 5;
@@ -8,6 +9,9 @@ const HALF_SIZE = 5;
 export const WORLD_BOUNDARY = new THREE.Box3(
   new THREE.Vector3(-HALF_SIZE, -HALF_SIZE, -HALF_SIZE),
   new THREE.Vector3(HALF_SIZE, HALF_SIZE, HALF_SIZE),
+);
+export const STORAGE_BOUNDARY = WORLD_BOUNDARY.clone().expandByScalar(
+  OCT_TREE_BOUNDARY_SCALE,
 );
 export const BOID_PROPERTIES: BoidProperties = {
   perceptionRadius: 2,

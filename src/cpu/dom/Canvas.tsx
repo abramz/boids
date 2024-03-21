@@ -21,6 +21,7 @@ export default function Canvas(): ReactNode {
       rootRef.current.configure({
         events,
         camera: {
+          near: 0.0001,
           position: [0, 0, WORLD_SIZE / 2],
         },
       });

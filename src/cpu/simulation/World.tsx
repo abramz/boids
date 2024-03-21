@@ -1,21 +1,24 @@
 import * as THREE from "three";
 import { ReactNode, useMemo } from "react";
+import { useThree } from "@react-three/fiber";
+import { useDetectGPU } from "@react-three/drei";
 import { OCT_TREE_BOUNDARY_SCALE } from "../config";
 import useBoidSimulation from "../hooks/useBoidSimulation";
 import useMouseTracking from "../hooks/useMouseTracking";
 import { BoidProperties, ForceFactors } from "../behavior/Boid";
-import Helpers from "./Helpers";
+import * as config from "../config";
+import useBoidProperties from "../hooks/useBoidProperties";
+import useForceFactors from "../hooks/useForceFactors";
 import Boids from "./Boids";
+import Helpers from "./Helpers";
 
-export interface WorldProps {
+export interface InternalWorldProps {
   flockSize: number;
   flockCount: number;
   boidProperties: BoidProperties;
   forceFactors: ForceFactors;
   worldBoundary: THREE.Box3;
-}
-
-export interface InternalWorldProps extends WorldProps {
+  storageBoundary: THREE.Box3;
   seedX?: number[];
   seedY?: number[];
   seedZ?: number[];
@@ -32,6 +35,7 @@ export function InternalWorld({
   boidProperties,
   forceFactors,
   worldBoundary,
+  storageBoundary,
   seedX,
   seedY,
   seedZ,
@@ -39,10 +43,6 @@ export function InternalWorld({
   seedTheta,
   seedStorageStart,
 }: InternalWorldProps): ReactNode {
-  const storageBoundary = useMemo(
-    () => worldBoundary.clone().expandByScalar(OCT_TREE_BOUNDARY_SCALE),
-    [worldBoundary],
-  );
   const { trackingStateRef, trackingTargetRef } = useMouseTracking();
   const [storage, boids] = useBoidSimulation({
     flockSize,
@@ -75,6 +75,69 @@ export function InternalWorld({
   );
 }
 
-export default function World(props: WorldProps): ReactNode {
-  return <InternalWorld {...props} />;
+export default function World(): ReactNode {
+  const camera = useThree((state) => state.camera);
+  const glContext = useThree((state) => state.gl.getContext());
+  const gpuResult = useDetectGPU({ glContext: glContext });
+
+  const defaults = useMemo(() => {
+    // this has seemed like a good benchmark for flock size
+    const flockSize = gpuResult.fps ?? config.FLOCK_SIZE;
+    const worldSize = Math.max(
+      1,
+      config.WORLD_SIZE * (flockSize / config.FLOCK_SIZE),
+    );
+    const scale = worldSize / config.WORLD_SIZE;
+
+    camera.position.z = worldSize / 2;
+
+    return {
+      flockSize,
+      worldSize,
+      perceptionRadius: config.PERCEPTION_RADIUS * scale,
+      desiredSeparation: config.DESIRED_SEPARATION * scale,
+      maxSpeed: config.MAX_SPEED * scale,
+      maxForce: config.MAX_FORCE * scale,
+      boidSize: config.BOID_SIZE * scale,
+    };
+  }, [gpuResult, camera]);
+
+  const [worldBoundary, storageBoundary] = useMemo(() => {
+    const halfSize = defaults.worldSize / 2;
+
+    const boundary = new THREE.Box3(
+      new THREE.Vector3(-halfSize, -halfSize, -halfSize),
+      new THREE.Vector3(halfSize, halfSize, halfSize),
+    );
+    return [boundary, boundary.clone().expandByScalar(OCT_TREE_BOUNDARY_SCALE)];
+  }, [defaults]);
+
+  const boidProperties = useBoidProperties({
+    perceptionRadius: defaults.perceptionRadius,
+    fieldOfViewDeg: config.FIELD_OF_VIEW_DEG,
+    desiredSeparation: defaults.desiredSeparation,
+    maxSpeed: defaults.maxSpeed,
+    maxForce: defaults.maxForce,
+    boidSize: defaults.boidSize,
+  });
+
+  const forceFactors = useForceFactors({
+    alignmentFactor: config.ALIGNMENT_FACTOR,
+    cohesionFactor: config.COHESION_FACTOR,
+    separationFactor: config.SEPARATION_FACTOR,
+    avoidanceFactor: config.AVOIDANCE_FACTOR,
+    seekFactor: config.SEEK_FACTOR,
+    avoidEdgesFactor: config.AVOID_EDGES_FACTOR,
+  });
+
+  return (
+    <InternalWorld
+      flockSize={defaults.flockSize}
+      flockCount={config.FLOCK_COUNT}
+      boidProperties={boidProperties}
+      forceFactors={forceFactors}
+      worldBoundary={worldBoundary}
+      storageBoundary={storageBoundary}
+    />
+  );
 }

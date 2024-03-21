@@ -24,13 +24,5 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     setupFiles: ["./test-setup.ts"],
-    deps: {
-      optimizer: {
-        web: {
-          enabled: true,
-          include: ["./node_modules/three"],
-        },
-      },
-    },
   },
 });

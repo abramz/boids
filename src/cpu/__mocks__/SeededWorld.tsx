@@ -8,6 +8,7 @@ export default function SeededWorld(): ReactNode {
       flockSize={config.FLOCK_SIZE}
       flockCount={config.FLOCK_COUNT}
       worldBoundary={config.WORLD_BOUNDARY}
+      storageBoundary={config.STORAGE_BOUNDARY}
       boidProperties={config.BOID_PROPERTIES}
       forceFactors={config.FORCE_FACTORS}
       seedX={config.SEED_X}
