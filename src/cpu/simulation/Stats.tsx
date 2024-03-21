@@ -6,7 +6,9 @@ export default function Stats() {
   const [isOpen, setIsOpen] = useState(false);
   useControls(
     {
-      "Toggle performance": button(() => setIsOpen((prevState) => !prevState)),
+      "Toggle performance graphs": button(() =>
+        setIsOpen((prevState) => !prevState),
+      ),
     },
     { order: 500 },
   );

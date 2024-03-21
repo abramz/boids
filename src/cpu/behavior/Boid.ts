@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { isInFOV, limit } from "../helpers/math";
 import { Node } from "../storage/OctTree";
+import Obstacle from "../obstacle/Obstacle";
 
 export interface BoidOptions {
   id: number;
@@ -30,6 +31,7 @@ export type BoidProperties = {
 export interface ApplyForcesOptions {
   neighbors: Boid[];
   boundary: THREE.Box3;
+  obstacles?: Obstacle[];
   seekTarget?: THREE.Vector3;
   avoidTarget?: THREE.Vector3;
   properties: BoidProperties;
@@ -49,6 +51,7 @@ const tempAvoidTarget = new THREE.Vector3();
 const tempDiff = new THREE.Vector3();
 const tempForward = new THREE.Vector3();
 const tempAccelerationVector = new THREE.Vector3();
+const tempSteerDirection = new THREE.Vector3();
 
 export default class Boid implements Node {
   public readonly id: number;
@@ -63,6 +66,7 @@ export default class Boid implements Node {
     avoidance: THREE.Vector3Tuple;
     seek: THREE.Vector3Tuple;
     avoidEdges: THREE.Vector3Tuple;
+    avoidObstacles: THREE.Vector3Tuple;
   };
 
   constructor({ id, parentId, position, velocity }: BoidOptions) {
@@ -77,6 +81,7 @@ export default class Boid implements Node {
       avoidance: [0, 0, 0],
       seek: [0, 0, 0],
       avoidEdges: [0, 0, 0],
+      avoidObstacles: [0, 0, 0],
     };
   }
 
@@ -89,6 +94,7 @@ export default class Boid implements Node {
    */
   public applyForces({
     neighbors,
+    obstacles = [],
     boundary,
     seekTarget,
     avoidTarget,
@@ -156,6 +162,14 @@ export default class Boid implements Node {
       this.forces.avoidEdges,
     );
 
+    // AVOID OBSTACLES
+    this.determineForce(
+      this.avoidObstacles,
+      [obstacles, perceptionRadius, fieldOfViewRad, maxSpeed, maxForce],
+      forceFactors.avoidEdgesFactor,
+      this.forces.avoidObstacles,
+    );
+
     // Don't do these things if we are avoiding the edges
     if (
       this.forces.avoidEdges[0] === 0 &&
@@ -194,7 +208,11 @@ export default class Boid implements Node {
    */
   public applyAccleration(maxSpeed: number): void {
     this.velocity.add(this.acceleration);
-    limit(this.velocity, maxSpeed);
+    if (this.acceleration.length() > 0) {
+      limit(this.velocity, maxSpeed);
+    } else {
+      this.velocity.normalize().multiplyScalar(maxSpeed); // don't let boids get stuck out on their own somewhere
+    }
   }
 
   /**
@@ -315,6 +333,41 @@ export default class Boid implements Node {
       }
     });
 
+    return outVector;
+  };
+
+  public avoidObstacles = (
+    obstacles: Obstacle[],
+    perceptionRadius: number,
+    fieldOfViewRad: number,
+    maxSpeed: number,
+    maxForce: number,
+    outVector: THREE.Vector3,
+  ): THREE.Vector3 => {
+    tempForward.copy(this.velocity).normalize();
+    obstacles.forEach((obstacle) => {
+      tempDiff.subVectors(obstacle.position, this.position);
+      const distance = tempDiff.length();
+      tempDiff.normalize();
+
+      if (distance > perceptionRadius + obstacle.radius) {
+        return; // too far away to care
+      }
+      if (distance > 0 && !isInFOV(tempDiff, tempForward, fieldOfViewRad)) {
+        return; // out of field of view
+      }
+      // get a perpendicular direction
+      tempSteerDirection.crossVectors(tempForward, tempDiff).normalize();
+      const side = tempForward.dot(tempSteerDirection);
+      tempSteerDirection
+        .crossVectors(
+          side > 0 ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(0, -1, 0),
+          tempDiff,
+        )
+        .normalize();
+
+      this.seekVelocity(tempSteerDirection, maxSpeed, maxForce, outVector);
+    });
     return outVector;
   };
 

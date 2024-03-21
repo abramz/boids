@@ -47,7 +47,7 @@ export default function useBoidSimulation({
     [boidProperties.perceptionRadius, boidProperties.boidSize],
   );
   const desiredSeparation = useMemo(
-    () => boidProperties.desiredSeparation + boidProperties.boidSize,
+    () => boidProperties.desiredSeparation + 2 * boidProperties.boidSize,
     [boidProperties.desiredSeparation, boidProperties.boidSize],
   );
 
@@ -90,6 +90,7 @@ export default function useBoidSimulation({
 
       boid.applyForces({
         neighbors,
+        obstacles: storage.obstacles,
         boundary: worldBoundary,
         seekTarget:
           trackingStateRef.current === MouseTrackingState.seek

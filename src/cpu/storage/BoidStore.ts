@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import Boid from "../behavior/Boid";
+import Obstacle from "../obstacle/Obstacle";
 import OctTree from "./OctTree";
 
 /**
@@ -7,10 +8,12 @@ import OctTree from "./OctTree";
  */
 export default class BoidStore {
   protected boidsRecord: Record<string, Boid>; // cache
+  public obstacles: Obstacle[];
   protected octTree: OctTree<Boid>;
 
   constructor(octTree: OctTree<Boid>) {
     this.boidsRecord = {};
+    this.obstacles = [];
     this.octTree = octTree;
   }
 
@@ -31,6 +34,10 @@ export default class BoidStore {
     this.boidsRecord[boid.coumpundId] = boid;
   }
 
+  public insertObstacle(obstacle: Obstacle): void {
+    this.obstacles.push(obstacle);
+  }
+
   /**
    * Passthrough to the underlying OctTree's queryRange
    */
@@ -41,8 +48,11 @@ export default class BoidStore {
   /**
    * Claer both the cache & the underlying Octtree
    */
-  public clear(): void {
+  public clear(includeObstacles = false): void {
     this.boidsRecord = {};
+    if (includeObstacles) {
+      this.obstacles = [];
+    }
     this.octTree.clear();
   }
 

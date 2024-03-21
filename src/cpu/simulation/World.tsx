@@ -9,6 +9,7 @@ import { BoidProperties, ForceFactors } from "../behavior/Boid";
 import * as config from "../config";
 import useBoidProperties from "../hooks/useBoidProperties";
 import useForceFactors from "../hooks/useForceFactors";
+import ObstacleDisplay from "../obstacle/ObstacleDisplay";
 import Boids from "./Boids";
 import Helpers from "./Helpers";
 
@@ -71,6 +72,7 @@ export function InternalWorld({
         trackingTargetRef={trackingTargetRef}
       />
       <Boids boidSize={boidProperties.boidSize} boids={boids} />
+      <ObstacleDisplay obstacles={storage.obstacles} />
     </group>
   );
 }
@@ -82,7 +84,10 @@ export default function World(): ReactNode {
 
   const defaults = useMemo(() => {
     // this has seemed like a good benchmark for flock size
-    const flockSize = gpuResult.fps ?? config.FLOCK_SIZE;
+    const flockSize = Math.min(
+      gpuResult.fps ?? config.FLOCK_SIZE,
+      config.FLOCK_SIZE,
+    );
     const worldSize = Math.max(
       1,
       config.WORLD_SIZE * (flockSize / config.FLOCK_SIZE),

@@ -24,13 +24,7 @@ export function isInFOV(
   forward: THREE.Vector3,
   fieldOfViewRad: number,
 ): boolean {
-  const angle = Math.acos(targetDir.dot(forward));
-
-  // comparing to the nearest degree (whole number) so that I don't have to deal with the inconsistency floating point numbers with many significant digits
-  return (
-    Math.round(angle * THREE.MathUtils.RAD2DEG) <=
-    Math.round((fieldOfViewRad / 2) * THREE.MathUtils.RAD2DEG)
-  );
+  return forward.angleTo(targetDir) <= fieldOfViewRad / 2;
 }
 
 /**

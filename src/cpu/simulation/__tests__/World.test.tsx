@@ -48,9 +48,9 @@ it("should render the world in all of its glory", async () => {
   expect(helperGroup.findAllByType("Mesh")).toHaveLength(2);
 
   const meshes = renderer.scene.findAllByType("Mesh");
-  const boidsGroup = meshes[meshes.length - 1];
-  expect(boidsGroup.instance.name).toEqual(BOIDS_GROUP_NAME);
-  expect(boidsGroup.findAllByType("Mesh")).toHaveLength(1);
+  const boidsGroup = meshes.find((m) => m.instance.name === BOIDS_GROUP_NAME);
+  expect(boidsGroup).toBeTruthy();
+  expect(boidsGroup!.findAllByType("Mesh")).toHaveLength(1);
 });
 
 it("should have more tests here", { todo: true });

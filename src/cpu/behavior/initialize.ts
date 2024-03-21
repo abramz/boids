@@ -6,6 +6,7 @@ import {
 } from "../helpers/math";
 import OctTree from "../storage/OctTree";
 import { OCT_TREE_CAPACITY } from "../config";
+import Obstacle from "../obstacle/Obstacle";
 import Boid from "./Boid";
 
 const DEFAULT_POSITION = new THREE.Vector3(0, 0, 0);
@@ -69,6 +70,24 @@ export default async function initialize(
           velocity,
         }),
       );
+    }
+  }
+
+  const radius = tempWorldSize.x / 3 / 8;
+  for (let x = 1; x < 3; x++) {
+    for (let y = 1; y < 3; y++) {
+      for (let z = 1; z < 3; z++) {
+        storage.insertObstacle(
+          new Obstacle(
+            new THREE.Vector3(
+              -(tempWorldSize.x / 2) + tempWorldSize.x * (x / 3),
+              -(tempWorldSize.y / 2) + tempWorldSize.y * (y / 3),
+              -(tempWorldSize.z / 2) + tempWorldSize.z * (z / 3),
+            ),
+            radius,
+          ),
+        );
+      }
     }
   }
 

@@ -12,27 +12,20 @@ export interface BoidProps {
 const PALETTE = niceColors[84];
 
 export default function Boid({ boid }: BoidProps): ReactNode {
-  const ref = useRef<{ position: THREE.Vector3; color: THREE.Color }>();
+  const ref = useRef<THREE.Object3D & { color: THREE.Color }>();
 
   useLayoutEffect(() => {
-    if (!ref.current) {
-      return;
-    }
-    ref.current.position.copy(boid.position);
-    ref.current.color.set(PALETTE[boid.parentId % 5]);
+    ref.current!.position.copy(boid.position);
+    ref.current!.color.set(PALETTE[boid.parentId % 5]);
   }, [boid]);
 
   const frameRef = useRef(1);
   useFrame(() => {
-    if (!ref.current) {
-      return;
-    }
-
     if (
       (frameRef.current > 0 && boid.id % 2) ||
       (frameRef.current < 0 && !(boid.id % 2))
     ) {
-      ref.current.position.copy(boid.position);
+      ref.current!.position.copy(boid.position);
     }
 
     frameRef.current *= -1;
