@@ -2,9 +2,6 @@ import { ReactNode, useState } from "react";
 import { button, useControls } from "leva";
 import Alert from "./Alert";
 
-/**
- * Crude instructions window
- */
 export default function Instructions(): ReactNode {
   const [isOpen, setIsOpen] = useState(false);
   useControls(
@@ -16,24 +13,24 @@ export default function Instructions(): ReactNode {
 
   return isOpen ? (
     <Alert>
-      <h1>Instructions</h1>
-      <p>Control the camera with the mouse</p>
-      <ul>
-        <li>
-          Click & drag to <b>rotate</b> the camera
-        </li>
-        <li>
-          Right click & drag to <b>pan</b> the camera
-        </li>
-        <li>
-          Mousewheel up & down to <b>zoom</b> the camera
-        </li>
-      </ul>
-      <p>
-        Use the panel to the right to configure various aspects of the
-        simulation. Changes will begin taking effect in future frames.
-      </p>
-      <button onClick={() => setIsOpen(false)}>{"Close"}</button>
+      <div className="panel">
+        <h1>{"Instructions"}</h1>
+        <p>{"Move the camera with the mouse."}</p>
+        <dl className="panel-keys">
+          <dt>{"Drag"}</dt>
+          <dd>{"Rotate"}</dd>
+          <dt>{"Right drag"}</dt>
+          <dd>{"Pan"}</dd>
+          <dt>{"Scroll"}</dt>
+          <dd>{"Zoom"}</dd>
+        </dl>
+        <p>
+          {
+            "Use the panel on the right to retune the flock. Changes take effect on the next frame."
+          }
+        </p>
+        <button onClick={() => setIsOpen(false)}>{"Close"}</button>
+      </div>
     </Alert>
   ) : null;
 }

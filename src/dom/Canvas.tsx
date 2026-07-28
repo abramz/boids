@@ -47,13 +47,9 @@ export default function Canvas(): ReactNode {
       <canvas ref={canvasRef}>
         {"Canvas is not supported by this browser"}
       </canvas>
-      {alertContents ? (
-        <div className="alert" role="alert">
-          {alertContents}
-        </div>
-      ) : (
-        <></>
-      )}
+      {/* the role belongs to whatever is showing: loading is a status, an error
+          is an alert, and the instructions are neither */}
+      {alertContents ? <div className="alert">{alertContents}</div> : <></>}
       <UI />
     </>
   );
