@@ -2,7 +2,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import * as THREE from "three";
 import { beforeAll, describe, expect, it } from "vitest";
-import * as seeded from "../../__mocks__/seededConfig";
+import * as seeded from "../../__fixtures__/seededConfig";
 import {
   CHECKPOINTS,
   GoldenFixture,

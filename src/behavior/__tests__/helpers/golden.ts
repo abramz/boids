@@ -3,7 +3,7 @@ import Boid from "../../Boid";
 import deriveBoidProperties from "../../deriveBoidProperties";
 import initialize from "../../initialize";
 import stepSimulation from "../../step";
-import * as seeded from "../../../__mocks__/seededConfig";
+import * as seeded from "../../../__fixtures__/seededConfig";
 
 export const GOLDEN_DELTA = 1 / 60;
 

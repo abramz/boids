@@ -1,8 +1,8 @@
 import * as THREE from "three";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { create, waitFor } from "@react-three/test-renderer";
-import SeededWorld from "../../__mocks__/SeededWorld";
-import { FLOCK_COUNT, FLOCK_SIZE } from "../../__mocks__/seededConfig";
+import SeededWorld from "../../__fixtures__/SeededWorld";
+import { FLOCK_COUNT, FLOCK_SIZE } from "../../__fixtures__/seededConfig";
 import { GROUP_NAME as BOIDS_GROUP_NAME } from "../Boids";
 import { GOLDEN_DELTA } from "../../behavior/__tests__/helpers/golden";
 
