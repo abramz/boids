@@ -31,8 +31,6 @@ export const FORCE_FACTORS: ForceFactors = {
   alignmentFactor: 1.01,
   cohesionFactor: 1.02,
   separationFactor: 1.03,
-  avoidanceFactor: 1.04,
-  seekFactor: 1.05,
   avoidEdgesFactor: 50.01,
 };
 

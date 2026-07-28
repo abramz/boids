@@ -29,15 +29,6 @@ export default function Instructions(): ReactNode {
           Mousewheel up & down to <b>zoom</b> the camera
         </li>
       </ul>
-      <p>Boids can be commanded to seek or avoid the mouse</p>
-      <ul>
-        <li>
-          Press shift to have the boids <b>seek</b> the mouse
-        </li>
-        <li>
-          Press control to have the boids <b>avoid</b> the mouse
-        </li>
-      </ul>
       <p>
         Use the panel to the right to configure various aspects of the
         simulation. Changes will begin taking effect in future frames.

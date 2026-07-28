@@ -13,7 +13,6 @@ vi.mock("../../hooks/useHelpers", () => ({
     showWorldBoundary: true,
     showStorageBoundary: true,
     showStorageSegmentation: true,
-    showMouseTrackingPosition: true,
   }),
 }));
 
@@ -50,7 +49,7 @@ it("should render the world in all of its glory", async () => {
   const helperGroup = groups[1];
   expect(helperGroup.instance.name).toEqual(HELPER_GROUP_NAME);
   expect(helperGroup.findAllByType("Box3Helper")).toHaveLength(2);
-  expect(helperGroup.findAllByType("Mesh")).toHaveLength(2);
+  expect(helperGroup.findAllByType("Mesh")).toHaveLength(1);
 
   const meshes = renderer.scene.findAllByType("Mesh");
   const boidsMesh = meshes.find((m) => m.instance.name === BOIDS_GROUP_NAME);

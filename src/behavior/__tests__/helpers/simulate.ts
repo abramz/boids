@@ -48,8 +48,6 @@ export const DENSE_CONFIG: SimulationConfig = {
     alignmentFactor: 1,
     cohesionFactor: 1,
     separationFactor: 1,
-    avoidanceFactor: 1,
-    seekFactor: 1,
     // the shipped value is 50, which swamps every other force and makes
     // flocking effects unmeasurable; keep edges gentle so the flocking
     // behaviours are what the assertions actually see

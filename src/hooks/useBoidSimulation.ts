@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { MutableRefObject, useRef } from "react";
+import { useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import BoidStore from "../storage/BoidStore";
 import Boid, { BoidProperties, ForceFactors } from "../behavior/Boid";
@@ -7,7 +7,6 @@ import deriveBoidProperties from "../behavior/deriveBoidProperties";
 import initialize from "../behavior/initialize";
 import stepSimulation from "../behavior/step";
 import suspend from "../helpers/suspend";
-import { MouseTrackingState } from "./useMouseTracking";
 
 export interface UseBoidSimulationOptions {
   flockSize: number;
@@ -16,8 +15,6 @@ export interface UseBoidSimulationOptions {
   forceFactors: ForceFactors;
   worldBoundary: THREE.Box3;
   storageBoundary: THREE.Box3;
-  trackingStateRef: MutableRefObject<MouseTrackingState>;
-  trackingTargetRef: MutableRefObject<THREE.Vector3>;
   seedX?: number[];
   seedY?: number[];
   seedZ?: number[];
@@ -33,8 +30,6 @@ export default function useBoidSimulation({
   forceFactors,
   worldBoundary,
   storageBoundary,
-  trackingStateRef,
-  trackingTargetRef,
   seedX,
   seedY,
   seedZ,
@@ -69,14 +64,6 @@ export default function useBoidSimulation({
       properties,
       forceFactors,
       worldBoundary,
-      seekTarget:
-        trackingStateRef.current === MouseTrackingState.seek
-          ? trackingTargetRef.current
-          : undefined,
-      avoidTarget:
-        trackingStateRef.current === MouseTrackingState.avoid
-          ? trackingTargetRef.current
-          : undefined,
     });
   });
 

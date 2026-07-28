@@ -3,7 +3,6 @@ import { ReactNode, useMemo } from "react";
 import { useThree } from "@react-three/fiber";
 import { useDetectGPU } from "@react-three/drei";
 import useBoidSimulation from "../hooks/useBoidSimulation";
-import useMouseTracking from "../hooks/useMouseTracking";
 import { BoidProperties, ForceFactors } from "../behavior/Boid";
 import * as config from "../config";
 import useBoidProperties from "../hooks/useBoidProperties";
@@ -43,7 +42,6 @@ export function InternalWorld({
   seedTheta,
   seedStorageStart,
 }: InternalWorldProps): ReactNode {
-  const { trackingStateRef, trackingTargetRef } = useMouseTracking();
   const [storage, boids] = useBoidSimulation({
     flockSize,
     flockCount,
@@ -51,8 +49,6 @@ export function InternalWorld({
     forceFactors,
     worldBoundary,
     storageBoundary,
-    trackingStateRef,
-    trackingTargetRef,
     seedX,
     seedY,
     seedZ,
@@ -67,8 +63,6 @@ export function InternalWorld({
         worldBoundary={worldBoundary}
         storageBoundary={storageBoundary}
         storage={storage}
-        trackingStateRef={trackingStateRef}
-        trackingTargetRef={trackingTargetRef}
       />
       <Boids boidSize={boidProperties.boidSize} boids={boids} />
       <ObstacleDisplay obstacles={storage.obstacles} />
@@ -140,8 +134,6 @@ export default function World(): ReactNode {
     alignmentFactor: config.ALIGNMENT_FACTOR,
     cohesionFactor: config.COHESION_FACTOR,
     separationFactor: config.SEPARATION_FACTOR,
-    avoidanceFactor: config.AVOIDANCE_FACTOR,
-    seekFactor: config.SEEK_FACTOR,
     avoidEdgesFactor: config.AVOID_EDGES_FACTOR,
   });
 

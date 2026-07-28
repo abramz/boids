@@ -51,6 +51,4 @@ export const MAX_FORCE = 0.8;
 export const ALIGNMENT_FACTOR = 1.0;
 export const COHESION_FACTOR = 1.0;
 export const SEPARATION_FACTOR = 1.0;
-export const AVOIDANCE_FACTOR = 1.0;
-export const SEEK_FACTOR = 1.0;
 export const AVOID_EDGES_FACTOR = 50.0;
