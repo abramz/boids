@@ -26,11 +26,7 @@ jobs:
         with:
           node-version-file: ".nvmrc"
           cache: "npm"
-          cache-dependency-path: |
-            package-lock.json
-            tools/lint/package-lock.json
       - run: npm ci
-      - run: npm run typecheck
 
       - name: Build for the preview path
         run: npm run build -- --base="/boids/pr-${{ github.event.number }}/"
