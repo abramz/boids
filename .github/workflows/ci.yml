@@ -21,7 +21,15 @@ jobs:
         with:
           node-version-file: ".nvmrc"
           cache: "npm"
+          cache-dependency-path: |
+            package-lock.json
+            tools/lint/package-lock.json
       - run: npm ci
+      - run: npm --prefix tools/lint ci
+      # the split only holds while the lint toolchain resolves TypeScript 6;
+      # a hoist to the root's 7 breaks linting in confusing ways
+      - name: Assert the lint toolchain's TypeScript
+        run: node -p "require('./tools/lint/node_modules/typescript/package.json').version" | grep -q '^6\.'
       - run: npm run lint
       - run: npm run typecheck
 
