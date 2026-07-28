@@ -1,0 +1,75 @@
+name: PR preview
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+
+permissions:
+  contents: write # push to gh-pages
+  pull-requests: write # comment the preview link
+
+# Shared with deploy-pages.yml: production and every preview push to the same
+# branch, so publishes have to serialise. Not cancel-in-progress - a cancelled
+# publish would leave the branch half-written.
+concurrency:
+  group: gh-pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Publish preview
+    if: github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+          cache-dependency-path: |
+            package-lock.json
+            tools/lint/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+
+      - name: Build for the preview path
+        run: npm run build -- --base="/boids/pr-${{ github.event.number }}/"
+
+      - name: Publish
+        run: ./scripts/gh-pages.sh publish dist "pr-${{ github.event.number }}"
+
+      - name: Comment the link
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const url = `https://${context.repo.owner}.github.io/${context.repo.repo}/pr-${context.issue.number}/`;
+            const marker = '<!-- pr-preview -->';
+            const body = [
+              marker,
+              `### Preview`,
+              ``,
+              `${url}`,
+              ``,
+              `Built from ${context.sha.slice(0, 7)}. Updates on every push; removed when this PR closes.`,
+            ].join('\n');
+
+            const { data: comments } = await github.rest.issues.listComments({
+              ...context.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find((comment) => comment.body?.includes(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({ ...context.repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ ...context.repo, issue_number: context.issue.number, body });
+            }
+
+  cleanup:
+    name: Remove preview
+    if: github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Remove the preview directory
+        run: ./scripts/gh-pages.sh remove "pr-${{ github.event.number }}"

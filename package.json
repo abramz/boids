@@ -3,6 +3,10 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "engines": {
+    "node": "^22.22.2 || ^24.15.0 || >=26.0.0"
+  },
+  "packageManager": "npm@10.9.7",
   "scripts": {
     "dev": "vite --open boids/index.html",
     "build": "npm run build:src",
