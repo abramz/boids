@@ -1,23 +1,19 @@
-# Deploys the site to the gh-pages branch, which GitHub Pages serves.
+# Publishes to the gh-pages branch, which GitHub Pages serves.
 #
-# Publishing to a branch rather than via actions/deploy-pages is what makes PR
+# Deploying from a branch rather than actions/deploy-pages is what makes PR
 # previews possible: Pages allows one deployment per repository, so production
-# lives at the root of this branch and previews live under pr-<N>/ alongside it.
-# See .github/workflows/pr-preview.yml and scripts/gh-pages.sh.
+# lives at the root of that branch and previews live under pr-<N>/ beside it.
 name: Deploy to GH Pages
 
 on:
-  # Runs on pushes targeting the default branch
   push:
     branches: ["primary"]
-
-  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
 permissions:
-  contents: write # push to gh-pages
+  contents: write
 
-# Shared with pr-preview.yml so publishes to the branch serialise.
+# shared with pr-preview.yml so publishes to the branch serialise
 concurrency:
   group: gh-pages
   cancel-in-progress: false
@@ -26,27 +22,13 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-      - name: Set up Node
-        uses: actions/setup-node@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version-file: ".nvmrc"
           cache: "npm"
-          cache-dependency-path: |
-            package-lock.json
-            tools/lint/package-lock.json
-      - name: Install dependencies
-        run: npm ci
-      - name: Install lint toolchain
-        run: npm --prefix tools/lint ci
-      - name: Lint
-        run: npm run lint
-      - name: Typecheck
-        run: npm run typecheck
-      - name: Test
-        run: npm run test:ci
-      - name: Build source
-        run: npm run build
-      - name: Publish to gh-pages
-        run: ./scripts/gh-pages.sh publish dist .
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run test:ci
+      - run: npm run build
+      - run: ./scripts/gh-pages.sh publish dist .
