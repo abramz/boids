@@ -81,16 +81,16 @@ describe("getRandomScaledVelocity", () => {
     const actual = new THREE.Vector3();
 
     getRandomScaledVelocity(5, actual);
-    expect(5 - actual.length()).toBeLessThan(acceptableDiff);
+    expect(Math.abs(5 - actual.length())).toBeLessThan(acceptableDiff);
 
     getRandomScaledVelocity(2, actual);
-    expect(2 - actual.length()).toBeLessThan(acceptableDiff);
+    expect(Math.abs(2 - actual.length())).toBeLessThan(acceptableDiff);
 
     getRandomScaledVelocity(10, actual);
-    expect(10 - actual.length()).toBeLessThan(acceptableDiff);
+    expect(Math.abs(10 - actual.length())).toBeLessThan(acceptableDiff);
 
     getRandomScaledVelocity(7, actual);
-    expect(7 - actual.length()).toBeLessThan(acceptableDiff);
+    expect(Math.abs(7 - actual.length())).toBeLessThan(acceptableDiff);
   });
 });
 
