@@ -3,6 +3,11 @@ import { beforeEach, expect, it } from "vitest";
 import ReactThreeTestRenderer from "@react-three/test-renderer";
 import Boids from "../Boids";
 import Boid from "../../behavior/Boid";
+import {
+  BOID_LENGTH_RATIO,
+  BOID_PLUME_LENGTH_RATIO,
+  BOID_RADIUS_RATIO,
+} from "../../theme";
 
 const BOID_COUNT = 10;
 const BOID_RADIUS = 0.3;
@@ -31,37 +36,79 @@ it("should render an instanced mesh", async () => {
   expect(renderer.scene.findByType("Mesh")).toBeTruthy();
 });
 
-it("should render a box geometery with a size equal to the boidSize", async () => {
+it("should reach as far forward as the maths take a boid to reach", async () => {
   const renderer = await ReactThreeTestRenderer.create(
     <Boids boidSize={BOID_RADIUS} boids={BOIDS} />,
   );
 
-  const box = renderer.scene.findByType("BoxGeometry")
-    .instance as unknown as THREE.BoxGeometry;
-  expect(box.parameters.width).toEqual(BOID_RADIUS);
-  expect(box.parameters.height).toEqual(BOID_RADIUS);
-  expect(box.parameters.depth).toEqual(BOID_RADIUS);
+  const mesh = renderer.scene.findByType("Mesh")
+    .instance as unknown as THREE.InstancedMesh;
+  const bounds = new THREE.Box3().setFromBufferAttribute(
+    mesh.geometry.getAttribute("position") as THREE.BufferAttribute,
+  );
+
+  // deriveBoidProperties reads boid size as a radius, so the nose has to sit
+  // exactly that far along +Y from the position the simulation tracks
+  expect(bounds.max.y).toBeCloseTo(BOID_RADIUS);
+
+  // and it stays slender across that axis. Measured radially rather than off
+  // the bounding box, which for a faceted hull is narrower than its radius
+  const position = mesh.geometry.getAttribute("position");
+  const widest = Math.max(
+    ...Array.from({ length: position.count }, (_, index) =>
+      Math.hypot(position.getX(index), position.getZ(index)),
+    ),
+  );
+  expect(widest).toBeCloseTo(BOID_RADIUS * BOID_RADIUS_RATIO);
+
+  // and the plume trails off the other end without moving the hull
+  expect(bounds.min.y).toBeCloseTo(
+    -BOID_RADIUS * (BOID_LENGTH_RATIO / 2 + BOID_PLUME_LENGTH_RATIO),
+  );
 });
 
-it("should render a box geometery", async () => {
+it("should draw the hull lit and the plume additively", async () => {
   const renderer = await ReactThreeTestRenderer.create(
     <Boids boidSize={BOID_RADIUS} boids={BOIDS} />,
   );
 
-  const box = renderer.scene.findByType("BoxGeometry")
-    .instance as unknown as THREE.BoxGeometry;
+  const mesh = renderer.scene.findByType("Mesh")
+    .instance as unknown as THREE.InstancedMesh;
+  const [hull, plume] = mesh.material as THREE.Material[];
 
-  expect(box.parameters).toHaveProperty("width", BOID_RADIUS);
-  expect(box.parameters).toHaveProperty("height", BOID_RADIUS);
-  expect(box.parameters).toHaveProperty("depth", BOID_RADIUS);
+  // one group per material, or three draws the whole dart with one of them
+  expect(mesh.geometry.groups.map((group) => group.materialIndex)).toEqual([
+    0, 1,
+  ]);
+
+  expect(hull).toBeInstanceOf(THREE.MeshStandardMaterial);
+  expect(plume.blending).toEqual(THREE.AdditiveBlending);
+  expect(plume.depthWrite).toBe(false);
 });
 
-it("should render a standard material", async () => {
+it("should point each dart along the velocity of its boid", async () => {
+  BOIDS.forEach((boid) => boid.velocity.set(0, 0, 3));
+
   const renderer = await ReactThreeTestRenderer.create(
     <Boids boidSize={BOID_RADIUS} boids={BOIDS} />,
   );
 
-  expect(renderer.scene.findByType("MeshStandardMaterial")).toBeTruthy();
+  await renderer.advanceFrames(2, 0.01); // the Instances component is 1 frame behind
+
+  const mesh = renderer.scene.findByType("Mesh")
+    .instance as unknown as THREE.InstancedMesh;
+
+  const tempMatrix = new THREE.Matrix4();
+  const heading = new THREE.Vector3();
+  for (const boid of BOIDS) {
+    mesh.getMatrixAt(boid.id, tempMatrix);
+    // the dart stands on +Y, so its heading is the matrix's second column
+    heading.setFromMatrixColumn(tempMatrix, 1).normalize();
+
+    expect(heading.x).toBeCloseTo(0);
+    expect(heading.y).toBeCloseTo(0);
+    expect(heading.z).toBeCloseTo(1);
+  }
 });
 
 it("should position the instances to match the positions of the boids", async () => {

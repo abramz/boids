@@ -3,9 +3,10 @@
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: light dark;
+  /* the canvas paints the page edge to edge, and it is always the night sky */
+  color-scheme: dark;
   color: rgba(255, 255, 255, 0.87);
-  background-color: #193c3c;
+  background-color: #0a0f12;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -39,7 +40,7 @@ body {
   min-width: 335px;
   border: 2px solid red;
   padding: 16px;
-  background-color: #193c3c;
+  background-color: #0a0f12;
   font-size: 18px;
 }
 
@@ -51,11 +52,4 @@ body {
 
 .alert h1 {
   font-size: 24px;
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #193c3c;
-    background-color: #ffffff;
-  }
 }
