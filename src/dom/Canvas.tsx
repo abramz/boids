@@ -1,6 +1,6 @@
 import { ReconcilerRoot, createRoot, events } from "@react-three/fiber";
 import { ReactNode, lazy, useEffect, useRef, useState } from "react";
-import { WORLD_SIZE } from "../config";
+import { CAMERA_DISTANCE_SCALE, WORLD_SIZE } from "../config";
 
 const Simulation = lazy(() => import("../simulation"));
 const UI = lazy(() => import("./UI"));
@@ -25,7 +25,7 @@ export default function Canvas(): ReactNode {
         events,
         camera: {
           near: 0.0001,
-          position: [0, 0, WORLD_SIZE / 2],
+          position: [0, 0, WORLD_SIZE * CAMERA_DISTANCE_SCALE],
         },
       });
 
@@ -47,13 +47,9 @@ export default function Canvas(): ReactNode {
       <canvas ref={canvasRef}>
         {"Canvas is not supported by this browser"}
       </canvas>
-      {alertContents ? (
-        <div className="alert" role="alert">
-          {alertContents}
-        </div>
-      ) : (
-        <></>
-      )}
+      {/* the role belongs to whatever is showing: loading is a status, an error
+          is an alert, and the instructions are neither */}
+      {alertContents ? <div className="alert">{alertContents}</div> : <></>}
       <UI />
     </>
   );

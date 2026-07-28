@@ -14,8 +14,6 @@ export type ForceFactors = {
   alignmentFactor: number;
   cohesionFactor: number;
   separationFactor: number;
-  avoidanceFactor: number;
-  seekFactor: number;
   avoidEdgesFactor: number;
 };
 
@@ -32,8 +30,6 @@ export interface ApplyForcesOptions {
   neighbors: Boid[];
   boundary: THREE.Box3;
   obstacles?: Obstacle[];
-  seekTarget?: THREE.Vector3;
-  avoidTarget?: THREE.Vector3;
   properties: BoidProperties;
   forceFactors: ForceFactors;
 }
@@ -63,8 +59,6 @@ export default class Boid implements Node {
     alignment: THREE.Vector3Tuple;
     cohesion: THREE.Vector3Tuple;
     separation: THREE.Vector3Tuple;
-    avoidance: THREE.Vector3Tuple;
-    seek: THREE.Vector3Tuple;
     avoidEdges: THREE.Vector3Tuple;
     avoidObstacles: THREE.Vector3Tuple;
   };
@@ -78,8 +72,6 @@ export default class Boid implements Node {
       alignment: [0, 0, 0],
       cohesion: [0, 0, 0],
       separation: [0, 0, 0],
-      avoidance: [0, 0, 0],
-      seek: [0, 0, 0],
       avoidEdges: [0, 0, 0],
       avoidObstacles: [0, 0, 0],
     };
@@ -96,8 +88,6 @@ export default class Boid implements Node {
     neighbors,
     obstacles = [],
     boundary,
-    seekTarget,
-    avoidTarget,
     properties: {
       perceptionRadius,
       fieldOfViewDeg,
@@ -169,36 +159,6 @@ export default class Boid implements Node {
       forceFactors.avoidEdgesFactor,
       this.forces.avoidObstacles,
     );
-
-    // Don't do these things if we are avoiding the edges
-    if (
-      this.forces.avoidEdges[0] === 0 &&
-      this.forces.avoidEdges[1] === 0 &&
-      this.forces.avoidEdges[2] === 0
-    ) {
-      // AVOID
-      if (
-        avoidTarget &&
-        Math.abs(this.position.distanceTo(avoidTarget)) < desiredSeparation * 10
-      ) {
-        this.determineForce(
-          this.avoid,
-          [avoidTarget, maxSpeed, maxForce],
-          forceFactors.avoidanceFactor,
-          this.forces.avoidance,
-        );
-      }
-
-      // SEEK
-      if (seekTarget) {
-        this.determineForce(
-          this.seekPosition,
-          [seekTarget, desiredSeparation, maxSpeed, maxForce],
-          forceFactors.seekFactor,
-          this.forces.seek,
-        );
-      }
-    }
 
     limit(this.acceleration, maxForce);
   }

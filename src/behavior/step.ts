@@ -18,8 +18,6 @@ export interface StepSimulationOptions {
   properties: BoidProperties;
   forceFactors: ForceFactors;
   worldBoundary: THREE.Box3;
-  seekTarget?: THREE.Vector3;
-  avoidTarget?: THREE.Vector3;
 }
 
 /**
@@ -39,8 +37,6 @@ export default function stepSimulation({
   properties,
   forceFactors,
   worldBoundary,
-  seekTarget,
-  avoidTarget,
 }: StepSimulationOptions): number {
   if (delta > MAX_DELTA) {
     console.log("skipped excessive delta");
@@ -63,8 +59,6 @@ export default function stepSimulation({
       neighbors: storage.queryRange(tempBoundary),
       obstacles: storage.obstacles,
       boundary: worldBoundary,
-      seekTarget,
-      avoidTarget,
       properties,
       forceFactors,
     });

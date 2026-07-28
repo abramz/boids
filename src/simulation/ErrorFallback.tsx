@@ -12,8 +12,10 @@ export default function ErrorFallback({ error }: FallbackProps): ReactNode {
 
   return (
     <Alert>
-      <h1>Something went wrong:</h1>
-      <pre>{message}</pre>
+      <div className="panel panel--error" role="alert">
+        <h1>{"Something went wrong"}</h1>
+        <pre>{message}</pre>
+      </div>
     </Alert>
   );
 }

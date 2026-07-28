@@ -3,9 +3,10 @@
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: light dark;
+  /* the canvas paints the page edge to edge, and it is always the night sky */
+  color-scheme: dark;
   color: rgba(255, 255, 255, 0.87);
-  background-color: #193c3c;
+  background-color: #0a0f12;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -29,33 +30,137 @@ body {
   display: block;
 }
 
+/* centres whatever is showing without covering the canvas: the panel takes its
+   own pointer events back, so the camera stays draggable around it */
 .alert {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  position: fixed;
+  inset: 0;
   z-index: 10;
-  width: 30vw;
-  min-width: 335px;
-  border: 2px solid red;
-  padding: 16px;
-  background-color: #193c3c;
-  font-size: 18px;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  pointer-events: none;
 }
 
-.alert pre {
-  color: red;
+.panel {
+  pointer-events: auto;
+  box-sizing: border-box;
+  /* prose fills the cap, a one-line loading message does not have to */
+  width: fit-content;
+  max-width: min(440px, 100%);
+  padding: 24px 28px;
+  border: 1px solid rgba(124, 199, 255, 0.22);
+  border-radius: 12px;
+  background-color: rgba(10, 15, 18, 0.82);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.panel h1 {
+  margin: 0 0 14px;
+  font-size: 19px;
+  font-weight: 600;
+}
+
+.panel p {
+  margin: 0 0 16px;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.panel p:last-child {
+  margin-bottom: 0;
+}
+
+/* input on the left, what it does on the right */
+.panel-keys {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px 16px;
+  margin: 0 0 20px;
+  align-items: baseline;
+}
+
+.panel-keys dt {
+  justify-self: start;
+  padding: 2px 9px;
+  border: 1px solid rgba(124, 199, 255, 0.28);
+  border-radius: 6px;
+  background-color: rgba(124, 199, 255, 0.08);
+  color: #bfe4ff;
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+
+.panel-keys dd {
+  margin: 0;
+}
+
+.panel-loading {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.panel-spinner {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border: 2px solid rgba(124, 199, 255, 0.18);
+  border-top-color: #7cc7ff;
+  border-radius: 50%;
+  animation: panel-spin 0.8s linear infinite;
+}
+
+@keyframes panel-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel-spinner {
+    animation: none;
+  }
+}
+
+.panel button {
+  appearance: none;
+  padding: 8px 18px;
+  border: 1px solid rgba(124, 199, 255, 0.3);
+  border-radius: 8px;
+  background-color: rgba(124, 199, 255, 0.12);
+  color: inherit;
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.panel button:hover {
+  background-color: rgba(124, 199, 255, 0.2);
+}
+
+.panel button:focus-visible {
+  outline: 2px solid #7cc7ff;
+  outline-offset: 2px;
+}
+
+.panel--error {
+  border-color: rgba(255, 105, 92, 0.5);
+}
+
+.panel--error h1 {
+  color: #ff8a7a;
+}
+
+.panel--error pre {
+  margin: 0;
+  padding: 12px;
+  border-radius: 8px;
+  background-color: rgba(255, 105, 92, 0.08);
+  color: #ff9a8c;
+  font-size: 13px;
   white-space: pre-wrap;
   word-wrap: break-word;
-}
-
-.alert h1 {
-  font-size: 24px;
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #193c3c;
-    background-color: #ffffff;
-  }
 }

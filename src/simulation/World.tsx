@@ -3,7 +3,6 @@ import { ReactNode, useMemo } from "react";
 import { useThree } from "@react-three/fiber";
 import { useDetectGPU } from "@react-three/drei";
 import useBoidSimulation from "../hooks/useBoidSimulation";
-import useMouseTracking from "../hooks/useMouseTracking";
 import { BoidProperties, ForceFactors } from "../behavior/Boid";
 import * as config from "../config";
 import useBoidProperties from "../hooks/useBoidProperties";
@@ -43,7 +42,6 @@ export function InternalWorld({
   seedTheta,
   seedStorageStart,
 }: InternalWorldProps): ReactNode {
-  const { trackingStateRef, trackingTargetRef } = useMouseTracking();
   const [storage, boids] = useBoidSimulation({
     flockSize,
     flockCount,
@@ -51,8 +49,6 @@ export function InternalWorld({
     forceFactors,
     worldBoundary,
     storageBoundary,
-    trackingStateRef,
-    trackingTargetRef,
     seedX,
     seedY,
     seedZ,
@@ -67,8 +63,6 @@ export function InternalWorld({
         worldBoundary={worldBoundary}
         storageBoundary={storageBoundary}
         storage={storage}
-        trackingStateRef={trackingStateRef}
-        trackingTargetRef={trackingTargetRef}
       />
       <Boids boidSize={boidProperties.boidSize} boids={boids} />
       <ObstacleDisplay obstacles={storage.obstacles} />
@@ -82,18 +76,26 @@ export default function World(): ReactNode {
   const gpuResult = useDetectGPU({ glContext });
 
   const defaults = useMemo(() => {
-    // this has seemed like a good benchmark for flock size
-    const flockSize = Math.min(
-      gpuResult.fps ?? config.FLOCK_SIZE,
-      config.FLOCK_SIZE,
-    );
-    const worldSize = Math.max(
+    const capability = Math.min(
       1,
-      config.WORLD_SIZE * (flockSize / config.FLOCK_SIZE),
+      (gpuResult.fps ?? config.FULL_FLOCK_FPS) / config.FULL_FLOCK_FPS,
     );
-    const scale = worldSize / config.WORLD_SIZE;
+    const flockSize = Math.round(
+      THREE.MathUtils.lerp(
+        config.MIN_FLOCK_SIZE,
+        config.FLOCK_SIZE,
+        capability,
+      ),
+    );
 
-    camera.position.z = worldSize / 2;
+    // the world tracks the cube root of the flock, because it is volume that
+    // holds boids: scale its length with the count instead and a machine that
+    // earns half the boids gets a world eight times too big for them, thinning
+    // the flock until no boid has a neighbour left to fly with
+    const scale = Math.cbrt(flockSize / config.FLOCK_SIZE);
+    const worldSize = config.WORLD_SIZE * scale;
+
+    camera.position.z = worldSize * config.CAMERA_DISTANCE_SCALE;
 
     return {
       flockSize,
@@ -132,8 +134,6 @@ export default function World(): ReactNode {
     alignmentFactor: config.ALIGNMENT_FACTOR,
     cohesionFactor: config.COHESION_FACTOR,
     separationFactor: config.SEPARATION_FACTOR,
-    avoidanceFactor: config.AVOIDANCE_FACTOR,
-    seekFactor: config.SEEK_FACTOR,
     avoidEdgesFactor: config.AVOID_EDGES_FACTOR,
   });
 

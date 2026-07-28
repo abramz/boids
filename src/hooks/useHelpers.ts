@@ -19,11 +19,6 @@ export default function useHelpers() {
         toggle: true,
         value: false,
       },
-      showMouseTrackingPosition: {
-        label: "Show mouse when tracking",
-        toggle: true,
-        value: false,
-      },
     },
     { collapsed: true, order: 1000 },
   );

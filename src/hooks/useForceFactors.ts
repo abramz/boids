@@ -6,8 +6,6 @@ export default function useForceFactors({
   alignmentFactor,
   cohesionFactor,
   separationFactor,
-  avoidanceFactor,
-  seekFactor,
   avoidEdgesFactor,
 }: ForceFactors): ForceFactors {
   const factors = useControls(
@@ -30,20 +28,6 @@ export default function useForceFactors({
       separationFactor: {
         label: "Separation",
         value: separationFactor,
-        min: 0,
-        max: 10,
-        step: 0.1,
-      },
-      avoidanceFactor: {
-        label: "Avoid",
-        value: avoidanceFactor,
-        min: 0,
-        max: 10,
-        step: 0.1,
-      },
-      seekFactor: {
-        label: "Seek",
-        value: seekFactor,
         min: 0,
         max: 10,
         step: 0.1,

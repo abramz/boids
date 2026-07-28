@@ -31,8 +31,6 @@ const TEST_FORCE_FACTORS: ForceFactors = {
   alignmentFactor: 3,
   cohesionFactor: 3,
   separationFactor: 3,
-  avoidanceFactor: 3,
-  seekFactor: 3,
   avoidEdgesFactor: 3,
 };
 
@@ -519,16 +517,6 @@ describe("applyForces", () => {
           }),
         ],
         boundary: TEST_BOUNDARY,
-        seekTarget: new THREE.Vector3(
-          TEST_WORLD_BOUNDARY,
-          TEST_WORLD_BOUNDARY,
-          0,
-        ),
-        avoidTarget: new THREE.Vector3(
-          TEST_WORLD_BOUNDARY,
-          0,
-          -TEST_WORLD_BOUNDARY,
-        ),
         properties: TEST_BOID_PROPERTIES,
         forceFactors: TEST_FORCE_FACTORS,
       });
@@ -538,8 +526,6 @@ describe("applyForces", () => {
       expect(TEST_BOID.forces.alignment).toEqual([0, 0, 0]);
       expect(TEST_BOID.forces.cohesion).toEqual([0, 0, 0]);
       expect(TEST_BOID.forces.separation).toEqual([0, 0, 0]);
-      expect(TEST_BOID.forces.avoidance).toEqual([0, 0, 0]);
-      expect(TEST_BOID.forces.seek).toEqual([0, 0, 0]);
       expect(TEST_BOID.forces.avoidEdges).toEqual([-1.5, 0, 0]); // going opposite direction w/ max force (0.5) * force factor (3)
     },
   );
@@ -548,8 +534,6 @@ describe("applyForces", () => {
     TEST_BOID.applyForces({
       neighbors: [],
       boundary: TEST_BOUNDARY,
-      seekTarget: undefined,
-      avoidTarget: undefined,
       properties: TEST_BOID_PROPERTIES,
       forceFactors: TEST_FORCE_FACTORS,
     });
@@ -561,8 +545,6 @@ describe("applyForces", () => {
     TEST_BOID.applyForces({
       neighbors: [],
       boundary: TEST_BOUNDARY,
-      seekTarget: undefined,
-      avoidTarget: undefined,
       properties: TEST_BOID_PROPERTIES,
       forceFactors: TEST_FORCE_FACTORS,
     });
@@ -574,39 +556,11 @@ describe("applyForces", () => {
     TEST_BOID.applyForces({
       neighbors: [],
       boundary: TEST_BOUNDARY,
-      seekTarget: undefined,
-      avoidTarget: undefined,
       properties: TEST_BOID_PROPERTIES,
       forceFactors: TEST_FORCE_FACTORS,
     });
 
     expect(TEST_BOID.forces.separation).toEqual([0, 0, 0]);
-  });
-
-  it("should not avoid a target if there is not one", () => {
-    TEST_BOID.applyForces({
-      neighbors: [],
-      boundary: TEST_BOUNDARY,
-      seekTarget: undefined,
-      avoidTarget: undefined,
-      properties: TEST_BOID_PROPERTIES,
-      forceFactors: TEST_FORCE_FACTORS,
-    });
-
-    expect(TEST_BOID.forces.avoidance).toEqual([0, 0, 0]);
-  });
-
-  it("should not seek a target if there is not one", () => {
-    TEST_BOID.applyForces({
-      neighbors: [],
-      boundary: TEST_BOUNDARY,
-      seekTarget: undefined,
-      avoidTarget: undefined,
-      properties: TEST_BOID_PROPERTIES,
-      forceFactors: TEST_FORCE_FACTORS,
-    });
-
-    expect(TEST_BOID.forces.seek).toEqual([0, 0, 0]);
   });
 });
 
