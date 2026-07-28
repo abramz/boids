@@ -12,7 +12,7 @@ export interface Node {
  * This one is good enough, so I kept it
  */
 export default class OctTree<T extends Node> {
-  protected boundary: THREE.Box3;
+  public readonly boundary: THREE.Box3;
   protected capacity: number;
   protected seed: number | undefined;
   protected nodes: T[] = [];

@@ -72,4 +72,14 @@ export default class BoidStore {
   public get boundaries(): THREE.Box3[] {
     return this.octTree.boundaries;
   }
+
+  /**
+   * The outer boundary of the underlying OctTree.
+   *
+   * A boid outside this cannot be re-inserted, so callers integrating position
+   * need to be able to see it.
+   */
+  public get boundary(): THREE.Box3 {
+    return this.octTree.boundary;
+  }
 }
