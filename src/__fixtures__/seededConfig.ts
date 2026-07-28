@@ -1,6 +1,5 @@
 import * as THREE from "three";
 import { BoidProperties, ForceFactors } from "../behavior/Boid";
-import { OCT_TREE_BOUNDARY_SCALE } from "../config";
 
 export const FLOCK_SIZE = 5;
 export const FLOCK_COUNT = 5;
@@ -10,9 +9,15 @@ export const WORLD_BOUNDARY = new THREE.Box3(
   new THREE.Vector3(-HALF_SIZE, -HALF_SIZE, -HALF_SIZE),
   new THREE.Vector3(HALF_SIZE, HALF_SIZE, HALF_SIZE),
 );
-export const STORAGE_BOUNDARY = WORLD_BOUNDARY.clone().expandByScalar(
-  OCT_TREE_BOUNDARY_SCALE,
-);
+
+/**
+ * Pinned rather than read from config.ts, like every other number here. The
+ * goldens should move when behaviour changes, not when the world size that
+ * config derives its own margin from is tuned.
+ */
+const STORAGE_MARGIN = 9;
+export const STORAGE_BOUNDARY =
+  WORLD_BOUNDARY.clone().expandByScalar(STORAGE_MARGIN);
 export const BOID_PROPERTIES: BoidProperties = {
   perceptionRadius: 2,
   fieldOfViewDeg: 110,

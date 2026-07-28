@@ -82,18 +82,26 @@ export default function World(): ReactNode {
   const gpuResult = useDetectGPU({ glContext });
 
   const defaults = useMemo(() => {
-    // this has seemed like a good benchmark for flock size
-    const flockSize = Math.min(
-      gpuResult.fps ?? config.FLOCK_SIZE,
-      config.FLOCK_SIZE,
-    );
-    const worldSize = Math.max(
+    const capability = Math.min(
       1,
-      config.WORLD_SIZE * (flockSize / config.FLOCK_SIZE),
+      (gpuResult.fps ?? config.FULL_FLOCK_FPS) / config.FULL_FLOCK_FPS,
     );
-    const scale = worldSize / config.WORLD_SIZE;
+    const flockSize = Math.round(
+      THREE.MathUtils.lerp(
+        config.MIN_FLOCK_SIZE,
+        config.FLOCK_SIZE,
+        capability,
+      ),
+    );
 
-    camera.position.z = worldSize / 2;
+    // the world tracks the cube root of the flock, because it is volume that
+    // holds boids: scale its length with the count instead and a machine that
+    // earns half the boids gets a world eight times too big for them, thinning
+    // the flock until no boid has a neighbour left to fly with
+    const scale = Math.cbrt(flockSize / config.FLOCK_SIZE);
+    const worldSize = config.WORLD_SIZE * scale;
+
+    camera.position.z = worldSize * config.CAMERA_DISTANCE_SCALE;
 
     return {
       flockSize,

@@ -5,12 +5,19 @@ import {
   getRandomScaledVelocity,
 } from "../helpers/math";
 import OctTree from "../storage/OctTree";
-import { OCT_TREE_CAPACITY } from "../config";
+import {
+  OBSTACLE_OFFSET,
+  OBSTACLE_RADIUS_SCALE,
+  OCT_TREE_CAPACITY,
+} from "../config";
 import Obstacle from "../obstacle/Obstacle";
 import Boid from "./Boid";
 
 const DEFAULT_POSITION = new THREE.Vector3(0, 0, 0);
 const tempWorldSize = new THREE.Vector3();
+
+/* the two sides of each axis the obstacle lattice is built from */
+const LATTICE = [-1, 1];
 
 /**
  * Initialize the simulation
@@ -73,17 +80,15 @@ export default async function initialize(
     }
   }
 
-  const radius = tempWorldSize.x / 3 / 8;
-  for (let x = 1; x < 3; x++) {
-    for (let y = 1; y < 3; y++) {
-      for (let z = 1; z < 3; z++) {
+  const radius = tempWorldSize.x * OBSTACLE_RADIUS_SCALE;
+  const offset = tempWorldSize.clone().multiplyScalar(OBSTACLE_OFFSET / 2);
+
+  for (const x of LATTICE) {
+    for (const y of LATTICE) {
+      for (const z of LATTICE) {
         storage.insertObstacle(
           new Obstacle(
-            new THREE.Vector3(
-              -(tempWorldSize.x / 2) + tempWorldSize.x * (x / 3),
-              -(tempWorldSize.y / 2) + tempWorldSize.y * (y / 3),
-              -(tempWorldSize.z / 2) + tempWorldSize.z * (z / 3),
-            ),
+            new THREE.Vector3(offset.x * x, offset.y * y, offset.z * z),
             radius,
           ),
         );

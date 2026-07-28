@@ -12,9 +12,11 @@ export const BACKGROUND_COLOR = 0x0a0f12;
 /**
  * Exponential-squared fog density. Derived from WORLD_SIZE so the far side of
  * the world always dims by about as much: hold it fixed while the world grows
- * and the far side goes from distant to gone.
+ * and the far side goes from distant to gone. The coefficient is set against
+ * CAMERA_DISTANCE_SCALE, since how much fog the flock picks up depends on how
+ * far back the camera watches it from.
  */
-export const FOG_DENSITY = 0.6 / WORLD_SIZE;
+export const FOG_DENSITY = 0.45 / WORLD_SIZE;
 
 /** ACES rolls highlights off rather than clipping them, so lights can exceed 1. */
 export const TONE_MAPPING_EXPOSURE = 1.05;
