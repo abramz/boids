@@ -1,3 +1,4 @@
+import * as THREE from "three";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { create, waitFor } from "@react-three/test-renderer";
 import SeededWorld from "../../__fixtures__/SeededWorld";
@@ -48,9 +49,17 @@ it("should render the world in all of its glory", async () => {
   expect(helperGroup.findAllByType("Mesh")).toHaveLength(2);
 
   const meshes = renderer.scene.findAllByType("Mesh");
-  const boidsGroup = meshes.find((m) => m.instance.name === BOIDS_GROUP_NAME);
-  expect(boidsGroup).toBeTruthy();
-  expect(boidsGroup!.findAllByType("Mesh")).toHaveLength(1);
+  const boidsMesh = meshes.find((m) => m.instance.name === BOIDS_GROUP_NAME);
+  expect(boidsMesh).toBeTruthy();
+
+  // drei 10 renders Instances as the InstancedMesh itself rather than wrapping
+  // it in a container, so the named node IS the mesh and has no Mesh children.
+  // Assert on the instancing instead, which is what actually matters here.
+  expect(boidsMesh!.findAllByType("Mesh")).toHaveLength(0);
+  expect(
+    (boidsMesh!.instance as unknown as THREE.InstancedMesh).instanceMatrix
+      .count,
+  ).toEqual(FLOCK_SIZE * FLOCK_COUNT);
 });
 
 it("should have more tests here", { todo: true });

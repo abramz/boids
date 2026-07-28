@@ -7,7 +7,10 @@ const UI = lazy(() => import("./UI"));
 
 export default function Canvas(): ReactNode {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const rootRef = useRef<ReconcilerRoot<HTMLCanvasElement>>();
+  // React 19 requires useRef to be given an initial value
+  const rootRef = useRef<ReconcilerRoot<HTMLCanvasElement> | undefined>(
+    undefined,
+  );
   const [alertContents, setAlertContents] = useState<ReactNode | undefined>();
 
   useEffect(() => {
