@@ -25,7 +25,7 @@ export interface SimulationConfig {
 }
 
 /**
- * A denser world than src/__mocks__/seededConfig.ts.
+ * A denser world than src/__fixtures__/seededConfig.ts.
  *
  * Emergent flocking is a statistical effect: at 25 boids in a 10-unit cube a
  * boid's perception sphere is mostly empty, so alignment and cohesion barely

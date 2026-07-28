@@ -1,6 +1,6 @@
 import { useThree } from "@react-three/fiber";
 import { ReactNode, useEffect } from "react";
-import { usePageVisibility } from "react-page-visibility";
+import usePageVisibility from "../hooks/usePageVisibility";
 
 export default function PauseWhenNotVisibile(): ReactNode {
   const isVisible = usePageVisibility();

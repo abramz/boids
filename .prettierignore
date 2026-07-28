@@ -1,0 +1,8 @@
+dist
+coverage
+_site
+playwright-report
+test-results
+src/__fixtures__
+package-lock.json
+tools/lint/package-lock.json
