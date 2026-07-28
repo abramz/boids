@@ -54,7 +54,10 @@ export default function stepSimulation({
 
   /* apply forces to all boids before computing position & velocity */
   boidSlice.forEach((boid) => {
-    tempBoundary.set(boid.position, properties.boidSize);
+    // OctTree.queryRange returns every boid in the cells the sphere touches
+    // without filtering them, so a radius below perceptionRadius silently
+    // narrows the candidates to the boid's own cell rather than returning none
+    tempBoundary.set(boid.position, properties.perceptionRadius);
 
     boid.applyForces({
       neighbors: storage.queryRange(tempBoundary),
@@ -68,9 +71,13 @@ export default function stepSimulation({
   });
 
   /* apply acceleration & velocity to update the boids' positions */
+  const storageBoundary = storage.boundary;
   boidSlice.forEach((boid) => {
     boid.applyAccleration(properties.maxSpeed);
     boid.applyVelocity(delta);
+    // BoidStore.insert throws for a boid outside the tree, and a large delta
+    // can integrate further than avoidEdges is able to steer back
+    boid.position.clamp(storageBoundary.min, storageBoundary.max);
   });
 
   // re-structure storage every other frame to balance accuracy & performance
