@@ -164,8 +164,15 @@ export default function Boids({ boidSize, boids }: BoidProps): ReactNode {
     [materials],
   );
 
+  // receive but never cast: a boid is a few texels across in the sun's shadow
+  // map, so its own shadow would only ever shimmer
   return (
-    <Instances limit={boids.length} name={GROUP_NAME} material={materials}>
+    <Instances
+      limit={boids.length}
+      name={GROUP_NAME}
+      material={materials}
+      receiveShadow
+    >
       <primitive object={geometry} attach="geometry" />
       {boids.map((boid, i) => (
         <Boid key={i} boid={boid} />

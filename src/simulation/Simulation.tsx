@@ -13,10 +13,9 @@ import {
   STAR_RADIUS,
   STAR_SIZE,
   STAR_SPEED,
-  SUN_COLOR,
-  SUN_POSITION,
   TONE_MAPPING_EXPOSURE,
 } from "../theme";
+import Sun from "./Sun";
 import ErrorFallback from "./ErrorFallback";
 import PauseWhenNotVisibile from "./PauseWhenNotVisibile";
 import Instructions from "./Instructions";
@@ -34,10 +33,13 @@ export default function Simulation({
 }): ReactNode {
   const gl = useThree((state) => state.gl);
 
-  /* three clips anything over 1 by default, which flattens every highlight */
   useLayoutEffect(() => {
+    /* three clips anything over 1 by default, which flattens every highlight */
     gl.toneMapping = THREE.ACESFilmicToneMapping;
     gl.toneMappingExposure = TONE_MAPPING_EXPOSURE;
+
+    gl.shadowMap.enabled = true;
+    gl.shadowMap.type = THREE.PCFSoftShadowMap;
   }, [gl]);
 
   return (
@@ -65,15 +67,11 @@ export default function Simulation({
             groundColor={BACKGROUND_COLOR}
           />
           <directionalLight
-            position={SUN_POSITION}
-            intensity={LIGHTS.sunIntensity}
-            color={SUN_COLOR}
-          />
-          <directionalLight
             position={LIGHTS.rimPosition}
             intensity={LIGHTS.rimIntensity}
             color={LIGHTS.rimColor}
           />
+          <Sun />
           <Instructions />
           <World />
         </Suspense>

@@ -81,9 +81,13 @@ export default function ObstacleDisplay({
 
   return (
     <group name={GROUP_NAME}>
+      {/* the only casters in the scene: few enough and big enough that the
+          sun's shadow map resolves them sharply */}
       <instancedMesh
         ref={coreRef}
         args={[undefined, undefined, obstacles.length]}
+        castShadow
+        receiveShadow
       >
         <icosahedronGeometry args={[radius, OBSTACLE_CORE_DETAIL]} />
         <meshStandardMaterial

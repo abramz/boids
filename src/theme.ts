@@ -12,11 +12,9 @@ export const BACKGROUND_COLOR = 0x0a0f12;
 /**
  * Exponential-squared fog density. Derived from WORLD_SIZE so the far side of
  * the world always dims by about as much: hold it fixed while the world grows
- * and the far side goes from distant to gone. The coefficient is set against
- * CAMERA_DISTANCE_SCALE, since how much fog the flock picks up depends on how
- * far back the camera watches it from.
+ * and the far side goes from distant to gone.
  */
-export const FOG_DENSITY = 0.45 / WORLD_SIZE;
+export const FOG_DENSITY = 0.6 / WORLD_SIZE;
 
 /** ACES rolls highlights off rather than clipping them, so lights can exceed 1. */
 export const TONE_MAPPING_EXPOSURE = 1.05;
@@ -29,6 +27,23 @@ export const SUN_RADIUS = 4;
 export const SUN_CORONA_SCALE = 4;
 export const SUN_CORONA_POWER = 2.5;
 export const SUN_CORONA_INTENSITY = 1.4;
+
+const SUN_DISTANCE = Math.hypot(...SUN_POSITION);
+
+/**
+ * The sun casts, and only the obstacles cast into it, so a modest map is sharp:
+ * eight bodies a couple of units across get tens of texels each, where the
+ * boids they fall on would have got about four.
+ */
+export const SHADOW_MAP_SIZE = 1024;
+/** Half-width of the shadow frustum, out to the corners of the world cube. */
+export const SHADOW_EXTENT = WORLD_SIZE * 0.9;
+/** Near and far bracket the world as seen from the sun, and no more. */
+export const SHADOW_NEAR = Math.max(0.5, SUN_DISTANCE - SHADOW_EXTENT);
+export const SHADOW_FAR = SUN_DISTANCE + SHADOW_EXTENT;
+export const SHADOW_BIAS = -0.0005;
+/** Offsets the lookup along the normal, which is what keeps facets acne-free. */
+export const SHADOW_NORMAL_BIAS = 0.05;
 
 /**
  * The sun is the key, thrown from behind the camera's starting position so it
