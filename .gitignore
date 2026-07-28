@@ -1,0 +1,17 @@
+node_modules/
+
+dist/
+_site/
+.vite/
+
+coverage/
+.eslintcache
+
+test-results/
+playwright-report/
+blob-report/
+
+*.local
+.DS_Store
+
+*.tsbuildinfo
