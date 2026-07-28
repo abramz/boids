@@ -31,18 +31,34 @@ export const FORCE_FACTORS: ForceFactors = {
   avoidEdgesFactor: 50.01,
 };
 
-export const SEED_X: number[] = [];
-export const SEED_Y: number[] = [];
-export const SEED_Z: number[] = [];
-export const SEED_PHI: number[] = [];
-export const SEED_THETA: number[] = [];
-
-for (let i = 0; i < FLOCK_SIZE * FLOCK_COUNT; i++) {
-  SEED_X.push(123321 + i * 1234567);
-  SEED_Y.push(456643 + i * 1234567);
-  SEED_Z.push(789987 + i * 1234567);
-  SEED_PHI.push(101110 + i * 1234567);
-  SEED_THETA.push(131413 + i * 1234567);
+export interface Seeds {
+  x: number[];
+  y: number[];
+  z: number[];
+  phi: number[];
+  theta: number[];
 }
+
+/** Deterministic per-boid seeds for initialize(). */
+export function makeSeeds(count: number): Seeds {
+  const seeds: Seeds = { x: [], y: [], z: [], phi: [], theta: [] };
+
+  for (let i = 0; i < count; i++) {
+    seeds.x.push(123321 + i * 1234567);
+    seeds.y.push(456643 + i * 1234567);
+    seeds.z.push(789987 + i * 1234567);
+    seeds.phi.push(101110 + i * 1234567);
+    seeds.theta.push(131413 + i * 1234567);
+  }
+
+  return seeds;
+}
+
+const seeds = makeSeeds(FLOCK_SIZE * FLOCK_COUNT);
+export const SEED_X = seeds.x;
+export const SEED_Y = seeds.y;
+export const SEED_Z = seeds.z;
+export const SEED_PHI = seeds.phi;
+export const SEED_THETA = seeds.theta;
 
 export const SEED_STORAGE_START = 161718;
