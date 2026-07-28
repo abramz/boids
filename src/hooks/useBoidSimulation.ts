@@ -1,15 +1,15 @@
 import * as THREE from "three";
-import { MutableRefObject, useMemo, useRef } from "react";
+import { MutableRefObject, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import BoidStore from "../storage/BoidStore";
 import Boid, { BoidProperties, ForceFactors } from "../behavior/Boid";
+import deriveBoidProperties from "../behavior/deriveBoidProperties";
 import initialize from "../behavior/initialize";
+import stepSimulation from "../behavior/step";
 import suspend from "../helpers/suspend";
 import { MouseTrackingState } from "./useMouseTracking";
 
-const tempBoundary = new THREE.Sphere();
-
-export interface UseBehaviorOptions {
+export interface UseBoidSimulationOptions {
   flockSize: number;
   flockCount: number;
   boidProperties: BoidProperties;
@@ -41,15 +41,8 @@ export default function useBoidSimulation({
   seedPhi,
   seedTheta,
   seedStorageStart,
-}: UseBehaviorOptions): [BoidStore, Boid[]] {
-  const perceptionRadius = useMemo(
-    () => boidProperties.perceptionRadius + boidProperties.boidSize,
-    [boidProperties.perceptionRadius, boidProperties.boidSize],
-  );
-  const desiredSeparation = useMemo(
-    () => boidProperties.desiredSeparation + 2 * boidProperties.boidSize,
-    [boidProperties.desiredSeparation, boidProperties.boidSize],
-  );
+}: UseBoidSimulationOptions): [BoidStore, Boid[]] {
+  const properties = deriveBoidProperties(boidProperties);
 
   const storage: BoidStore = suspend(initialize, [
     flockSize,
@@ -66,62 +59,25 @@ export default function useBoidSimulation({
   ]);
   const allBoids = storage.boids; // we can get this once and use it forever since we don't create/destroy boid references after this
 
-  /* we will only deal with half of the boids per frame */
   const frameRef = useRef<number>(1);
   useFrame((_, delta) => {
-    if (delta > 1) {
-      console.log("skipped excessive delta");
-      return;
-    }
-
-    const halfSize = Math.floor(allBoids.length / 2);
-
-    let boidSlice: Boid[];
-    if (frameRef.current > 0) {
-      boidSlice = allBoids.slice(0, halfSize);
-    } else {
-      boidSlice = allBoids.slice(halfSize);
-    }
-
-    /* apply forces to all boids before computing position & velocity*/
-    boidSlice.forEach((boid) => {
-      tempBoundary.set(boid.position, boidProperties.boidSize);
-      const neighbors = storage.queryRange(tempBoundary);
-
-      boid.applyForces({
-        neighbors,
-        obstacles: storage.obstacles,
-        boundary: worldBoundary,
-        seekTarget:
-          trackingStateRef.current === MouseTrackingState.seek
-            ? trackingTargetRef.current
-            : undefined,
-        avoidTarget:
-          trackingStateRef.current === MouseTrackingState.avoid
-            ? trackingTargetRef.current
-            : undefined,
-        properties: {
-          ...boidProperties,
-          perceptionRadius,
-          desiredSeparation,
-        },
-        forceFactors,
-      });
+    frameRef.current = stepSimulation({
+      storage,
+      boids: allBoids,
+      frameSign: frameRef.current,
+      delta,
+      properties,
+      forceFactors,
+      worldBoundary,
+      seekTarget:
+        trackingStateRef.current === MouseTrackingState.seek
+          ? trackingTargetRef.current
+          : undefined,
+      avoidTarget:
+        trackingStateRef.current === MouseTrackingState.avoid
+          ? trackingTargetRef.current
+          : undefined,
     });
-
-    /* apply acceleration & velocity to update the boids' positions */
-    boidSlice.forEach((boid) => {
-      boid.applyAccleration(boidProperties.maxSpeed);
-      boid.applyVelocity(delta);
-    });
-
-    // re-structure storage every other frame to balance accuracy & performance
-    if (frameRef.current < 0) {
-      storage.clear();
-      allBoids.forEach((boid) => storage.insert(boid));
-    }
-
-    frameRef.current *= -1; // switch frames
   });
 
   return [storage, allBoids];

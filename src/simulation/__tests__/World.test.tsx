@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { create, waitFor } from "@react-three/test-renderer";
-import SeededWorld from "../../__mocks__/SeededWorld";
+import SeededWorld from "../../__fixtures__/SeededWorld";
 import { GROUP_NAME as HELPER_GROUP_NAME } from "../Helpers";
 import { GROUP_NAME as WORLD_GROUP_NAME } from "../World";
 import { GROUP_NAME as BOIDS_GROUP_NAME } from "../Boids";
-import { FLOCK_SIZE, FLOCK_COUNT } from "../../__mocks__/seededConfig";
+import { FLOCK_SIZE, FLOCK_COUNT } from "../../__fixtures__/seededConfig";
 
 vi.mock("../../hooks/useHelpers", () => ({
   default: vi.fn().mockReturnValue({

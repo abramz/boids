@@ -21,5 +21,10 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     setupFiles: ["./test-setup.ts"],
+    // the simulation tests run hundreds of steps over ~100 boids
+    testTimeout: 30_000,
+    // Vitest's default include matches *.spec.ts, which would pull in the
+    // Playwright specs under e2e/ and run them against jsdom
+    exclude: ["**/node_modules/**", "**/dist/**", "e2e/**"],
   },
 });

@@ -1,6 +1,10 @@
 import * as THREE from "three";
 import { useFrame } from "@react-three/fiber";
 import { MutableRefObject, useEffect, useRef } from "react";
+import {
+  projectPointerToWorld,
+  toNormalizedDeviceCoordinates,
+} from "../helpers/pointer";
 import { WORLD_SIZE } from "../config";
 
 export enum MouseTrackingState {
@@ -9,7 +13,7 @@ export enum MouseTrackingState {
   avoid,
 }
 
-const raycaster = new THREE.Raycaster();
+const TARGET_DISTANCE = WORLD_SIZE / 4;
 
 export default function useMouseTracking(): {
   trackingStateRef: MutableRefObject<MouseTrackingState>;
@@ -21,9 +25,13 @@ export default function useMouseTracking(): {
 
   useEffect(() => {
     const setMousePosition = (event: MouseEvent) => {
-      // Convert the mouse position to normalized device coordinates (NDC)
-      mouse2D.current.x = (event.clientX / window.innerWidth) * 2 - 1;
-      mouse2D.current.y = -(event.clientY / window.innerHeight) * 2 + 1;
+      toNormalizedDeviceCoordinates(
+        event.clientX,
+        event.clientY,
+        window.innerWidth,
+        window.innerHeight,
+        mouse2D.current,
+      );
     };
 
     const track = (event: KeyboardEvent) => {
@@ -56,11 +64,12 @@ export default function useMouseTracking(): {
 
   useFrame(({ camera }) => {
     if (trackMouse.current !== MouseTrackingState.none) {
-      raycaster.setFromCamera(mouse2D.current, camera);
-      targetRef.current
-        .copy(raycaster.ray.direction)
-        .multiplyScalar(WORLD_SIZE / 4)
-        .add(raycaster.ray.origin);
+      projectPointerToWorld(
+        mouse2D.current,
+        camera,
+        TARGET_DISTANCE,
+        targetRef.current,
+      );
     }
   });
 

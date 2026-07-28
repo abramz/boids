@@ -16,9 +16,12 @@
     "test:ci": "vitest run",
     "test:coverage": "vitest run --coverage",
     "prepare": "husky",
-    "lint": "eslint src"
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json",
+    "test:e2e": "playwright test"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.0",
     "@react-three/babel": "^1.0.2",
     "@react-three/test-renderer": "^8.2.1",
     "@types/node": "^20.11.24",

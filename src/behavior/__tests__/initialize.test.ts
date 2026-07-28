@@ -32,7 +32,9 @@ it("should initialize the simulation", async () => {
   expect(result.boids).toHaveLength(boidCount * flockCount);
 
   result.boids.forEach((boid) => {
-    expect(speed - boid.velocity.length()).toBeLessThan(acceptableDiff);
+    expect(Math.abs(speed - boid.velocity.length())).toBeLessThan(
+      acceptableDiff,
+    );
 
     expect(Math.abs(boid.position.x)).toBeLessThan(10);
     expect(Math.abs(boid.position.y)).toBeLessThan(10);
