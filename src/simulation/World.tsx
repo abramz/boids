@@ -88,24 +88,21 @@ export default function World(): ReactNode {
       ),
     );
 
-    // the world tracks the cube root of the flock, because it is volume that
+    // The world tracks the cube root of the flock, because it is volume that
     // holds boids: scale its length with the count instead and a machine that
     // earns half the boids gets a world eight times too big for them, thinning
-    // the flock until no boid has a neighbour left to fly with
-    const scale = Math.cbrt(flockSize / config.FLOCK_SIZE);
-    const worldSize = config.WORLD_SIZE * scale;
+    // the flock until no boid has a neighbour left to fly with.
+    //
+    // Nothing else scales. Holding the perception radius fixed alongside the
+    // density is what keeps the neighbour count, and so the flocking itself,
+    // identical on every machine: a weaker one gets a smaller world with fewer
+    // boids that behave the same, rather than a differently tuned simulation.
+    const worldSize =
+      config.WORLD_SIZE * Math.cbrt(flockSize / config.FLOCK_SIZE);
 
     camera.position.z = worldSize * config.CAMERA_DISTANCE_SCALE;
 
-    return {
-      flockSize,
-      worldSize,
-      perceptionRadius: config.PERCEPTION_RADIUS * scale,
-      desiredSeparation: config.DESIRED_SEPARATION * scale,
-      maxSpeed: config.MAX_SPEED * scale,
-      maxForce: config.MAX_FORCE * scale,
-      boidSize: config.BOID_SIZE * scale,
-    };
+    return { flockSize, worldSize };
   }, [gpuResult, camera]);
 
   const [worldBoundary, storageBoundary] = useMemo(() => {
@@ -122,12 +119,12 @@ export default function World(): ReactNode {
   }, [defaults]);
 
   const boidProperties = useBoidProperties({
-    perceptionRadius: defaults.perceptionRadius,
+    perceptionRadius: config.PERCEPTION_RADIUS,
     fieldOfViewDeg: config.FIELD_OF_VIEW_DEG,
-    desiredSeparation: defaults.desiredSeparation,
-    maxSpeed: defaults.maxSpeed,
-    maxForce: defaults.maxForce,
-    boidSize: defaults.boidSize,
+    desiredSeparation: config.DESIRED_SEPARATION,
+    maxSpeed: config.MAX_SPEED,
+    maxForce: config.MAX_FORCE,
+    boidSize: config.BOID_SIZE,
   });
 
   const forceFactors = useForceFactors({

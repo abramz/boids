@@ -40,7 +40,8 @@ export const OBSTACLE_RADIUS_SCALE = 1 / 24;
 /**
  * Neighbours are found within this radius, so it sets how many boids each one
  * actually flocks with. World.tsx holds the flock's density fixed whatever the
- * machine, so this lands on about the same neighbour count everywhere.
+ * machine and leaves this alone, so it lands on the same neighbour count
+ * everywhere and the flocking behaves identically on any hardware.
  */
 export const PERCEPTION_RADIUS = 3;
 export const FIELD_OF_VIEW_DEG = 230;
