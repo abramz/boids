@@ -48,6 +48,14 @@ const tempDiff = new THREE.Vector3();
 const tempForward = new THREE.Vector3();
 const tempAccelerationVector = new THREE.Vector3();
 const tempSteerDirection = new THREE.Vector3();
+const tempAxisSteer = new THREE.Vector3();
+const tempObstacleSteer = new THREE.Vector3();
+
+/* the axis avoidObstacles turns around, and a stand-in for when an obstacle
+   sits along it and the cross product carries no direction */
+const UP = new THREE.Vector3(0, 1, 0);
+const SIDEWAYS = new THREE.Vector3(1, 0, 0);
+const DEGENERATE_CROSS_SQ = 1e-6;
 
 export default class Boid implements Node {
   public readonly id: number;
@@ -282,15 +290,21 @@ export default class Boid implements Node {
     maxForce: number,
     outVector: THREE.Vector3,
   ): THREE.Vector3 => {
+    // steer away from every wall in range, not just the last one checked:
+    // `avoid` assigns to its out vector, so accumulating needs a scratch
     (["x", "y", "z"] as ["x", "y", "z"]).forEach((axis) => {
       tempAvoidTarget.copy(this.position);
       if (this.position[axis] < boundary.min[axis] + offset) {
         tempAvoidTarget[axis] -= 15;
-        this.avoid(tempAvoidTarget, maxSpeed, maxForce, outVector);
       } else if (this.position[axis] > boundary.max[axis] - offset) {
         tempAvoidTarget[axis] += 15;
-        this.avoid(tempAvoidTarget, maxSpeed, maxForce, outVector);
+      } else {
+        return;
       }
+
+      outVector.add(
+        this.avoid(tempAvoidTarget, maxSpeed, maxForce, tempAxisSteer),
+      );
     });
 
     return outVector;
@@ -316,17 +330,30 @@ export default class Boid implements Node {
       if (distance > 0 && !isInFOV(tempDiff, tempForward, fieldOfViewRad)) {
         return; // out of field of view
       }
-      // get a perpendicular direction
-      tempSteerDirection.crossVectors(tempForward, tempDiff).normalize();
-      const side = tempForward.dot(tempSteerDirection);
-      tempSteerDirection
-        .crossVectors(
-          side > 0 ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(0, -1, 0),
-          tempDiff,
-        )
-        .normalize();
+      // Turn along the horizontal tangent to the obstacle, whichever way the
+      // boid is already heading, so it keeps its momentum around rather than
+      // reversing across the obstacle's face.
+      tempSteerDirection.crossVectors(UP, tempDiff);
+      if (tempSteerDirection.lengthSq() < DEGENERATE_CROSS_SQ) {
+        // obstacle directly above or below, where every horizontal turn is
+        // equivalent, so any axis not parallel to it will do
+        tempSteerDirection.crossVectors(SIDEWAYS, tempDiff);
+      }
+      tempSteerDirection.normalize();
+      if (tempSteerDirection.dot(tempForward) < 0) {
+        tempSteerDirection.negate();
+      }
 
-      this.seekVelocity(tempSteerDirection, maxSpeed, maxForce, outVector);
+      // steer around every obstacle in range, not just the last one checked:
+      // `seekVelocity` assigns to its out vector, so accumulating needs a scratch
+      outVector.add(
+        this.seekVelocity(
+          tempSteerDirection,
+          maxSpeed,
+          maxForce,
+          tempObstacleSteer,
+        ),
+      );
     });
     return outVector;
   };
