@@ -4,5 +4,5 @@
     "target": "ESNext",
     "allowSyntheticDefaultImports": true
   },
-  "include": ["vite.config.ts", "playwright.config.ts", "e2e"]
+  "include": ["vite.config.ts", "playwright.config.ts", "test-setup.ts", "e2e"]
 }

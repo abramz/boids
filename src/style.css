@@ -3,10 +3,20 @@
   line-height: 1.5;
   font-weight: 400;
 
+  /* channels rather than colours, so the panels can tint them at any alpha.
+     --background is BACKGROUND_COLOR in theme.ts, which the canvas clears to:
+     the page shows around and behind it, so the two move together. */
+  --background: 10 15 18;
+  --accent: 124 199 255;
+  --accent-text: 191 228 255;
+  --error: 255 105 92;
+  --error-heading: 255 138 122;
+  --error-text: 255 154 140;
+
   /* the canvas paints the page edge to edge, and it is always the night sky */
   color-scheme: dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #0a0f12;
+  color: rgb(255 255 255 / 0.87);
+  background-color: rgb(var(--background));
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -49,11 +59,11 @@ body {
   width: fit-content;
   max-width: min(440px, 100%);
   padding: 24px 28px;
-  border: 1px solid rgba(124, 199, 255, 0.22);
+  border: 1px solid rgb(var(--accent) / 0.22);
   border-radius: 12px;
-  background-color: rgba(10, 15, 18, 0.82);
+  background-color: rgb(var(--background) / 0.82);
   backdrop-filter: blur(14px);
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 24px 60px rgb(0 0 0 / 0.55);
   font-size: 15px;
   line-height: 1.6;
 }
@@ -66,7 +76,7 @@ body {
 
 .panel p {
   margin: 0 0 16px;
-  color: rgba(255, 255, 255, 0.72);
+  color: rgb(255 255 255 / 0.72);
 }
 
 .panel p:last-child {
@@ -85,10 +95,10 @@ body {
 .panel-keys dt {
   justify-self: start;
   padding: 2px 9px;
-  border: 1px solid rgba(124, 199, 255, 0.28);
+  border: 1px solid rgb(var(--accent) / 0.28);
   border-radius: 6px;
-  background-color: rgba(124, 199, 255, 0.08);
-  color: #bfe4ff;
+  background-color: rgb(var(--accent) / 0.08);
+  color: rgb(var(--accent-text));
   font-size: 12.5px;
   white-space: nowrap;
 }
@@ -107,8 +117,8 @@ body {
   flex: none;
   width: 26px;
   height: 26px;
-  border: 2px solid rgba(124, 199, 255, 0.18);
-  border-top-color: #7cc7ff;
+  border: 2px solid rgb(var(--accent) / 0.18);
+  border-top-color: rgb(var(--accent));
   border-radius: 50%;
   animation: panel-spin 0.8s linear infinite;
 }
@@ -128,9 +138,9 @@ body {
 .panel button {
   appearance: none;
   padding: 8px 18px;
-  border: 1px solid rgba(124, 199, 255, 0.3);
+  border: 1px solid rgb(var(--accent) / 0.3);
   border-radius: 8px;
-  background-color: rgba(124, 199, 255, 0.12);
+  background-color: rgb(var(--accent) / 0.12);
   color: inherit;
   font: inherit;
   font-size: 14px;
@@ -138,28 +148,28 @@ body {
 }
 
 .panel button:hover {
-  background-color: rgba(124, 199, 255, 0.2);
+  background-color: rgb(var(--accent) / 0.2);
 }
 
 .panel button:focus-visible {
-  outline: 2px solid #7cc7ff;
+  outline: 2px solid rgb(var(--accent));
   outline-offset: 2px;
 }
 
 .panel--error {
-  border-color: rgba(255, 105, 92, 0.5);
+  border-color: rgb(var(--error) / 0.5);
 }
 
 .panel--error h1 {
-  color: #ff8a7a;
+  color: rgb(var(--error-heading));
 }
 
 .panel--error pre {
   margin: 0;
   padding: 12px;
   border-radius: 8px;
-  background-color: rgba(255, 105, 92, 0.08);
-  color: #ff9a8c;
+  background-color: rgb(var(--error) / 0.08);
+  color: rgb(var(--error-text));
   font-size: 13px;
   white-space: pre-wrap;
   word-wrap: break-word;

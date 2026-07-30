@@ -19,7 +19,14 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # the same gates a pull request faces, called rather than copied: a second
+  # hand-maintained list is one that drifts, and the deploy path is the worst
+  # place to discover it has
+  checks:
+    uses: ./.github/workflows/ci.yml
+
   deploy:
+    needs: checks
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -28,9 +35,5 @@ jobs:
           node-version-file: ".nvmrc"
           cache: "npm"
       - run: npm ci
-      - run: npm --prefix tools/lint ci
-      - run: npm run lint
-      - run: npm run typecheck
-      - run: npm run test:ci
       - run: npm run build
       - run: ./scripts/gh-pages.sh publish dist .
