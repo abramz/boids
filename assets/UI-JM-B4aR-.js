@@ -1,1 +1,0 @@
-import{p as e}from"./index-B-GOZKUP.js";import{t}from"./leva.esm-BuEWAPdA.js";var n=e();function r(){return(0,n.jsx)(t,{oneLineLabels:!0})}export{r as default};
