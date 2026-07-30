@@ -28,7 +28,7 @@ const createRimMaterial = () =>
   });
 
 export interface ObstacleDisplayProps {
-  obstacles: Obstacle[];
+  obstacles: readonly Obstacle[];
 }
 
 export default function ObstacleDisplay({
@@ -76,7 +76,8 @@ export default function ObstacleDisplay({
     return null;
   }
 
-  /* kludge but they are all the same radius */
+  /* one geometry for the lot: createSimulation builds the lattice at a single
+     radius, so instancing them needs no per-instance scale */
   const { radius } = obstacles[0];
 
   return (

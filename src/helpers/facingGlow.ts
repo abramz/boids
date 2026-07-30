@@ -11,6 +11,7 @@ export interface FacingGlowOptions {
    */
   atSilhouette?: boolean;
   fog?: boolean;
+  toneMapped?: boolean;
 }
 
 /**
@@ -28,6 +29,7 @@ export default function createFacingGlow({
   intensity,
   atSilhouette = false,
   fog = true,
+  toneMapped = true,
 }: FacingGlowOptions): THREE.MeshBasicMaterial {
   const material = new THREE.MeshBasicMaterial({
     color,
@@ -35,6 +37,7 @@ export default function createFacingGlow({
     blending: THREE.AdditiveBlending,
     depthWrite: false,
     fog,
+    toneMapped,
   });
 
   const glow = atSilhouette ? "1.0 - vFacing" : "vFacing";

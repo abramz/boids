@@ -38,8 +38,9 @@ a read-only token.
 
 ### Tests
 
-The simulation is a plain function in `src/behavior/step.ts`, not a `useFrame`
-closure, so most of the suite runs without a renderer.
+The simulation is plain functions under `src/behavior/`, not a `useFrame`
+closure: `createSimulation.ts` builds a world and drives it, `step.ts` advances
+it one frame. Most of the suite runs without a renderer.
 
 Two things to know before changing anything numeric:
 

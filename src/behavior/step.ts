@@ -1,21 +1,20 @@
 import * as THREE from "three";
 import BoidStore from "../storage/BoidStore";
-import Boid, { BoidProperties, ForceFactors } from "./Boid";
+import Boid, { DerivedBoidProperties, ForceFactors } from "./Boid";
 
 /* this is all single threaded so steps can share a temp variable */
 const tempBoundary = new THREE.Sphere();
 
-/** Frame deltas above this are discarded rather than integrated. */
-export const MAX_DELTA = 1;
-
 export interface StepSimulationOptions {
   storage: BoidStore;
-  boids: Boid[];
-  /** +1 or -1; selects which half of the flock is updated this frame */
+  boids: readonly Boid[];
+  /** +1 or -1; selects which half of the flock re-reads its neighbourhood */
   frameSign: number;
   /** seconds elapsed since the previous frame */
   delta: number;
-  properties: BoidProperties;
+  /** deltas above this are dropped rather than integrated */
+  maxDelta: number;
+  properties: DerivedBoidProperties;
   forceFactors: ForceFactors;
   worldBoundary: THREE.Box3;
 }
@@ -23,8 +22,14 @@ export interface StepSimulationOptions {
 /**
  * Advance the simulation by one frame.
  *
- * Only half the flock is updated per frame, alternating by `frameSign`, and
- * storage is rebuilt on the negative half-frame so the OctTree stays roughly
+ * Half the flock works out what it wants to do per frame, alternating by
+ * `frameSign`, because searching the OctTree for neighbours is the expensive
+ * part of a frame and the answer barely moves between two of them. Every boid
+ * then flies on that answer, every frame: what a boid steers towards changes
+ * slowly, but where it is changes constantly, and skipping it every other frame
+ * is a visible stutter for no saving.
+ *
+ * Storage is rebuilt on the negative half-frame, so the OctTree stays roughly
  * accurate without being rebuilt twice per pair.
  *
  * @returns the `frameSign` to use on the next frame
@@ -34,25 +39,24 @@ export default function stepSimulation({
   boids,
   frameSign,
   delta,
+  maxDelta,
   properties,
   forceFactors,
   worldBoundary,
 }: StepSimulationOptions): number {
-  if (delta > MAX_DELTA) {
-    console.log("skipped excessive delta");
-
+  if (delta > maxDelta) {
+    /* the frame is dropped rather than integrated, so the flock holds still
+       instead of jumping to where it would have been */
     return frameSign;
   }
 
   const halfSize = Math.floor(boids.length / 2);
-  const boidSlice =
-    frameSign > 0 ? boids.slice(0, halfSize) : boids.slice(halfSize);
+  const start = frameSign > 0 ? 0 : halfSize;
+  const end = frameSign > 0 ? halfSize : boids.length;
 
-  /* apply forces to all boids before computing position & velocity */
-  boidSlice.forEach((boid) => {
-    // OctTree.queryRange returns every boid in the cells the sphere touches
-    // without filtering them, so a radius below perceptionRadius silently
-    // narrows the candidates to the boid's own cell rather than returning none
+  /* half the flock re-reads its neighbourhood and re-aims */
+  for (let index = start; index < end; index++) {
+    const boid = boids[index];
     tempBoundary.set(boid.position, properties.perceptionRadius);
 
     boid.applyForces({
@@ -62,23 +66,23 @@ export default function stepSimulation({
       properties,
       forceFactors,
     });
-  });
-
-  /* apply acceleration & velocity to update the boids' positions */
-  const storageBoundary = storage.boundary;
-  boidSlice.forEach((boid) => {
-    boid.applyAccleration(properties.maxSpeed);
-    boid.applyVelocity(delta);
-    // BoidStore.insert throws for a boid outside the tree, and a large delta
-    // can integrate further than avoidEdges is able to steer back
-    boid.position.clamp(storageBoundary.min, storageBoundary.max);
-  });
-
-  // re-structure storage every other frame to balance accuracy & performance
-  if (frameSign < 0) {
-    storage.clear();
-    boids.forEach((boid) => storage.insert(boid));
   }
 
-  return frameSign * -1; // switch frames
+  /* and the whole flock flies, on whichever answer it has. A boid holds its
+     acceleration between re-aims, so integrating it against this frame's delta
+     lands on the same velocity by the time it re-aims, reached smoothly */
+  const storageBoundary = storage.boundary;
+  for (const boid of boids) {
+    boid.applyAcceleration(delta, properties.minSpeed, properties.maxSpeed);
+    boid.applyVelocity(delta);
+    // edge avoidance is a steering force rather than a wall, so a boid can
+    // overshoot the world; the index cannot hold one outside its own boundary
+    boid.position.clamp(storageBoundary.min, storageBoundary.max);
+  }
+
+  if (frameSign < 0) {
+    storage.reindex();
+  }
+
+  return frameSign * -1;
 }

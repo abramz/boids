@@ -1,114 +1,140 @@
 import * as THREE from "three";
 import { it, beforeEach, expect } from "vitest";
 import Boid from "../../behavior/Boid";
+import Obstacle from "../../obstacle/Obstacle";
 import OctTree from "../OctTree";
 import BoidStore from "../BoidStore";
+
+const CAPACITY = 4;
+const MAX_DEPTH = 8;
 
 let store: BoidStore;
 let octTree: OctTree<Boid>;
 let boundary: THREE.Box3;
-let capacity: number;
+
+function makeBoid(id: number, position = new THREE.Vector3()): Boid {
+  return new Boid({
+    id,
+    parentId: 3,
+    position,
+    velocity: new THREE.Vector3(),
+  });
+}
 
 beforeEach(() => {
-  capacity = 4;
   boundary = new THREE.Box3(
     new THREE.Vector3(-10, -10, -10),
     new THREE.Vector3(10, 10, 10),
   );
-  octTree = new OctTree(boundary, capacity);
+  octTree = new OctTree(boundary, CAPACITY, MAX_DEPTH);
 
   store = new BoidStore(octTree);
 });
 
 it("should insert boids", () => {
-  const boid1 = new Boid({
-    id: 1,
-    parentId: 3,
-    position: new THREE.Vector3(),
-    velocity: new THREE.Vector3(),
-  });
+  const boids = [makeBoid(1), makeBoid(2), makeBoid(3)];
 
-  const boid2 = new Boid({
-    id: 2,
-    parentId: 3,
-    position: new THREE.Vector3(),
-    velocity: new THREE.Vector3(),
-  });
+  boids.forEach((boid) => store.insert(boid));
 
-  const boid3 = new Boid({
-    id: 3,
-    parentId: 3,
-    position: new THREE.Vector3(),
-    velocity: new THREE.Vector3(),
-  });
-
-  store.insert(boid1);
-  store.insert(boid2);
-  store.insert(boid3);
-
-  expect(store.boids).toContain(boid1);
-  expect(store.boids).toContain(boid2);
-  expect(store.boids).toContain(boid3);
+  expect(store.boids).toEqual(boids);
 });
 
 it("should throw an error when trying to re-insert boids", () => {
-  const boid = new Boid({
-    id: 1,
-    parentId: 3,
-    position: new THREE.Vector3(),
-    velocity: new THREE.Vector3(),
-  });
+  const boid = makeBoid(1);
 
   store.insert(boid);
 
-  expect(() => {
-    store.insert(boid);
-  }).toThrow();
+  expect(() => store.insert(boid)).toThrow(/already inserted/);
 });
 
 it("should throw an error when trying to insert a boid that is out of range", () => {
-  const boid = new Boid({
-    id: 1,
-    parentId: 3,
-    position: boundary.max.clone().multiplyScalar(2),
-    velocity: new THREE.Vector3(),
-  });
+  const boid = makeBoid(1, boundary.max.clone().multiplyScalar(2));
 
-  expect(() => {
-    store.insert(boid);
-  }).toThrow();
+  expect(() => store.insert(boid)).toThrow(/unable to be inserted/);
 });
 
-it("should query the OctTree range when", () => {
-  const boid = new Boid({
-    id: 1,
-    parentId: 3,
-    position: new THREE.Vector3(),
-    velocity: new THREE.Vector3(),
-  });
+it("should hold the obstacles it is given", () => {
+  const obstacle = new Obstacle(new THREE.Vector3(1, 2, 3), 4);
 
-  store.insert(boid);
+  store.insertObstacle(obstacle);
+
+  expect(store.obstacles).toEqual([obstacle]);
+});
+
+it("should return the boids within a queried range", () => {
+  const near = makeBoid(1, new THREE.Vector3(1, 0, 0));
+  const far = makeBoid(2, new THREE.Vector3(9, 0, 0));
+  store.insert(near);
+  store.insert(far);
 
   const result = store.queryRange(new THREE.Sphere(new THREE.Vector3(), 3));
 
-  expect(result).toContain(boid);
+  expect(result).toEqual([near]);
 });
 
-it("should clear itself and the OctTree", () => {
-  for (let i = 0; i < 10; i++) {
-    store.insert(
-      new Boid({
-        id: i,
-        parentId: 3,
-        position: new THREE.Vector3(),
-        velocity: new THREE.Vector3(),
-      }),
-    );
-  }
+it("should keep the flock, and its identity, across a reindex", () => {
+  const boids = Array.from({ length: 10 }, (_, i) =>
+    makeBoid(i, new THREE.Vector3(i - 5, 0, 0)),
+  );
+  boids.forEach((boid) => store.insert(boid));
 
-  expect(store.boids).toHaveLength(10);
+  const before = store.boids;
+  boids.forEach((boid) => boid.position.set(0, boid.id - 5, 0));
+  store.reindex();
 
-  store.clear();
+  // same array, so a renderer memoising on it is not torn down every frame
+  expect(store.boids).toBe(before);
+  expect(store.boids).toEqual(boids);
 
-  expect(store.boids).toHaveLength(0);
+  // and the tree now indexes them where they moved to, not where they were
+  expect(
+    store.queryRange(new THREE.Sphere(new THREE.Vector3(0, 4, 0), 0.5)),
+  ).toEqual([boids[9]]);
+  expect(
+    store.queryRange(new THREE.Sphere(new THREE.Vector3(4, 0, 0), 0.5)),
+  ).toHaveLength(0);
+});
+
+it("should index each boid once however many times it is reindexed", () => {
+  const boids = Array.from({ length: 10 }, (_, i) =>
+    makeBoid(i, new THREE.Vector3(i - 5, 0, 0)),
+  );
+  boids.forEach((boid) => store.insert(boid));
+
+  store.reindex();
+  store.reindex();
+
+  // rebuilding without clearing first leaves a stale copy of every boid per
+  // rebuild: the tree grows without bound and each boid is its own neighbour
+  const everything = store.queryRange(
+    new THREE.Sphere(new THREE.Vector3(), 100),
+  );
+  expect(everything).toHaveLength(boids.length);
+  expect(new Set(everything).size).toBe(boids.length);
+});
+
+it("should throw out of a reindex when a boid has left the tree", () => {
+  const boid = makeBoid(1);
+  store.insert(boid);
+
+  boid.position.copy(boundary.max).multiplyScalar(2);
+
+  expect(() => store.reindex()).toThrow(/outside the storage boundary/);
+});
+
+it("should leave the index intact when a reindex throws", () => {
+  const staying = makeBoid(1, new THREE.Vector3(1, 0, 0));
+  const leaving = makeBoid(2, new THREE.Vector3(2, 0, 0));
+  store.insert(staying);
+  store.insert(leaving);
+
+  leaving.position.copy(boundary.max).multiplyScalar(2);
+
+  expect(() => store.reindex()).toThrow();
+
+  // tearing the tree down before checking would leave the caller holding a
+  // half-indexed flock to abandon the frame on
+  expect(
+    store.queryRange(new THREE.Sphere(new THREE.Vector3(1, 0, 0), 0.5)),
+  ).toEqual([staying]);
 });

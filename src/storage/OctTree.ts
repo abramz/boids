@@ -1,101 +1,110 @@
 import * as THREE from "three";
-import { seededRandom } from "../helpers/math";
-
-const tempVector = new THREE.Vector3();
 
 export interface Node {
   position: THREE.Vector3;
 }
 
 /**
- * OctTree implementation I made before realizing there is on in the Three.JS add-ons.
- * This one is good enough, so I kept it
+ * A point octree over a fixed boundary.
+ *
+ * A cell holds up to `capacity` nodes before it splits into eight, and stops
+ * splitting at `maxDepth`, where it simply holds however many it is given.
+ * Without that floor a cell full of coincident points would split forever: no
+ * subdivision ever separates points that share a position.
  */
 export default class OctTree<T extends Node> {
   public readonly boundary: THREE.Box3;
   protected capacity: number;
-  protected seed: number | undefined;
+  protected maxDepth: number;
+  protected level: number;
   protected nodes: T[] = [];
-  protected children:
-    | [
-        typeof this,
-        typeof this,
-        typeof this,
-        typeof this,
-        typeof this,
-        typeof this,
-        typeof this,
-        typeof this,
-      ]
-    | undefined;
+  protected children: OctTree<T>[] | undefined;
 
-  constructor(boundary: THREE.Box3, capacity: number, seed?: number) {
+  /** `level` is how deep this cell already sits, and only subdivide sets it. */
+  constructor(
+    boundary: THREE.Box3,
+    capacity: number,
+    maxDepth: number,
+    level = 0,
+  ) {
+    if (capacity < 1) {
+      throw new Error(`OctTree capacity must be at least 1, got ${capacity}`);
+    }
+
     this.boundary = boundary;
     this.capacity = capacity;
-    this.seed = seed;
+    this.maxDepth = maxDepth;
+    this.level = level;
   }
 
   /**
    * Insert a node into the tree
    * @param node the node to insert
-   * @returns true if the node was inserted into the tree or one of it's descendents, otherwise false
+   * @returns true if the node was inserted into the tree or one of its descendants, otherwise false
    */
   public insert(node: T): boolean {
     if (!this.boundary.containsPoint(node.position)) {
-      return false; // node is out of bounds
+      return false; // node is out of bounds, or its position is not a number
     }
 
-    if (this.nodes.length < this.capacity) {
+    if (this.nodes.length < this.capacity || this.level >= this.maxDepth) {
       this.nodes.push(node);
-      return true; // we have space so don't have to do anything fancy
+      return true;
     }
 
     if (!this.children) {
       this.subdivide();
     }
 
-    // randomly select a starting index so we spread the load more
-    const randomStart = Math.round(seededRandom(1, 8, this.seed));
-    for (let i = randomStart; i < randomStart + 8; i++) {
-      const child = this.children![i % 8];
-      const inserted = child.insert(node);
-
-      if (inserted) {
-        return inserted; // short-circuit so it is only inserted in 1 child
+    for (const child of this.children!) {
+      if (child.insert(node)) {
+        return true; // short-circuit so it is only inserted in 1 child
       }
     }
 
     throw new Error(
-      "an unknown error occurred and the node could not be inserted",
+      `node at ${node.position.toArray().join()} fell outside every child of ${this.boundary.min.toArray().join()}..${this.boundary.max.toArray().join()}`,
     );
   }
 
   /**
-   * Subdivide this tree's boundary into 8 equal octants (is that the cubic version of quadrant? idk?)
+   * Subdivide this tree's boundary into 8 equal octants.
+   *
+   * The children are cut straight from the parent's own min, centre and max, so
+   * the eight of them tile it exactly. Re-deriving each outer face from a centre
+   * and a size instead costs a rounding, and a face that lands a bit inside the
+   * parent's leaves a point sitting exactly on that parent face belonging to no
+   * child at all, which `insert` can only report as an error.
    */
   protected subdivide(): void {
-    const center = new THREE.Vector3();
-    this.boundary.getCenter(center);
-    const size = new THREE.Vector3();
-    this.boundary.getSize(size);
-    size.divideScalar(2);
+    const { min, max } = this.boundary;
+    /* the same halving Box3.getCenter does, without the vector to hold it */
+    const centerX = (min.x + max.x) / 2;
+    const centerY = (min.y + max.y) / 2;
+    const centerZ = (min.z + max.z) / 2;
 
-    const ctor = Object.getPrototypeOf(this).constructor;
-
-    // @ts-expect-error we are about to fill this up with the 8 required children
     this.children = [];
-    const xPos = [center.x + size.x / 2, center.x - size.x / 2];
-    const yPos = [center.y + size.y / 2, center.y - size.y / 2];
-    const zPos = [center.z + size.z / 2, center.z - size.z / 2];
-    for (let x = 0; x < 2; x++) {
-      for (let y = 0; y < 2; y++) {
-        for (let z = 0; z < 2; z++) {
-          tempVector.set(xPos[x], yPos[y], zPos[z]);
-          this.children?.push(
-            new ctor(
-              new THREE.Box3().setFromCenterAndSize(tempVector, size),
+    for (const [lowX, highX] of [
+      [min.x, centerX],
+      [centerX, max.x],
+    ]) {
+      for (const [lowY, highY] of [
+        [min.y, centerY],
+        [centerY, max.y],
+      ]) {
+        for (const [lowZ, highZ] of [
+          [min.z, centerZ],
+          [centerZ, max.z],
+        ]) {
+          this.children.push(
+            new OctTree<T>(
+              new THREE.Box3(
+                new THREE.Vector3(lowX, lowY, lowZ),
+                new THREE.Vector3(highX, highY, highZ),
+              ),
               this.capacity,
-              this.seed,
+              this.maxDepth,
+              this.level + 1,
             ),
           );
         }
@@ -104,28 +113,37 @@ export default class OctTree<T extends Node> {
   }
 
   /**
-   * Find all nodes in any tree that has a boundary intersecting the range
+   * Find every node inside the range.
+   *
+   * Cells that merely overlap the range are descended into, but only the nodes
+   * actually within it come back: a caller filtering the result again would be
+   * re-deriving the distance the query already knows.
+   *
    * @param range range to look for neighbors in
-   * @param result the result array, only needed internall
    * @returns all matching nodes
    */
   public queryRange(range: THREE.Sphere): T[] {
     const result: T[] = [];
 
-    this._queryRange(range, result);
+    this.collectRange(range, result);
 
     return result;
   }
-  protected _queryRange(range: THREE.Sphere, result: T[]): void {
-    if (this.boundary.intersectsSphere(range)) {
-      for (const node of this.nodes) {
+
+  protected collectRange(range: THREE.Sphere, /* OUT */ result: T[]): void {
+    if (!this.boundary.intersectsSphere(range)) {
+      return;
+    }
+
+    for (const node of this.nodes) {
+      if (range.containsPoint(node.position)) {
         result.push(node);
       }
+    }
 
-      if (this.children) {
-        for (const child of this.children) {
-          child._queryRange(range, result);
-        }
+    if (this.children) {
+      for (const child of this.children) {
+        child.collectRange(range, result);
       }
     }
   }
@@ -138,20 +156,18 @@ export default class OctTree<T extends Node> {
     this.children = undefined;
   }
 
-  /**
-   * Return the maximum depth of the tree
-   */
-  public get depth(): number {
+  /** How many levels of cell sit at and below this one. */
+  public get height(): number {
     if (!this.children) {
       return 1;
     }
 
-    let maxChildDepth = 0;
+    let maxChildHeight = 0;
     for (const child of this.children) {
-      maxChildDepth = Math.max(maxChildDepth, child.depth);
+      maxChildHeight = Math.max(maxChildHeight, child.height);
     }
 
-    return 1 + maxChildDepth;
+    return 1 + maxChildHeight;
   }
 
   /**
@@ -170,38 +186,33 @@ export default class OctTree<T extends Node> {
     return this.nodes.length + childSize;
   }
 
-  /**
-   * Return the total number of trees
-   */
-  public get trees(): number {
+  /** How many cells this one has become, itself included. */
+  public get subtreeCount(): number {
     if (!this.children) {
       return 1;
     }
 
-    let childSize = 0;
+    let childCount = 0;
     for (const child of this.children) {
-      childSize += child.trees;
+      childCount += child.subtreeCount;
     }
-    return 1 + childSize;
+
+    return 1 + childCount;
   }
 
   /**
-   * Return the boundaries of leaves containing nodes
+   * Return the boundary of every tree holding nodes.
+   *
+   * A subdivided tree keeps the nodes it took before it split, so its own
+   * boundary belongs in the result alongside its children's.
    */
   public get boundaries(): THREE.Box3[] {
-    let childBoundaries;
-    if (this.children) {
-      childBoundaries = this.children.flatMap((child) => child.boundaries);
+    const own = this.nodes.length > 0 ? [this.boundary] : [];
+
+    if (!this.children) {
+      return own;
     }
 
-    if (childBoundaries && childBoundaries.length > 0) {
-      return childBoundaries;
-    }
-
-    if (this.nodes.length === 0) {
-      return [];
-    }
-
-    return [this.boundary];
+    return [...own, ...this.children.flatMap((child) => child.boundaries)];
   }
 }

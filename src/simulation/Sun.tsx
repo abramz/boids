@@ -4,10 +4,7 @@ import createFacingGlow from "../helpers/facingGlow";
 import {
   LIGHTS,
   SHADOW_BIAS,
-  SHADOW_EXTENT,
-  SHADOW_FAR,
   SHADOW_MAP_SIZE,
-  SHADOW_NEAR,
   SHADOW_NORMAL_BIAS,
   SUN_COLOR,
   SUN_CORONA_INTENSITY,
@@ -15,7 +12,9 @@ import {
   SUN_CORONA_SCALE,
   SUN_POSITION,
   SUN_RADIUS,
+  shadowFrustum,
 } from "../theme";
+import useWorldSize from "../hooks/useWorldSize";
 
 export const GROUP_NAME = "Sun";
 
@@ -29,12 +28,16 @@ export const GROUP_NAME = "Sun";
  */
 export default function Sun(): ReactNode {
   const light = useRef<THREE.DirectionalLight>(null!);
+  const { worldSize } = useWorldSize();
+  /* graded like the disc it wraps: tone map one and not the other and the seam
+     between them moves with the exposure */
   const [corona] = useState(() =>
     createFacingGlow({
       color: SUN_COLOR,
       power: SUN_CORONA_POWER,
       intensity: SUN_CORONA_INTENSITY,
       fog: false,
+      toneMapped: false,
     }),
   );
 
@@ -44,15 +47,16 @@ export default function Sun(): ReactNode {
      to be recomputed once it has been sized to the world */
   useLayoutEffect(() => {
     const { camera } = light.current.shadow;
+    const { extent, near, far } = shadowFrustum(worldSize);
 
-    camera.left = -SHADOW_EXTENT;
-    camera.right = SHADOW_EXTENT;
-    camera.top = SHADOW_EXTENT;
-    camera.bottom = -SHADOW_EXTENT;
-    camera.near = SHADOW_NEAR;
-    camera.far = SHADOW_FAR;
+    camera.left = -extent;
+    camera.right = extent;
+    camera.top = extent;
+    camera.bottom = -extent;
+    camera.near = near;
+    camera.far = far;
     camera.updateProjectionMatrix();
-  }, []);
+  }, [worldSize]);
 
   return (
     <>

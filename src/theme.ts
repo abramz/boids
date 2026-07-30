@@ -4,33 +4,59 @@ import { WORLD_SIZE } from "./config";
 /**
  * How the scene is dressed, kept apart from config.ts, which holds the numbers
  * the simulation itself runs on.
+ *
+ * Anything that has to cover the world takes its size as an argument rather
+ * than reading config.WORLD_SIZE, which is only the world the fastest machines
+ * earn; useWorldSize.ts has the one a given machine actually gets.
+ *
+ * The sky (the sun and the starfield) is the exception, and reads the largest
+ * world on purpose: it has to sit beyond every machine's world to read as a
+ * backdrop rather than as scenery, so it is placed once against the biggest of
+ * them and left there. Sized against it rather than pinned to numbers tuned for
+ * one, so retuning WORLD_SIZE does not leave the starfield inside the flock.
  */
 
-/** The scene clears to this and the fog converges on it. */
+/**
+ * The scene clears to this and the fog converges on it. `--background` in
+ * style.css is the same colour for the page around the canvas, and the two have
+ * to be changed together.
+ */
 export const BACKGROUND_COLOR = 0x0a0f12;
 
 /**
- * Exponential-squared fog density. Derived from WORLD_SIZE so the far side of
- * the world always dims by about as much: hold it fixed while the world grows
- * and the far side goes from distant to gone. The coefficient is set against
- * CAMERA_DISTANCE_SCALE, since how much fog the flock picks up depends on how
- * far back the camera watches it from.
+ * Exponential-squared fog density, so the far side of the world dims by about
+ * as much whatever world the machine earned: hold a density fixed while the
+ * world grows and the far side goes from distant to gone. The coefficient is
+ * set against cameraDistance above, since how much fog the flock picks up
+ * depends on how far back the camera watches it from.
  */
-export const FOG_DENSITY = 0.45 / WORLD_SIZE;
+export const fogDensity = (worldSize: number): number => 0.45 / worldSize;
+
+/**
+ * How far back the camera watches a world of this size from. A whole world size
+ * out is clear of the boundary with the far wall still in frame, where half of
+ * one puts the camera on the boundary face, inside the flock.
+ */
+export const cameraDistance = (worldSize: number): number => worldSize * 1;
 
 /** ACES rolls highlights off rather than clipping them, so lights can exceed 1. */
 export const TONE_MAPPING_EXPOSURE = 1.05;
 
 export const SUN_COLOR = 0xfff0d4;
+
 /** Beyond the world but inside the starfield, so stars fall behind it. */
-export const SUN_POSITION: THREE.Vector3Tuple = [46, 68, 38];
-export const SUN_RADIUS = 4;
+const SUN_DISTANCE = WORLD_SIZE * 2;
+/** High and to one side, so the flock is lit across rather than head on. */
+export const SUN_POSITION: THREE.Vector3Tuple = new THREE.Vector3(46, 68, 38)
+  .normalize()
+  .multiplyScalar(SUN_DISTANCE)
+  .toArray();
+/** Held to a constant angular size by scaling with the distance above. */
+export const SUN_RADIUS = WORLD_SIZE * 0.09;
 /** The corona is this many times the disc it wraps. */
 export const SUN_CORONA_SCALE = 4;
 export const SUN_CORONA_POWER = 2.5;
 export const SUN_CORONA_INTENSITY = 1.4;
-
-const SUN_DISTANCE = Math.hypot(...SUN_POSITION);
 
 /**
  * The sun casts, and only the obstacles cast into it, so a modest map is sharp:
@@ -38,11 +64,30 @@ const SUN_DISTANCE = Math.hypot(...SUN_POSITION);
  * boids they fall on would have got about four.
  */
 export const SHADOW_MAP_SIZE = 1024;
-/** Half-width of the shadow frustum, out to the corners of the world cube. */
-export const SHADOW_EXTENT = WORLD_SIZE * 0.9;
-/** Near and far bracket the world as seen from the sun, and no more. */
-export const SHADOW_NEAR = Math.max(0.5, SUN_DISTANCE - SHADOW_EXTENT);
-export const SHADOW_FAR = SUN_DISTANCE + SHADOW_EXTENT;
+
+export interface ShadowFrustum {
+  /** Half-width, out to the corners of the world cube. */
+  extent: number;
+  near: number;
+  far: number;
+}
+
+/**
+ * The orthographic frustum the sun casts through, bracketing the world as seen
+ * from the sun and no more. Sized against the world so a machine that earns a
+ * smaller one spends its shadow map on that world rather than on empty space
+ * around it.
+ */
+export function shadowFrustum(worldSize: number): ShadowFrustum {
+  const extent = worldSize * 0.9;
+
+  return {
+    extent,
+    near: Math.max(0.5, SUN_DISTANCE - extent),
+    far: SUN_DISTANCE + extent,
+  };
+}
+
 export const SHADOW_BIAS = -0.0005;
 /** Offsets the lookup along the normal, which is what keeps facets acne-free. */
 export const SHADOW_NORMAL_BIAS = 0.05;
@@ -66,9 +111,9 @@ export const LIGHTS = {
 
 export const STAR_COUNT = 1800;
 /** Well outside the world, so the field parallaxes rather than intersecting it. */
-export const STAR_RADIUS = 110;
-export const STAR_DEPTH = 50;
-/** drei scales a star by this over its distance, and 110 units away is a long way. */
+export const STAR_RADIUS = WORLD_SIZE * 2.5;
+export const STAR_DEPTH = WORLD_SIZE * 1.1;
+/** drei scales a star down by its distance, and the field is a long way out. */
 export const STAR_SIZE = 6;
 /** drei breathes star size on a sine; slow it to a drift rather than a twinkle. */
 export const STAR_SPEED = 0.15;

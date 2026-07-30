@@ -9,6 +9,7 @@ import {
   captureGolden,
   compare,
   describeDivergences,
+  idMismatch,
 } from "./helpers/golden";
 
 /**
@@ -22,15 +23,23 @@ const FIXTURE = resolve(
   "src/__fixtures__/golden.simulation.json",
 );
 
+/* only the documented value re-records, so UPDATE_GOLDEN=0 does what it says */
+const RE_RECORD = process.env.UPDATE_GOLDEN === "1";
+
+const NO_ID_MISMATCH = { missing: [], extra: [] };
+
 describe("golden simulation", () => {
   let actual: GoldenFixture;
+  let storageBoundary: THREE.Box3;
 
-  beforeAll(async () => {
-    actual = await captureGolden();
+  beforeAll(() => {
+    const capture = captureGolden();
+    actual = capture.fixture;
+    storageBoundary = capture.simulation.storage.boundary;
   });
 
   it("matches the recorded trajectory", () => {
-    if (process.env.UPDATE_GOLDEN) {
+    if (RE_RECORD) {
       writeFileSync(FIXTURE, `${JSON.stringify(actual, null, 2)}\n`);
       expect.fail(
         `golden re-recorded against three r${actual.meta.three}; re-run without UPDATE_GOLDEN`,
@@ -39,8 +48,19 @@ describe("golden simulation", () => {
 
     const expected: GoldenFixture = JSON.parse(readFileSync(FIXTURE, "utf8"));
 
+    // the fixture's own count, not the run's: a flock that grew or shrank makes
+    // every comparison below an argument about a different simulation
+    expect(actual.meta.boidCount, "flock size changed").toBe(
+      expected.meta.boidCount,
+    );
+
     // if three's seeded RNG or setFromSpherical moved, every boid starts
     // somewhere else and the per-frame comparison below is noise
+    expect(
+      idMismatch(expected.initial, actual.initial),
+      "the recorded boids and the simulated boids are not the same set",
+    ).toEqual(NO_ID_MISMATCH);
+
     const drifted = compare(expected.initial, actual.initial, "initial");
     expect(
       drifted,
@@ -49,19 +69,23 @@ describe("golden simulation", () => {
     ).toEqual([]);
 
     CHECKPOINTS.forEach((frame) => {
-      const divergences = compare(
-        expected.frames[String(frame)],
-        actual.frames[String(frame)],
-        `frame ${frame}`,
-      );
+      const recorded = expected.frames[String(frame)];
+      const captured = actual.frames[String(frame)];
+
+      expect(
+        idMismatch(recorded, captured),
+        `frame ${frame} holds a different set of boids`,
+      ).toEqual(NO_ID_MISMATCH);
+
+      const divergences = compare(recorded, captured, `frame ${frame}`);
 
       expect(divergences, describeDivergences(divergences)).toEqual([]);
     });
   });
 
-  it("is reproducible across runs", async () => {
-    const first = await captureGolden(10);
-    const second = await captureGolden(10);
+  it("is reproducible across runs", () => {
+    const first = captureGolden(10).fixture;
+    const second = captureGolden(10).fixture;
 
     expect(second.frames["10"]).toEqual(first.frames["10"]);
   });
@@ -80,7 +104,7 @@ describe("golden simulation", () => {
             true,
           );
           expect(
-            seeded.STORAGE_BOUNDARY.containsPoint(position.set(px, py, pz)),
+            storageBoundary.containsPoint(position.set(px, py, pz)),
             `${where} left the storage boundary`,
           ).toBe(true);
           expect(
@@ -95,7 +119,8 @@ describe("golden simulation", () => {
       const first = actual.frames[String(CHECKPOINTS[0])];
       const last = actual.frames[String(CHECKPOINTS[CHECKPOINTS.length - 1])];
 
-      expect(Object.keys(last)).toHaveLength(actual.meta.boidCount);
+      // no boid dropped out along the way
+      expect(idMismatch(first, last)).toEqual(NO_ID_MISMATCH);
 
       // catches "the simulation stopped stepping", which a stale fixture would
       // otherwise agree with

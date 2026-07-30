@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { create, waitFor } from "@react-three/test-renderer";
+import { clear } from "suspend-react";
 import SeededWorld from "../../__fixtures__/SeededWorld";
 import { GROUP_NAME as HELPER_GROUP_NAME } from "../Helpers";
 import { GROUP_NAME as WORLD_GROUP_NAME } from "../World";
@@ -17,6 +18,9 @@ vi.mock("../../hooks/useHelpers", () => ({
 }));
 
 beforeEach(() => {
+  /* the built flock is cached under its world's shape, so without this the
+     second render in this file is handed the first one's advanced simulation */
+  clear();
   vi.useFakeTimers();
 });
 
@@ -38,18 +42,16 @@ it("should render the world in all of its glory", async () => {
   const renderer = await render();
 
   const groups = renderer.scene.findAllByType("Group");
-  expect(groups).toHaveLength(
-    3 + FLOCK_SIZE * FLOCK_COUNT, // world, helpers and obstacles, plus one per Instance
-  );
-  expect(groups[0].instance.name).toEqual(WORLD_GROUP_NAME);
-  expect(
-    groups.some((group) => group.instance.name === OBSTACLE_GROUP_NAME),
-  ).toBe(true);
+  const named = (name: string) =>
+    groups.find((group) => group.instance.name === name);
 
-  const helperGroup = groups[1];
-  expect(helperGroup.instance.name).toEqual(HELPER_GROUP_NAME);
-  expect(helperGroup.findAllByType("Box3Helper")).toHaveLength(2);
-  expect(helperGroup.findAllByType("Mesh")).toHaveLength(1);
+  expect(named(WORLD_GROUP_NAME), WORLD_GROUP_NAME).toBeTruthy();
+  expect(named(OBSTACLE_GROUP_NAME), OBSTACLE_GROUP_NAME).toBeTruthy();
+
+  const helperGroup = named(HELPER_GROUP_NAME);
+  expect(helperGroup, HELPER_GROUP_NAME).toBeTruthy();
+  expect(helperGroup!.findAllByType("Box3Helper")).toHaveLength(2);
+  expect(helperGroup!.findAllByType("Mesh")).toHaveLength(1);
 
   const meshes = renderer.scene.findAllByType("Mesh");
   const boidsMesh = meshes.find((m) => m.instance.name === BOIDS_GROUP_NAME);
@@ -65,4 +67,16 @@ it("should render the world in all of its glory", async () => {
   ).toEqual(FLOCK_SIZE * FLOCK_COUNT);
 });
 
-it("should have more tests here", { todo: true });
+it("should draw the storage boundary reaching out past the world it holds", async () => {
+  const renderer = await render();
+
+  const [world, storage] = renderer.scene
+    .findAllByType("Box3Helper")
+    .map((helper) => (helper.instance as unknown as THREE.Box3Helper).box);
+
+  // a boid overshoots the world before edge avoidance turns it, and the index
+  // has to still cover it where it got to
+  expect(storage.containsBox(world)).toBe(true);
+  expect(storage.min.x).toBeLessThan(world.min.x);
+  expect(storage.max.x).toBeGreaterThan(world.max.x);
+});

@@ -1,14 +1,15 @@
 import { useControls } from "leva";
-import { useMemo } from "react";
 import { ForceFactors } from "../behavior/Boid";
 
+/** How hard each behaviour pulls, all of it tunable. */
 export default function useForceFactors({
   alignmentFactor,
   cohesionFactor,
   separationFactor,
   avoidEdgesFactor,
+  avoidObstaclesFactor,
 }: ForceFactors): ForceFactors {
-  const factors = useControls(
+  return useControls(
     "Force factors",
     {
       alignmentFactor: {
@@ -32,15 +33,21 @@ export default function useForceFactors({
         max: 10,
         step: 0.1,
       },
+      avoidEdgesFactor: {
+        label: "Avoid edges",
+        value: avoidEdgesFactor,
+        min: 0,
+        max: 100,
+        step: 0.5,
+      },
+      avoidObstaclesFactor: {
+        label: "Avoid obstacles",
+        value: avoidObstaclesFactor,
+        min: 0,
+        max: 100,
+        step: 0.5,
+      },
     },
     { order: 10 },
-  );
-
-  return useMemo(
-    () => ({
-      ...factors,
-      avoidEdgesFactor,
-    }),
-    [factors, avoidEdgesFactor],
   );
 }

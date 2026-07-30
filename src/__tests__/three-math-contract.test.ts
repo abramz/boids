@@ -1,15 +1,28 @@
 import * as THREE from "three";
 import { describe, expect, it } from "vitest";
+import { GOLDEN_TOLERANCE } from "../behavior/__tests__/helpers/golden";
 
 /**
  * Separates "three changed" from "we changed". A golden fixture can say the
  * output moved but not why; if these still pass while a golden fails, three did
  * not move and the regression is ours.
  *
- * Only primitives the simulation's determinism actually rests on - a pin that
+ * Only primitives the simulation's determinism actually rests on: a pin that
  * cannot move without three shipping a headline breaking change is a
  * maintenance tax on every bump, and the golden would catch it anyway.
+ *
+ * Anything built out of comparisons and integer arithmetic is pinned exactly,
+ * every engine reproducing it bit for bit. Anything that goes through
+ * Math.sin/cos/acos, which ECMAScript does not require to be correctly rounded,
+ * is held to the tolerance the goldens use instead: tight enough to catch three
+ * changing what it computes, loose enough to survive a different CPU computing
+ * it. Pinning those exactly would invert the rule this file exists for, failing
+ * here and passing there on nothing worse than a machine change.
  */
+
+/** Digits of agreement standing in for GOLDEN_TOLERANCE. */
+const GOLDEN_DIGITS = -Math.log10(GOLDEN_TOLERANCE);
+
 describe("three.js math contract", () => {
   describe("MathUtils.seededRandom drives every initial position and velocity", () => {
     it.each([
@@ -39,31 +52,48 @@ describe("three.js math contract", () => {
       2.0943951023931953,
     );
 
-    expect(new THREE.Vector3().setFromSpherical(spherical).toArray()).toEqual([
-      9, 6.000000000000002, -5.196152422706629,
-    ]);
+    const built = new THREE.Vector3().setFromSpherical(spherical).toArray();
+
+    [9, 6, (-6 * Math.sqrt(3)) / 2].forEach((expected, axis) => {
+      expect(built[axis]).toBeCloseTo(expected, GOLDEN_DIGITS);
+    });
   });
 
-  describe("Vector3.angleTo is the field-of-view test in isInFOV", () => {
-    // three has re-implemented this for numerical robustness before
-    it("orthogonal", () => {
-      expect(
-        new THREE.Vector3(1, 0, 0).angleTo(new THREE.Vector3(0, 1, 0)),
-      ).toBe(1.5707963267948966);
+  describe("Box3 and Sphere decide which neighbours a boid can see", () => {
+    /* pinned exactly: these are comparisons of sums and products, with no
+       transcendental to round differently from one machine to the next */
+    const box = new THREE.Box3(
+      new THREE.Vector3(0, 0, 0),
+      new THREE.Vector3(1, 1, 1),
+    );
+
+    it("Box3.intersectsSphere measures the box's nearest point, not its centre", () => {
+      // the octree descends on this, so a cell that reported only whether it
+      // held the sphere's centre would drop the neighbours just over its face
+      const overlapping = new THREE.Sphere(
+        new THREE.Vector3(-0.5, 0.5, 0.5),
+        1,
+      );
+      const clear = new THREE.Sphere(new THREE.Vector3(-2, 0.5, 0.5), 1);
+
+      expect(box.intersectsSphere(overlapping)).toBe(true);
+      expect(box.intersectsSphere(clear)).toBe(false);
     });
 
-    it("diagonal", () => {
-      expect(
-        new THREE.Vector3(1, 0, 0).angleTo(
-          new THREE.Vector3(1, 1, 1).normalize(),
-        ),
-      ).toBe(0.9553166181245092);
+    it("Box3.containsPoint takes a point on either face", () => {
+      // subdivision cuts children from the parent's own faces, so a point on an
+      // internal one has to belong to a child rather than to neither
+      expect(box.containsPoint(new THREE.Vector3(0, 0.5, 0.5))).toBe(true);
+      expect(box.containsPoint(new THREE.Vector3(1, 0.5, 0.5))).toBe(true);
     });
 
-    it("identical and opposite directions", () => {
-      const x = new THREE.Vector3(1, 0, 0);
-      expect(x.angleTo(new THREE.Vector3(1, 0, 0))).toBe(0);
-      expect(x.angleTo(new THREE.Vector3(-1, 0, 0))).toBe(Math.PI);
+    it("Sphere.containsPoint takes a point exactly on the surface", () => {
+      const sphere = new THREE.Sphere(new THREE.Vector3(0, 0, 0), 2);
+
+      expect(sphere.containsPoint(new THREE.Vector3(2, 0, 0))).toBe(true);
+      expect(sphere.containsPoint(new THREE.Vector3(2.0000001, 0, 0))).toBe(
+        false,
+      );
     });
   });
 });
