@@ -14,4 +14,7 @@ blob-report/
 *.local
 .DS_Store
 
+# throwaway experiments, kept out of the tree deliberately
+.scratch/
+
 *.tsbuildinfo

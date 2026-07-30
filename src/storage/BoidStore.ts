@@ -1,69 +1,88 @@
 import * as THREE from "three";
-import Boid from "../behavior/Boid";
-import Obstacle from "../obstacle/Obstacle";
 import OctTree from "./OctTree";
+import type Boid from "../behavior/Boid";
+import type Obstacle from "../obstacle/Obstacle";
 
 /**
- * Convenience class for dealing with an OctTree in the boid simulation
+ * The flock and the spatial index over it, kept in step with each other.
  */
 export default class BoidStore {
-  protected boidsRecord: Record<string, Boid>; // cache
-  public obstacles: Obstacle[];
+  protected insertedIds = new Set<string>();
+  protected boidsList: Boid[] = [];
+  protected obstacleList: Obstacle[] = [];
   protected octTree: OctTree<Boid>;
 
   constructor(octTree: OctTree<Boid>) {
-    this.boidsRecord = {};
-    this.obstacles = [];
     this.octTree = octTree;
   }
 
   /**
-   * Insert a boid into the cache & the underlying OctTree
+   * Add a boid to the store and to the underlying OctTree
    * @param boid the boid to insert
    */
   public insert(boid: Boid): void {
-    if (this.boidsRecord[boid.coumpundId]) {
-      throw new Error(`boid already inserted, ${boid.coumpundId}`);
+    if (this.insertedIds.has(boid.compoundId)) {
+      throw new Error(`boid already inserted, ${boid.compoundId}`);
     }
 
-    const inserted = this.octTree.insert(boid);
-    if (!inserted) {
-      throw new Error(`boid unable to be inserted, ${boid.coumpundId}`);
+    if (!this.octTree.insert(boid)) {
+      throw new Error(`boid unable to be inserted, ${boid.compoundId}`);
     }
 
-    this.boidsRecord[boid.coumpundId] = boid;
-  }
-
-  public insertObstacle(obstacle: Obstacle): void {
-    this.obstacles.push(obstacle);
+    this.insertedIds.add(boid.compoundId);
+    this.boidsList.push(boid);
   }
 
   /**
-   * Passthrough to the underlying OctTree's queryRange
+   * Rebuild the OctTree around where the boids are now.
+   *
+   * The flock itself is untouched: these are the same boid objects frame after
+   * frame, and only the positions the tree indexes them by have moved on.
+   *
+   * Throws if a boid has ended up outside the tree, before anything is torn
+   * down, so the index a caller abandons the frame on is the intact one it came
+   * in with rather than a partial rebuild. Callers are expected to have kept
+   * every position inside `boundary`, so this is a failure to abandon the frame
+   * on rather than one to carry on from.
+   */
+  public reindex(): void {
+    const stray = this.boidsList.find(
+      (boid) => !this.octTree.boundary.containsPoint(boid.position),
+    );
+    if (stray) {
+      throw new Error(`boid outside the storage boundary, ${stray.compoundId}`);
+    }
+
+    this.octTree.clear();
+    for (const boid of this.boidsList) {
+      this.octTree.insert(boid);
+    }
+  }
+
+  public insertObstacle(obstacle: Obstacle): void {
+    this.obstacleList.push(obstacle);
+  }
+
+  /**
+   * Every boid within `range`.
    */
   public queryRange(range: THREE.Sphere): Boid[] {
     return this.octTree.queryRange(range);
   }
 
   /**
-   * Claer both the cache & the underlying Octtree
+   * Every boid in the store, in the order they were inserted.
+   *
+   * The array is the store's own and holds its identity across `reindex`, so a
+   * renderer can hang memoisation off it. Read it, don't write to it.
    */
-  public clear(includeObstacles = false): void {
-    this.boidsRecord = {};
-    if (includeObstacles) {
-      this.obstacles = [];
-    }
-    this.octTree.clear();
+  public get boids(): readonly Boid[] {
+    return this.boidsList;
   }
 
-  /**
-   * Get all the boids that have been stored
-   * This is meant as a convenience to keep references to all the boids
-   * as the OctTree is re-generated frequently
-   * We don't want a reference that will get `clear`ed
-   */
-  public get boids(): Boid[] {
-    return Object.values(this.boidsRecord);
+  /** Every obstacle in the store. Read it, don't write to it. */
+  public get obstacles(): readonly Obstacle[] {
+    return this.obstacleList;
   }
 
   /**

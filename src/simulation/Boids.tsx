@@ -1,7 +1,15 @@
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
-import { ReactNode, useEffect, useMemo, useState } from "react";
-import { Instances } from "@react-three/drei";
+import {
+  ReactNode,
+  memo,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { useFrame } from "@react-three/fiber";
 import BoidEntity from "../behavior/Boid";
 import {
   BOID_EMISSIVE,
@@ -12,10 +20,19 @@ import {
   BOID_PLUME_LENGTH_RATIO,
   BOID_PLUME_RADIUS_RATIO,
   BOID_RADIUS_RATIO,
+  FLOCK_COLORS,
 } from "../theme";
-import Boid from "./Boid";
 
 export const GROUP_NAME = "Boids";
+
+/* the dart geometry stands on +Y, so that is the axis swung onto velocity */
+const DART_AXIS = new THREE.Vector3(0, 1, 0);
+
+/* one flock, one thread, one frame: every boid is written through these */
+const tempObject = new THREE.Object3D();
+const tempHeading = new THREE.Vector3();
+const tempMatrix = new THREE.Matrix4();
+const tempColor = new THREE.Color();
 
 /** Which group of the merged geometry each material draws. */
 const HULL = 0;
@@ -145,10 +162,11 @@ function createPlumeMaterial(): THREE.MeshBasicMaterial {
 
 export interface BoidProps {
   boidSize: number;
-  boids: BoidEntity[];
+  boids: readonly BoidEntity[];
 }
 
-export default function Boids({ boidSize, boids }: BoidProps): ReactNode {
+function Boids({ boidSize, boids }: BoidProps): ReactNode {
+  const meshRef = useRef<THREE.InstancedMesh>(null);
   const geometry = useMemo(() => createDartGeometry(boidSize), [boidSize]);
   const [materials] = useState(() => {
     const both = [];
@@ -164,19 +182,82 @@ export default function Boids({ boidSize, boids }: BoidProps): ReactNode {
     [materials],
   );
 
-  // receive but never cast: a boid is a few texels across in the sun's shadow
-  // map, so its own shadow would only ever shimmer
+  /* a boid never changes flock, so this is a one-off rather than frame work */
+  useLayoutEffect(() => {
+    const mesh = meshRef.current;
+    if (!mesh) {
+      return;
+    }
+
+    boids.forEach((boid, index) => {
+      mesh.setColorAt(
+        index,
+        tempColor.set(FLOCK_COLORS[boid.parentId % FLOCK_COLORS.length]),
+      );
+    });
+    if (mesh.instanceColor) {
+      mesh.instanceColor.needsUpdate = true;
+    }
+  }, [boids]);
+
+  /**
+   * One subscription writing every instance, rather than a component each.
+   *
+   * A <Boid> apiece is four lines of copying behind a fiber, a ref and a
+   * useFrame subscription, ten thousand times over: r3f re-sorts its subscriber
+   * list on every subscription, so mounting the flock that way is quadratic
+   * before a single frame is drawn.
+   */
+  useFrame(() => {
+    const mesh = meshRef.current;
+    if (!mesh) {
+      return;
+    }
+
+    boids.forEach((boid, index) => {
+      tempObject.position.copy(boid.position);
+
+      if (boid.velocity.lengthSq() > 0) {
+        tempHeading.copy(boid.velocity).normalize();
+        tempObject.quaternion.setFromUnitVectors(DART_AXIS, tempHeading);
+      } else {
+        /* nothing to point along, so hold the heading this instance was last
+           drawn with rather than the one the previous boid left behind */
+        mesh.getMatrixAt(index, tempMatrix);
+        tempObject.quaternion.setFromRotationMatrix(tempMatrix);
+      }
+
+      tempObject.updateMatrix();
+      mesh.setMatrixAt(index, tempObject.matrix);
+    });
+
+    mesh.instanceMatrix.needsUpdate = true;
+  });
+
+  /* Receive but never cast: a boid is a few texels across in the sun's shadow
+     map, so its own shadow would only ever shimmer.
+
+     Culling is off because an InstancedMesh computes its bounding sphere once
+     and nothing writing the instance matrices invalidates it, so the flock
+     would be tested against wherever it happened to be on frame one and
+     eventually dropped all at once. There is nothing to save either way: this
+     is one draw call spanning the whole world. */
   return (
-    <Instances
-      limit={boids.length}
+    <instancedMesh
+      ref={meshRef}
+      args={[undefined, undefined, boids.length]}
       name={GROUP_NAME}
       material={materials}
       receiveShadow
+      frustumCulled={false}
     >
       <primitive object={geometry} attach="geometry" />
-      {boids.map((boid, i) => (
-        <Boid key={i} boid={boid} />
-      ))}
-    </Instances>
+    </instancedMesh>
   );
 }
+
+/**
+ * Every leva control lives above this, so without it nudging a slider rebuilds
+ * the geometry and re-runs the colour pass on each of the frames a drag lasts.
+ */
+export default memo(Boids);

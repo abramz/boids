@@ -2,8 +2,9 @@ name: CI
 
 on:
   pull_request:
-  push:
-    branches: ["primary"]
+  # the deploy workflow calls this on push to primary rather than the two
+  # triggering separately, so the gates are defined once and run once
+  workflow_call:
 
 permissions:
   contents: read
@@ -32,6 +33,9 @@ jobs:
         run: node -p "require('./tools/lint/node_modules/typescript/package.json').version" | grep -q '^6\.'
       - run: npm run lint
       - run: npm run typecheck
+      # eslint carries prettier over src and e2e only, so this is what covers
+      # the markdown, YAML, JSON and root config files
+      - run: npm run format
 
   test:
     runs-on: ubuntu-latest

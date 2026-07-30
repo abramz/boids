@@ -1,11 +1,8 @@
 import * as THREE from "three";
 import Boid from "../../Boid";
-import deriveBoidProperties from "../../deriveBoidProperties";
-import initialize from "../../initialize";
-import stepSimulation from "../../step";
+import createSimulation, { Simulation } from "../../createSimulation";
 import * as seeded from "../../../__fixtures__/seededConfig";
-
-export const GOLDEN_DELTA = 1 / 60;
+import { FRAME_DELTA } from "./simulate";
 
 /**
  * Frames worth recording. Kept early: this is a chaotic system, so by frame 60
@@ -34,52 +31,32 @@ export interface GoldenFixture {
   frames: Record<string, Record<string, number[]>>;
 }
 
-function sample(boids: Boid[]): Record<string, number[]> {
+function sample(boids: readonly Boid[]): Record<string, number[]> {
   return Object.fromEntries(
     boids.map((boid) => [
-      boid.coumpundId,
+      boid.compoundId,
       [...boid.position.toArray(), ...boid.velocity.toArray()],
     ]),
   );
 }
 
-/**
- * `initialize` is called directly rather than through `src/helpers/suspend.ts`,
- * which caches into a module-level singleton and would hand back an
- * already-advanced store.
- */
-export async function captureGolden(
-  steps = Math.max(...CHECKPOINTS),
-): Promise<GoldenFixture> {
-  const storage = await initialize(
-    seeded.FLOCK_SIZE,
-    seeded.FLOCK_COUNT,
-    seeded.BOID_PROPERTIES.maxSpeed,
-    seeded.WORLD_BOUNDARY,
-    seeded.STORAGE_BOUNDARY,
-    seeded.SEED_X,
-    seeded.SEED_Y,
-    seeded.SEED_Z,
-    seeded.SEED_PHI,
-    seeded.SEED_THETA,
-    seeded.SEED_STORAGE_START,
-  );
+export interface GoldenCapture {
+  fixture: GoldenFixture;
+  /** the run that produced it, so invariants can be checked against its world */
+  simulation: Simulation;
+}
 
-  const boids = storage.boids;
-  const properties = deriveBoidProperties(seeded.BOID_PROPERTIES);
+export function captureGolden(steps = Math.max(...CHECKPOINTS)): GoldenCapture {
+  const simulation = createSimulation(seeded.seededWorld());
+  const { boids } = simulation;
   const frames: GoldenFixture["frames"] = {};
   const initial = sample(boids);
 
-  let frameSign = 1;
   for (let frame = 1; frame <= steps; frame++) {
-    frameSign = stepSimulation({
-      storage,
-      boids,
-      frameSign,
-      delta: GOLDEN_DELTA,
-      properties,
+    simulation.step({
+      delta: FRAME_DELTA,
+      properties: seeded.BOID_PROPERTIES,
       forceFactors: seeded.FORCE_FACTORS,
-      worldBoundary: seeded.WORLD_BOUNDARY,
     });
 
     if ((CHECKPOINTS as readonly number[]).includes(frame)) {
@@ -88,14 +65,17 @@ export async function captureGolden(
   }
 
   return {
-    meta: {
-      three: THREE.REVISION,
-      delta: GOLDEN_DELTA,
-      checkpoints: [...CHECKPOINTS],
-      boidCount: boids.length,
+    fixture: {
+      meta: {
+        three: THREE.REVISION,
+        delta: FRAME_DELTA,
+        checkpoints: [...CHECKPOINTS],
+        boidCount: boids.length,
+      },
+      initial,
+      frames,
     },
-    initial,
-    frames,
+    simulation,
   };
 }
 
@@ -104,6 +84,30 @@ export interface Divergence {
   expected: number;
   actual: number;
   absolute: number;
+}
+
+/** Boids on one side of a comparison and not the other. */
+export interface IdMismatch {
+  /** recorded, but not produced by the run */
+  missing: string[];
+  /** produced by the run, but never recorded */
+  extra: string[];
+}
+
+/**
+ * Which boids the two sides disagree about the existence of.
+ *
+ * `compare` walks the recorded ids, so on its own it cannot see a boid the run
+ * grew that the fixture has never heard of.
+ */
+export function idMismatch(
+  expected: Record<string, number[]>,
+  actual: Record<string, number[]>,
+): IdMismatch {
+  return {
+    missing: Object.keys(expected).filter((id) => !(id in actual)),
+    extra: Object.keys(actual).filter((id) => !(id in expected)),
+  };
 }
 
 /** Divergences beyond `tolerance`, located and measured. */
@@ -118,6 +122,9 @@ export function compare(
 
   Object.entries(expected).forEach(([id, values]) => {
     const other = actual[id];
+    if (!other) {
+      return; // idMismatch reports these; there is nothing here to measure
+    }
 
     values.forEach((value, index) => {
       const absolute = Math.abs(value - other[index]);

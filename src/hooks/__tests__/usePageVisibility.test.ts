@@ -1,5 +1,5 @@
 import { act, renderHook } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import usePageVisibility from "../usePageVisibility";
 
 /**
@@ -17,6 +17,7 @@ function setVisibility(state: DocumentVisibilityState): void {
 }
 
 afterEach(() => {
+  vi.restoreAllMocks();
   setVisibility("visible");
 });
 
@@ -37,12 +38,25 @@ describe("usePageVisibility", () => {
     expect(result.current).toBe(true);
   });
 
-  it("stops listening once unmounted", () => {
-    const { result, unmount } = renderHook(() => usePageVisibility());
+  // `result.current` freezes at the last render either way, so it can say
+  // nothing about whether the listener actually went away. document is the
+  // external dependency here, so its own book-keeping is what to read.
+  it("gives its visibilitychange listener back on unmount", () => {
+    const subscribe = vi.spyOn(document, "addEventListener");
+    const unsubscribe = vi.spyOn(document, "removeEventListener");
+
+    const { unmount } = renderHook(() => usePageVisibility());
+
+    const subscribed = subscribe.mock.calls.find(
+      ([type]) => type === "visibilitychange",
+    );
+    expect(subscribed, "never subscribed").toBeDefined();
 
     unmount();
-    // must not throw or update a torn-down hook
-    act(() => setVisibility("hidden"));
-    expect(result.current).toBe(true);
+
+    expect(unsubscribe).toHaveBeenCalledWith(
+      "visibilitychange",
+      subscribed![1],
+    );
   });
 });

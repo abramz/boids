@@ -1,29 +1,22 @@
 import * as THREE from "three";
 import { BoidProperties, ForceFactors } from "../behavior/Boid";
+import { CreateSimulationOptions } from "../behavior/createSimulation";
+import { Random } from "../helpers/math";
 
 export const FLOCK_SIZE = 5;
 export const FLOCK_COUNT = 5;
+export const WORLD_SIZE = 10;
+export const SEED = 123321;
 
-const HALF_SIZE = 5;
-export const WORLD_BOUNDARY = new THREE.Box3(
-  new THREE.Vector3(-HALF_SIZE, -HALF_SIZE, -HALF_SIZE),
-  new THREE.Vector3(HALF_SIZE, HALF_SIZE, HALF_SIZE),
-);
-
-/**
- * Pinned rather than read from config.ts, like every other number here. The
- * goldens should move when behaviour changes, not when the world size that
- * config derives its own margin from is tuned.
- */
-const STORAGE_MARGIN = 9;
-export const STORAGE_BOUNDARY =
-  WORLD_BOUNDARY.clone().expandByScalar(STORAGE_MARGIN);
 export const BOID_PROPERTIES: BoidProperties = {
   perceptionRadius: 2,
   fieldOfViewDeg: 110,
   desiredSeparation: 1,
+  neighbourLimit: 8,
+  minSpeed: 2.5,
   maxSpeed: 5,
-  maxForce: 0.3,
+  /* units per second squared, like config.MAX_FORCE */
+  maxForce: 9,
   boidSize: 0.1,
 };
 
@@ -32,36 +25,41 @@ export const FORCE_FACTORS: ForceFactors = {
   cohesionFactor: 1.02,
   separationFactor: 1.03,
   avoidEdgesFactor: 50.01,
+  avoidObstaclesFactor: 50.02,
 };
 
-export interface Seeds {
-  x: number[];
-  y: number[];
-  z: number[];
-  phi: number[];
-  theta: number[];
+/**
+ * A deterministic source of randomness for the fixtures.
+ *
+ * three seeds a single module-level generator, so this is one sequence per
+ * process: calling it again restarts the sequence that every generator already
+ * handed out is drawing from.
+ */
+export function seededRandom(seed: number = SEED): Random {
+  THREE.MathUtils.seededRandom(seed);
+
+  return () => THREE.MathUtils.seededRandom();
 }
 
-/** Deterministic per-boid seeds for initialize(). */
-export function makeSeeds(count: number): Seeds {
-  const seeds: Seeds = { x: [], y: [], z: [], phi: [], theta: [] };
-
-  for (let i = 0; i < count; i++) {
-    seeds.x.push(123321 + i * 1234567);
-    seeds.y.push(456643 + i * 1234567);
-    seeds.z.push(789987 + i * 1234567);
-    seeds.phi.push(101110 + i * 1234567);
-    seeds.theta.push(131413 + i * 1234567);
-  }
-
-  return seeds;
+/**
+ * The world the goldens were recorded against.
+ *
+ * Every number is pinned here rather than read from config.ts, so the fixtures
+ * move when behaviour changes and hold still when production is retuned: an
+ * obstacle lattice tuned for a 75-unit world would otherwise silently re-place
+ * the obstacles this 10-unit one flies around.
+ */
+export function seededWorld(): CreateSimulationOptions {
+  return {
+    flockSize: FLOCK_SIZE,
+    flockCount: FLOCK_COUNT,
+    worldSize: WORLD_SIZE,
+    maxSpeed: BOID_PROPERTIES.maxSpeed,
+    random: seededRandom(),
+    storageMargin: 0.9,
+    octTreeCapacity: 8,
+    octTreeMaxDepth: 8,
+    obstacleOffset: 0.5,
+    obstacleRadiusScale: 1 / 24,
+  };
 }
-
-const seeds = makeSeeds(FLOCK_SIZE * FLOCK_COUNT);
-export const SEED_X = seeds.x;
-export const SEED_Y = seeds.y;
-export const SEED_Z = seeds.z;
-export const SEED_PHI = seeds.phi;
-export const SEED_THETA = seeds.theta;
-
-export const SEED_STORAGE_START = 161718;

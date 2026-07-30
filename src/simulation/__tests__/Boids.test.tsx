@@ -7,6 +7,7 @@ import {
   BOID_LENGTH_RATIO,
   BOID_PLUME_LENGTH_RATIO,
   BOID_RADIUS_RATIO,
+  FLOCK_COLORS,
 } from "../../theme";
 
 const BOID_COUNT = 10;
@@ -28,12 +29,19 @@ beforeEach(() => {
   }
 });
 
-it("should render an instanced mesh", async () => {
+it("should draw the whole flock as one instanced mesh", async () => {
   const renderer = await ReactThreeTestRenderer.create(
     <Boids boidSize={BOID_RADIUS} boids={BOIDS} />,
   );
 
-  expect(renderer.scene.findByType("Mesh")).toBeTruthy();
+  const meshes = renderer.scene.findAllByType("Mesh");
+  expect(meshes).toHaveLength(1);
+
+  const mesh = meshes[0].instance as unknown as THREE.InstancedMesh;
+  expect(mesh.instanceMatrix.count).toEqual(BOID_COUNT);
+  // one draw call spanning the world, so there is nothing for culling to save
+  // and a stale bounding sphere would drop the lot at once
+  expect(mesh.frustumCulled).toBe(false);
 });
 
 it("should reach as far forward as the maths take a boid to reach", async () => {
@@ -65,6 +73,31 @@ it("should reach as far forward as the maths take a boid to reach", async () => 
   expect(bounds.min.y).toBeCloseTo(
     -BOID_RADIUS * (BOID_LENGTH_RATIO / 2 + BOID_PLUME_LENGTH_RATIO),
   );
+});
+
+it("should give each flock its own colour, per instance", async () => {
+  const renderer = await ReactThreeTestRenderer.create(
+    <Boids boidSize={BOID_RADIUS} boids={BOIDS} />,
+  );
+
+  const mesh = renderer.scene.findByType("Mesh")
+    .instance as unknown as THREE.InstancedMesh;
+
+  /* the hull shader reads vColor, which three only feeds from instanceColor
+     when the buffer exists - without it every flock draws the same colour and
+     the emissive floor goes with it */
+  expect(mesh.instanceColor, "no per-instance colour buffer").toBeTruthy();
+
+  const drawn = new THREE.Color();
+  BOIDS.forEach((boid) => {
+    mesh.getColorAt(boid.id, drawn);
+
+    expect(drawn.getHex()).toEqual(
+      new THREE.Color(
+        FLOCK_COLORS[boid.parentId % FLOCK_COLORS.length],
+      ).getHex(),
+    );
+  });
 });
 
 it("should draw the hull lit and the plume additively", async () => {

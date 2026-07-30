@@ -1,27 +1,33 @@
-import * as THREE from "three";
-import { makeSeeds } from "../../../__fixtures__/seededConfig";
-import BoidStore from "../../../storage/BoidStore";
+import { seededRandom } from "../../../__fixtures__/seededConfig";
 import Boid, { BoidProperties, ForceFactors } from "../../Boid";
-import deriveBoidProperties from "../../deriveBoidProperties";
-import initialize from "../../initialize";
-import stepSimulation from "../../step";
+import createSimulation, {
+  CreateSimulationOptions,
+  Simulation,
+} from "../../createSimulation";
 
-/**
- * Runs the real simulation, headlessly and deterministically.
- *
- * `initialize` is called directly rather than through `src/helpers/suspend.ts`,
- * which caches its result in a module-level singleton and would hand every
- * caller the same already-advanced store.
- */
-
-export const DELTA = 1 / 60;
+/** One frame at 60fps, which is what the goldens were recorded at. */
+export const FRAME_DELTA = 1 / 60;
 
 export interface SimulationConfig {
   flockSize: number;
   flockCount: number;
-  halfWorldSize: number;
+  /** length of the world cube's side */
+  worldSize: number;
   properties: BoidProperties;
   forceFactors: ForceFactors;
+  /**
+   * The rest of the world's shape, pinned here rather than defaulted from
+   * config so retuning production moves the flock and not these suites.
+   */
+  world: Pick<
+    CreateSimulationOptions,
+    | "storageMargin"
+    | "octTreeCapacity"
+    | "octTreeMaxDepth"
+    | "obstacleOffset"
+    | "obstacleRadiusScale"
+    | "maxDelta"
+  >;
 }
 
 /**
@@ -35,23 +41,35 @@ export interface SimulationConfig {
 export const DENSE_CONFIG: SimulationConfig = {
   flockSize: 24,
   flockCount: 4,
-  halfWorldSize: 5,
+  worldSize: 10,
   properties: {
     perceptionRadius: 2.5,
     fieldOfViewDeg: 230,
     desiredSeparation: 0.8,
+    neighbourLimit: 8,
+    minSpeed: 2,
     maxSpeed: 4,
-    maxForce: 0.4,
+    /* units per second squared, like config.MAX_FORCE */
+    maxForce: 12,
     boidSize: 0.1,
   },
   forceFactors: {
     alignmentFactor: 1,
     cohesionFactor: 1,
     separationFactor: 1,
-    // the shipped value is 50, which swamps every other force and makes
-    // flocking effects unmeasurable; keep edges gentle so the flocking
-    // behaviours are what the assertions actually see
+    // the shipped values swamp every other force and make flocking effects
+    // unmeasurable; keep edges and obstacles gentle so the flocking behaviours
+    // are what the assertions actually see
     avoidEdgesFactor: 1,
+    avoidObstaclesFactor: 1,
+  },
+  world: {
+    storageMargin: 0.3,
+    octTreeCapacity: 8,
+    octTreeMaxDepth: 8,
+    obstacleOffset: 0.5,
+    obstacleRadiusScale: 1 / 24,
+    maxDelta: 0.25,
   },
 };
 
@@ -65,159 +83,127 @@ export interface RunOptions {
   /** seconds per step; defaults to a 60fps frame */
   delta?: number;
   /**
-   * Storage boundary margin as a multiple of the world half-size. The default
-   * matches production (OCT_TREE_BOUNDARY_SCALE against WORLD_SIZE); raise it
-   * only for tests that need boids to wander without hitting the tree edge.
+   * How far storage reaches past the world, as a fraction of the world size.
+   * Overrides the config's; raise it only for tests that need boids to wander
+   * without hitting the tree edge.
    */
   storageMargin?: number;
   /** called after every step, before the next one */
-  onStep?: (boids: Boid[], step: number) => void;
+  onStep?: (simulation: Simulation, step: number) => void;
 }
 
 export interface RunResult {
-  storage: BoidStore;
-  boids: Boid[];
+  /** left running, so a test can take further steps of its own */
+  simulation: Simulation;
+  boids: readonly Boid[];
   /** flat [x,y,z] per boid, in stable order — the trajectory fingerprint */
   positions: number[];
   velocities: number[];
 }
 
-export async function runSimulation({
+/** Runs the real simulation, headlessly and deterministically. */
+export function runSimulation({
   config = DENSE_CONFIG,
   steps = 120,
   forceFactors = {},
   properties = {},
-  delta = DELTA,
-  storageMargin = 0.6,
+  delta = FRAME_DELTA,
+  storageMargin,
   onStep,
-}: RunOptions = {}): Promise<RunResult> {
+}: RunOptions = {}): RunResult {
   const boidProperties = { ...config.properties, ...properties };
   const factors = { ...config.forceFactors, ...forceFactors };
-  const half = config.halfWorldSize;
 
-  const worldBoundary = new THREE.Box3(
-    new THREE.Vector3(-half, -half, -half),
-    new THREE.Vector3(half, half, half),
-  );
-  const storageBoundary = worldBoundary
-    .clone()
-    .expandByScalar(half * storageMargin);
+  const simulation = createSimulation({
+    ...config.world,
+    flockSize: config.flockSize,
+    flockCount: config.flockCount,
+    worldSize: config.worldSize,
+    maxSpeed: boidProperties.maxSpeed,
+    random: seededRandom(),
+    ...(storageMargin === undefined ? {} : { storageMargin }),
+  });
 
-  const seeds = makeSeeds(config.flockSize * config.flockCount);
-  const storage = await initialize(
-    config.flockSize,
-    config.flockCount,
-    boidProperties.maxSpeed,
-    worldBoundary,
-    storageBoundary,
-    seeds.x,
-    seeds.y,
-    seeds.z,
-    seeds.phi,
-    seeds.theta,
-    161718,
-  );
-
-  const boids = storage.boids;
-  const derived = deriveBoidProperties(boidProperties);
-
-  let frameSign = 1;
+  const { boids } = simulation;
   for (let step = 0; step < steps; step++) {
-    frameSign = stepSimulation({
-      storage,
-      boids,
-      frameSign,
+    simulation.step({
       delta,
-      properties: derived,
+      properties: boidProperties,
       forceFactors: factors,
-      worldBoundary,
     });
-    onStep?.(boids, step);
+    onStep?.(simulation, step);
   }
 
   return {
-    storage,
+    simulation,
     boids,
     positions: boids.flatMap((boid) => boid.position.toArray()),
     velocities: boids.flatMap((boid) => boid.velocity.toArray()),
   };
 }
 
-/** Largest absolute difference between two equal-length trajectory fingerprints. */
-export function maxAbsDifference(a: number[], b: number[]): number {
-  expectSameLength(a, b);
-
-  return a.reduce(
-    (worst, value, index) => Math.max(worst, Math.abs(value - b[index])),
-    0,
-  );
-}
-
-function expectSameLength(a: number[], b: number[]): void {
-  if (a.length !== b.length) {
-    throw new Error(`length mismatch: ${a.length} vs ${b.length}`);
-  }
-}
-
-/** Mean cosine similarity of headings within each flock, averaged over flocks. */
-export function meanHeadingAgreement(boids: Boid[]): number {
+function byFlock(boids: readonly Boid[]): Boid[][] {
   const flocks = new Map<number, Boid[]>();
-  boids.forEach((boid) => {
+  for (const boid of boids) {
     const flock = flocks.get(boid.parentId) ?? [];
     flock.push(boid);
     flocks.set(boid.parentId, flock);
-  });
+  }
 
-  const perFlock = [...flocks.values()].map((flock) => {
-    let total = 0;
-    let pairs = 0;
+  return [...flocks.values()];
+}
 
-    for (let i = 0; i < flock.length; i++) {
-      for (let j = i + 1; j < flock.length; j++) {
-        const a = flock[i].velocity;
-        const b = flock[j].velocity;
-        const lengths = a.length() * b.length();
-        if (lengths > 0) {
-          total += a.dot(b) / lengths;
-          pairs++;
-        }
-      }
-    }
-
-    return pairs > 0 ? total / pairs : 0;
-  });
+/** Mean of a per-flock measure, averaged over the flocks. */
+function meanOverFlocks(
+  boids: readonly Boid[],
+  measure: (flock: Boid[]) => number,
+): number {
+  const perFlock = byFlock(boids).map(measure);
 
   return perFlock.reduce((sum, value) => sum + value, 0) / perFlock.length;
 }
 
-/** Mean distance between boids of the same flock, averaged over flocks. */
-export function meanIntraFlockDistance(boids: Boid[]): number {
-  const flocks = new Map<number, Boid[]>();
-  boids.forEach((boid) => {
-    const flock = flocks.get(boid.parentId) ?? [];
-    flock.push(boid);
-    flocks.set(boid.parentId, flock);
-  });
+/** Mean over the pairs within a flock, or 0 for a flock with no pairs. */
+function meanOverPairs(
+  flock: Boid[],
+  measure: (a: Boid, b: Boid) => number | undefined,
+): number {
+  let total = 0;
+  let pairs = 0;
 
-  const perFlock = [...flocks.values()].map((flock) => {
-    let total = 0;
-    let pairs = 0;
-
-    for (let i = 0; i < flock.length; i++) {
-      for (let j = i + 1; j < flock.length; j++) {
-        total += flock[i].position.distanceTo(flock[j].position);
+  for (let i = 0; i < flock.length; i++) {
+    for (let j = i + 1; j < flock.length; j++) {
+      const value = measure(flock[i], flock[j]);
+      if (value !== undefined) {
+        total += value;
         pairs++;
       }
     }
+  }
 
-    return pairs > 0 ? total / pairs : 0;
-  });
+  return pairs > 0 ? total / pairs : 0;
+}
 
-  return perFlock.reduce((sum, value) => sum + value, 0) / perFlock.length;
+/** Mean cosine similarity of headings within each flock, averaged over flocks. */
+export function meanHeadingAgreement(boids: readonly Boid[]): number {
+  return meanOverFlocks(boids, (flock) =>
+    meanOverPairs(flock, (a, b) => {
+      const lengths = a.velocity.length() * b.velocity.length();
+
+      return lengths > 0 ? a.velocity.dot(b.velocity) / lengths : undefined;
+    }),
+  );
+}
+
+/** Mean distance between boids of the same flock, averaged over flocks. */
+export function meanIntraFlockDistance(boids: readonly Boid[]): number {
+  return meanOverFlocks(boids, (flock) =>
+    meanOverPairs(flock, (a, b) => a.position.distanceTo(b.position)),
+  );
 }
 
 /** Mean of the per-boid distance to that boid's nearest neighbour. */
-export function meanNearestNeighbourDistance(boids: Boid[]): number {
+export function meanNearestNeighbourDistance(boids: readonly Boid[]): number {
   const distances = boids.map((boid) => {
     let nearest = Infinity;
     boids.forEach((other) => {

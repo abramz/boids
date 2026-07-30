@@ -1,7 +1,6 @@
 import * as THREE from "three";
 import { ReactNode } from "react";
 import useHelpers from "../hooks/useHelpers";
-import BoidStore from "../storage/BoidStore";
 import StorageVisualizer from "./helpers/StorageVisualizer";
 
 export const GROUP_NAME = "Helpers";
@@ -9,13 +8,13 @@ export const GROUP_NAME = "Helpers";
 export interface HelpersProps {
   worldBoundary: THREE.Box3;
   storageBoundary: THREE.Box3;
-  storage: BoidStore;
+  cellBoundaries: () => THREE.Box3[];
 }
 
 export default function Helpers({
   worldBoundary,
   storageBoundary,
-  storage,
+  cellBoundaries,
 }: HelpersProps): ReactNode {
   const { showWorldBoundary, showStorageBoundary, showStorageSegmentation } =
     useHelpers();
@@ -29,7 +28,10 @@ export default function Helpers({
         args={[storageBoundary, "red"]}
         visible={showStorageBoundary}
       />
-      <StorageVisualizer show={showStorageSegmentation} storage={storage} />
+      <StorageVisualizer
+        show={showStorageSegmentation}
+        cellBoundaries={cellBoundaries}
+      />
     </group>
   );
 }
