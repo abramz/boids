@@ -28,14 +28,23 @@ const RE_RECORD = process.env.UPDATE_GOLDEN === "1";
 
 const NO_ID_MISMATCH = { missing: [], extra: [] };
 
+/**
+ * How far past the world a recorded position may sit, as a fraction of the
+ * world size. Generous on purpose: this catches a flock that left, where where
+ * the forces actually settle one is containment.test.ts's question.
+ */
+const CONTAINMENT_MARGIN = 0.9;
+
 describe("golden simulation", () => {
   let actual: GoldenFixture;
-  let storageBoundary: THREE.Box3;
+  let contained: THREE.Box3;
 
   beforeAll(() => {
     const capture = captureGolden();
     actual = capture.fixture;
-    storageBoundary = capture.simulation.storage.boundary;
+    contained = capture.simulation.worldBoundary
+      .clone()
+      .expandByScalar(seeded.WORLD_SIZE * CONTAINMENT_MARGIN);
   });
 
   it("matches the recorded trajectory", () => {
@@ -93,7 +102,7 @@ describe("golden simulation", () => {
   // these hold regardless of float drift, so they survive a re-record: the
   // fixture detects change, these detect breakage
   describe("invariants", () => {
-    it("stays finite, inside the world, and within the speed limit", () => {
+    it("stays finite, near the world, and within the speed limit", () => {
       const position = new THREE.Vector3();
 
       Object.entries(actual.frames).forEach(([frame, boids]) => {
@@ -104,8 +113,8 @@ describe("golden simulation", () => {
             true,
           );
           expect(
-            storageBoundary.containsPoint(position.set(px, py, pz)),
-            `${where} left the storage boundary`,
+            contained.containsPoint(position.set(px, py, pz)),
+            `${where} left the world behind`,
           ).toBe(true);
           expect(
             Math.hypot(vx, vy, vz),

@@ -4,12 +4,13 @@ import Obstacle from "../obstacle/Obstacle";
 import {
   avoidEdges,
   avoidObstacles,
+  drawToCenter,
   seekPosition,
   seekVelocity,
 } from "./steering";
 import NearestNeighbours from "./NearestNeighbours";
 import type Candidates from "../storage/Candidates";
-import type { Node } from "../storage/OctTree";
+import type { Node } from "../storage/HashGrid";
 
 export interface BoidOptions {
   id: number;
@@ -24,6 +25,7 @@ export type ForceFactors = {
   separationFactor: number;
   avoidEdgesFactor: number;
   avoidObstaclesFactor: number;
+  drawToCenterFactor: number;
 };
 
 export type BoidProperties = {
@@ -98,6 +100,7 @@ export default class Boid implements Node {
     separation: THREE.Vector3Tuple;
     avoidEdges: THREE.Vector3Tuple;
     avoidObstacles: THREE.Vector3Tuple;
+    drawToCenter: THREE.Vector3Tuple;
   };
 
   constructor({ id, parentId, position, velocity }: BoidOptions) {
@@ -111,6 +114,7 @@ export default class Boid implements Node {
       separation: [0, 0, 0],
       avoidEdges: [0, 0, 0],
       avoidObstacles: [0, 0, 0],
+      drawToCenter: [0, 0, 0],
     };
   }
 
@@ -235,6 +239,20 @@ export default class Boid implements Node {
     this.accumulate(
       forceFactors.avoidObstaclesFactor,
       this.forces.avoidObstacles,
+      tempForce,
+    );
+
+    drawToCenter(
+      this.position,
+      this.velocity,
+      boundary,
+      maxSpeed,
+      maxForce,
+      tempForce,
+    );
+    this.accumulate(
+      forceFactors.drawToCenterFactor,
+      this.forces.drawToCenter,
       tempForce,
     );
 

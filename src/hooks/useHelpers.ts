@@ -9,13 +9,8 @@ export default function useHelpers() {
         toggle: true,
         value: false,
       },
-      showStorageBoundary: {
-        label: "Show storage boundary",
-        toggle: true,
-        value: false,
-      },
-      showStorageSegmentation: {
-        label: "Show storage segmentation",
+      showStorageCells: {
+        label: "Show storage cells",
         toggle: true,
         value: false,
       },

@@ -1,32 +1,76 @@
 import { describe, expect, it } from "vitest";
-import { runSimulation } from "./helpers/simulate";
+import Boid from "../Boid";
+import { DENSE_CONFIG, runSimulation } from "./helpers/simulate";
 
 /**
- * BoidStore.reindex throws for a boid outside the tree, so stepSimulation
- * clamps every position into it before rebuilding rather than letting a frame
- * take the simulation down. These pin the clamp: that it catches the boids
- * edge avoidance could not turn in time, and that it stays out of the way of
- * the ones it could.
+ * The world is what the boids steer to stay inside, not a wall they are held
+ * against: the index reaches everywhere, and nothing clamps a position. So
+ * containment is entirely a matter of the forces, and these are what pin it -
+ * that edge avoidance holds the flock in while it is on, that the draw to
+ * center holds it near when edge avoidance is off, and that the draw to center
+ * is doing nothing at all the rest of the time.
  */
 describe("boid containment", () => {
-  // ~5fps: under MAX_DELTA, so it is integrated rather than discarded, and far
-  // enough in one step that avoidEdges cannot steer back
-  const SLOW_FRAME = 0.2;
+  const halfWorld = DENSE_CONFIG.worldSize / 2;
 
-  it("keeps every boid inside the tree when a slow frame overshoots", () => {
-    const { simulation, boids } = runSimulation({
-      steps: 300,
-      delta: SLOW_FRAME,
+  /** How far past the world the furthest boid got, on its furthest axis. */
+  function worstExcursion(boids: readonly Boid[]): number {
+    return boids.reduce(
+      (worst, boid) =>
+        (["x", "y", "z"] as const).reduce(
+          (axisWorst, axis) =>
+            Math.max(axisWorst, Math.abs(boid.position[axis]) - halfWorld),
+          worst,
+        ),
+      0,
+    );
+  }
+
+  it("holds the flock near the world with edge avoidance switched off", () => {
+    /* the leash, and the only thing left holding the flock once the wall it
+       normally turns at is gone. Without it there is nothing to stop the flock
+       flying off for good, and no boundary left for it to be caught at. */
+    const { boids } = runSimulation({
+      steps: 600,
       forceFactors: { avoidEdgesFactor: 0 },
     });
 
-    const escaped = boids
-      .filter(
-        (boid) => !simulation.storage.boundary.containsPoint(boid.position),
-      )
+    /* it settles where cohesion and the draw to center balance, which is out
+       past the wall rather than at it: this is a leash, not a replacement */
+    expect(worstExcursion(boids)).toBeLessThan(DENSE_CONFIG.worldSize);
+  });
+
+  it("holds the flock at the world with edge avoidance on", () => {
+    // ~5fps: under MAX_DELTA, so it is integrated rather than discarded, and
+    // far enough in one step that avoidEdges is having to work for it
+    const { boids } = runSimulation({ steps: 300, delta: 0.2 });
+
+    expect(worstExcursion(boids)).toBeLessThan(halfWorld);
+  });
+
+  it("draws nothing towards the center while a boid is inside the world", () => {
+    /* zero inside the world is what keeps this out of the flocking balance
+       entirely, so it is the property worth pinning rather than the shape of
+       the ramp outside */
+    const { simulation, boids } = runSimulation({ steps: 120 });
+
+    // half the flock re-aims per frame, so a force read now is a frame old for
+    // half of them; two steps at delta 0 re-aim both halves against positions
+    // nothing can have moved from
+    for (let pass = 0; pass < 2; pass++) {
+      simulation.step({
+        delta: 0,
+        properties: DENSE_CONFIG.properties,
+        forceFactors: DENSE_CONFIG.forceFactors,
+      });
+    }
+
+    const drawn = boids
+      .filter((boid) => simulation.worldBoundary.containsPoint(boid.position))
+      .filter((boid) => boid.forces.drawToCenter.some((axis) => axis !== 0))
       .map((boid) => boid.compoundId);
 
-    expect(escaped).toEqual([]);
+    expect(drawn).toEqual([]);
   });
 
   it("keeps every boid clear of the obstacles it steers around", () => {
@@ -63,32 +107,5 @@ describe("boid containment", () => {
     });
 
     expect(deepest).toBe(0);
-  });
-
-  it("does not engage at a normal frame rate", () => {
-    /* the clamp is a safety net; boids running normally should never reach the
-       boundary. Checked every frame rather than at the end, because a boid
-       pinned mid-run steps off again and leaves nothing behind to find. */
-    const pinned: string[] = [];
-
-    runSimulation({
-      steps: 120,
-      onStep: ({ storage, boids }) => {
-        const { min, max } = storage.boundary;
-
-        boids.forEach((boid) => {
-          const onWall = (["x", "y", "z"] as const).some(
-            (axis) =>
-              boid.position[axis] === min[axis] ||
-              boid.position[axis] === max[axis],
-          );
-          if (onWall) {
-            pinned.push(boid.compoundId);
-          }
-        });
-      },
-    });
-
-    expect(pinned).toEqual([]);
   });
 });

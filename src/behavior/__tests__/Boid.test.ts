@@ -48,6 +48,7 @@ const TEST_FORCE_FACTORS: ForceFactors = {
   separationFactor: 3,
   avoidEdgesFactor: 3,
   avoidObstaclesFactor: 3,
+  drawToCenterFactor: 3,
 };
 
 /* built by hand rather than through deriveBoidProperties, which has its own

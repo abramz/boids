@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import Candidates from "./Candidates";
-import OctTree from "./OctTree";
+import HashGrid from "./HashGrid";
 import type Boid from "../behavior/Boid";
 import type Obstacle from "../obstacle/Obstacle";
 
@@ -11,14 +11,19 @@ export default class BoidStore {
   protected insertedIds = new Set<string>();
   protected boidsList: Boid[] = [];
   protected obstacleList: Obstacle[] = [];
-  protected octTree: OctTree<Boid>;
+  protected grid: HashGrid<Boid>;
 
-  constructor(octTree: OctTree<Boid>) {
-    this.octTree = octTree;
+  constructor(grid: HashGrid<Boid>) {
+    this.grid = grid;
   }
 
   /**
-   * Add a boid to the store and to the underlying OctTree
+   * Add a boid to the store.
+   *
+   * The index is built in one pass over the whole flock rather than a boid at a
+   * time, so a boid inserted here is not visible to `queryRange` until the next
+   * `reindex`.
+   *
    * @param boid the boid to insert
    */
   public insert(boid: Boid): void {
@@ -26,38 +31,20 @@ export default class BoidStore {
       throw new Error(`boid already inserted, ${boid.compoundId}`);
     }
 
-    if (!this.octTree.insert(boid)) {
-      throw new Error(`boid unable to be inserted, ${boid.compoundId}`);
-    }
-
     this.insertedIds.add(boid.compoundId);
     this.boidsList.push(boid);
   }
 
   /**
-   * Rebuild the OctTree around where the boids are now.
+   * Rebuild the index around where the boids are now.
    *
    * The flock itself is untouched: these are the same boid objects frame after
-   * frame, and only the positions the tree indexes them by have moved on.
-   *
-   * Throws if a boid has ended up outside the tree, before anything is torn
-   * down, so the index a caller abandons the frame on is the intact one it came
-   * in with rather than a partial rebuild. Callers are expected to have kept
-   * every position inside `boundary`, so this is a failure to abandon the frame
-   * on rather than one to carry on from.
+   * frame, and only the positions the index holds them by have moved on. There
+   * is nowhere a boid can have gone that the index cannot follow it to, so this
+   * has no failure to report.
    */
   public reindex(): void {
-    const stray = this.boidsList.find(
-      (boid) => !this.octTree.boundary.containsPoint(boid.position),
-    );
-    if (stray) {
-      throw new Error(`boid outside the storage boundary, ${stray.compoundId}`);
-    }
-
-    this.octTree.clear();
-    for (const boid of this.boidsList) {
-      this.octTree.insert(boid);
-    }
+    this.grid.build(this.boidsList);
   }
 
   public insertObstacle(obstacle: Obstacle): void {
@@ -71,7 +58,7 @@ export default class BoidStore {
     range: THREE.Sphere,
     /* OUT */ out: Candidates<Boid>,
   ): void {
-    this.octTree.queryRange(range, out);
+    this.grid.queryRange(range, out);
   }
 
   /**
@@ -89,20 +76,8 @@ export default class BoidStore {
     return this.obstacleList;
   }
 
-  /**
-   * Get all the boundaries of the underlying OctTree
-   */
+  /** The cells of the index the flock actually occupies. */
   public get boundaries(): THREE.Box3[] {
-    return this.octTree.boundaries;
-  }
-
-  /**
-   * The outer boundary of the underlying OctTree.
-   *
-   * A boid outside this cannot be re-inserted, so callers integrating position
-   * need to be able to see it.
-   */
-  public get boundary(): THREE.Box3 {
-    return this.octTree.boundary;
+    return this.grid.occupiedCells;
   }
 }

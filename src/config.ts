@@ -23,24 +23,6 @@ export const FLOCK_COUNT = 5;
  */
 export const WORLD_SIZE = 75;
 
-export const OCT_TREE_CAPACITY = 8;
-
-/**
- * How deep the OctTree may subdivide before a cell simply holds more than
- * `OCT_TREE_CAPACITY`. Boids driven into a corner are clamped to the same
- * position by step.ts, and no split ever separates points that coincide, so
- * without a floor a single pile subdivides until the stack runs out.
- */
-export const OCT_TREE_MAX_DEPTH = 8;
-
-/**
- * How far the OctTree reaches past the world, as a fraction of the world size.
- * Edge avoidance is a steering force rather than a wall, so the index has to
- * cover the overshoot; a boid outside this is a frame the simulation cannot
- * continue from.
- */
-export const OCT_TREE_BOUNDARY_MARGIN = 0.3;
-
 export const BOID_SIZE = 0.2;
 
 /**
@@ -69,6 +51,33 @@ export const PERCEPTION_RADIUS = 3;
  * 2008).
  */
 export const NEIGHBOUR_LIMIT = 8;
+
+/**
+ * The side of one cell of the spatial index.
+ *
+ * A query walks the block of cells its radius reaches into, so the cheapest
+ * cell is one the size of the radius actually being asked for: smaller and the
+ * block grows, larger and each cell hands back more to test. The radius is
+ * tunable and the index follows it wherever it goes, so this is the size the
+ * shipped one costs least at rather than a limit on it.
+ *
+ * The radius asked for is the one deriveBoidProperties widens by BOID_SIZE, not
+ * PERCEPTION_RADIUS itself. A cell of the narrower one is a hair too small, and
+ * a hair too small is a whole extra ring of cells on every side.
+ */
+export const GRID_CELL_SIZE = PERCEPTION_RADIUS + BOID_SIZE;
+
+/**
+ * Buckets in the index's hash table, per boid.
+ *
+ * The world has no outer wall, so cells are hashed into a fixed table rather
+ * than indexed in an array covering all of them, and two cells can share a
+ * bucket. The index checks which cell a boid is really in, so a collision costs
+ * a comparison rather than a wrong answer; this is what keeps them rare enough
+ * not to matter.
+ */
+export const GRID_BUCKETS_PER_BOID = 4;
+
 export const FIELD_OF_VIEW_DEG = 230;
 export const DESIRED_SEPARATION = 1;
 /**
@@ -111,3 +120,19 @@ export const COHESION_FACTOR = 1.0;
 export const SEPARATION_FACTOR = 1.0;
 export const AVOID_EDGES_FACTOR = 50.0;
 export const AVOID_OBSTACLES_FACTOR = 50.0;
+
+/**
+ * The leash, and the only force that is not tunable down to nothing.
+ *
+ * Edge avoidance is what turns a boid at a wall, and turning it off is a
+ * reasonable thing to want to watch. Nothing else stops the flock leaving for
+ * good, though, and the index has no outer wall to catch it at, so this is
+ * weighted to be beaten by cohesion at about a world's width outside: far
+ * enough out to be no part of how the flock flies, near enough that a flock
+ * that has slipped its edges settles somewhere it can be seen and recovered
+ * from rather than somewhere it cannot.
+ */
+export const DRAW_TO_CENTER_FACTOR = 1.0;
+
+/** How light the draw to center is allowed to be made. */
+export const MIN_DRAW_TO_CENTER_FACTOR = 0.1;

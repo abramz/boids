@@ -25,13 +25,13 @@ export interface StepSimulationOptions {
  * Advance the simulation by one frame.
  *
  * Half the flock works out what it wants to do per frame, alternating by
- * `frameSign`, because searching the OctTree for neighbours is the expensive
- * part of a frame and the answer barely moves between two of them. Every boid
- * then flies on that answer, every frame: what a boid steers towards changes
- * slowly, but where it is changes constantly, and skipping it every other frame
- * is a visible stutter for no saving.
+ * `frameSign`, because searching the index for neighbours is the expensive part
+ * of a frame and the answer barely moves between two of them. Every boid then
+ * flies on that answer, every frame: what a boid steers towards changes slowly,
+ * but where it is changes constantly, and skipping it every other frame is a
+ * visible stutter for no saving.
  *
- * Storage is rebuilt on the negative half-frame, so the OctTree stays roughly
+ * Storage is rebuilt on the negative half-frame, so the index stays roughly
  * accurate without being rebuilt twice per pair.
  *
  * @returns the `frameSign` to use on the next frame
@@ -74,13 +74,9 @@ export default function stepSimulation({
   /* and the whole flock flies, on whichever answer it has. A boid holds its
      acceleration between re-aims, so integrating it against this frame's delta
      lands on the same velocity by the time it re-aims, reached smoothly */
-  const storageBoundary = storage.boundary;
   for (const boid of boids) {
     boid.applyAcceleration(delta, properties.minSpeed, properties.maxSpeed);
     boid.applyVelocity(delta);
-    // edge avoidance is a steering force rather than a wall, so a boid can
-    // overshoot the world; the index cannot hold one outside its own boundary
-    boid.position.clamp(storageBoundary.min, storageBoundary.max);
   }
 
   if (frameSign < 0) {

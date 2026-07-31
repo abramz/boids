@@ -26,6 +26,7 @@ export const FORCE_FACTORS: ForceFactors = {
   separationFactor: 1.03,
   avoidEdgesFactor: 50.01,
   avoidObstaclesFactor: 50.02,
+  drawToCenterFactor: 1.04,
 };
 
 /**
@@ -56,9 +57,8 @@ export function seededWorld(): CreateSimulationOptions {
     worldSize: WORLD_SIZE,
     maxSpeed: BOID_PROPERTIES.maxSpeed,
     random: seededRandom(),
-    storageMargin: 0.9,
-    octTreeCapacity: 8,
-    octTreeMaxDepth: 8,
+    gridCellSize: BOID_PROPERTIES.perceptionRadius + BOID_PROPERTIES.boidSize,
+    gridBucketsPerBoid: 4,
     obstacleOffset: 0.5,
     obstacleRadiusScale: 1 / 24,
   };

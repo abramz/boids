@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import BoidStore from "../storage/BoidStore";
-import OctTree from "../storage/OctTree";
+import HashGrid from "../storage/HashGrid";
 import Obstacle from "../obstacle/Obstacle";
 import {
   Random,
@@ -35,9 +35,8 @@ export interface CreateSimulationOptions {
    * pin the world its goldens were recorded against, so retuning the production
    * numbers moves the flock rather than the fixtures.
    */
-  storageMargin?: number;
-  octTreeCapacity?: number;
-  octTreeMaxDepth?: number;
+  gridCellSize?: number;
+  gridBucketsPerBoid?: number;
   obstacleOffset?: number;
   obstacleRadiusScale?: number;
   maxDelta?: number;
@@ -67,10 +66,8 @@ export interface Simulation {
   readonly storage: BoidStore;
   readonly boids: readonly Boid[];
   readonly obstacles: readonly Obstacle[];
-  /** The cube the boids steer to stay inside, which the index reaches past. */
+  /** The cube the boids steer to stay inside, and are drawn back to. */
   readonly worldBoundary: THREE.Box3;
-  /** The cube the index covers, which every position is held inside. */
-  readonly storageBoundary: THREE.Box3;
   /** The occupied cells of the index, as they stand. For the debug overlay. */
   cellBoundaries(): THREE.Box3[];
   step(options: StepOptions): void;
@@ -79,9 +76,9 @@ export interface Simulation {
 /**
  * Build the flock, the obstacles it flies around, and the index over the flock.
  *
- * The index reaches beyond the world by `storageMargin`: edge avoidance is a
- * steering force rather than a wall, and a boid it has not turned in time has
- * to stay indexable.
+ * The index covers unbounded space, so the world here is only what the boids
+ * steer to stay inside and are drawn back to; it is not a wall, and nothing
+ * goes wrong for the index when a boid overshoots it.
  */
 export default function createSimulation({
   flockSize,
@@ -89,9 +86,8 @@ export default function createSimulation({
   worldSize,
   maxSpeed,
   random = Math.random,
-  storageMargin = config.OCT_TREE_BOUNDARY_MARGIN,
-  octTreeCapacity = config.OCT_TREE_CAPACITY,
-  octTreeMaxDepth = config.OCT_TREE_MAX_DEPTH,
+  gridCellSize = config.GRID_CELL_SIZE,
+  gridBucketsPerBoid = config.GRID_BUCKETS_PER_BOID,
   obstacleOffset = config.OBSTACLE_OFFSET,
   obstacleRadiusScale = config.OBSTACLE_RADIUS_SCALE,
   maxDelta = config.MAX_DELTA,
@@ -101,12 +97,12 @@ export default function createSimulation({
     new THREE.Vector3(-halfSize, -halfSize, -halfSize),
     new THREE.Vector3(halfSize, halfSize, halfSize),
   );
-  const storageBoundary = worldBoundary
-    .clone()
-    .expandByScalar(worldSize * storageMargin);
 
   const storage = new BoidStore(
-    new OctTree<Boid>(storageBoundary, octTreeCapacity, octTreeMaxDepth),
+    new HashGrid<Boid>({
+      cellSize: gridCellSize,
+      tableSize: flockSize * flockCount * gridBucketsPerBoid,
+    }),
   );
 
   let idx = 0;
@@ -130,6 +126,10 @@ export default function createSimulation({
     }
   }
 
+  /* the index is built in one pass over the whole flock, so nothing inserted
+     above is visible to a query until this runs */
+  storage.reindex();
+
   const radius = worldSize * obstacleRadiusScale;
   const offset = (worldSize * obstacleOffset) / 2;
   for (const x of LATTICE) {
@@ -152,7 +152,6 @@ export default function createSimulation({
     boids: storage.boids,
     obstacles: storage.obstacles,
     worldBoundary,
-    storageBoundary,
     cellBoundaries: () => storage.boundaries,
     step({ delta, properties, forceFactors }: StepOptions): void {
       frameSign = stepSimulation({

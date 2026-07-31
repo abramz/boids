@@ -7,13 +7,16 @@ import { GROUP_NAME as HELPER_GROUP_NAME } from "../Helpers";
 import { GROUP_NAME as WORLD_GROUP_NAME } from "../World";
 import { GROUP_NAME as BOIDS_GROUP_NAME } from "../Boids";
 import { GROUP_NAME as OBSTACLE_GROUP_NAME } from "../../obstacle/ObstacleDisplay";
-import { FLOCK_SIZE, FLOCK_COUNT } from "../../__fixtures__/seededConfig";
+import {
+  FLOCK_SIZE,
+  FLOCK_COUNT,
+  WORLD_SIZE,
+} from "../../__fixtures__/seededConfig";
 
 vi.mock("../../hooks/useHelpers", () => ({
   default: vi.fn().mockReturnValue({
     showWorldBoundary: true,
-    showStorageBoundary: true,
-    showStorageSegmentation: true,
+    showStorageCells: true,
   }),
 }));
 
@@ -50,7 +53,7 @@ it("should render the world in all of its glory", async () => {
 
   const helperGroup = named(HELPER_GROUP_NAME);
   expect(helperGroup, HELPER_GROUP_NAME).toBeTruthy();
-  expect(helperGroup!.findAllByType("Box3Helper")).toHaveLength(2);
+  expect(helperGroup!.findAllByType("Box3Helper")).toHaveLength(1);
   expect(helperGroup!.findAllByType("Mesh")).toHaveLength(1);
 
   const meshes = renderer.scene.findAllByType("Mesh");
@@ -67,16 +70,17 @@ it("should render the world in all of its glory", async () => {
   ).toEqual(FLOCK_SIZE * FLOCK_COUNT);
 });
 
-it("should draw the storage boundary reaching out past the world it holds", async () => {
+it("should draw the world boundary around the world the flock was built in", async () => {
   const renderer = await render();
 
-  const [world, storage] = renderer.scene
+  const [world] = renderer.scene
     .findAllByType("Box3Helper")
     .map((helper) => (helper.instance as unknown as THREE.Box3Helper).box);
 
-  // a boid overshoots the world before edge avoidance turns it, and the index
-  // has to still cover it where it got to
-  expect(storage.containsBox(world)).toBe(true);
-  expect(storage.min.x).toBeLessThan(world.min.x);
-  expect(storage.max.x).toBeGreaterThan(world.max.x);
+  /* the only box left to draw: the index reaches everywhere and has no
+     boundary of its own, so what a boid steers to stay inside is the one
+     thing there is to see */
+  const half = WORLD_SIZE / 2;
+  expect(world.min.toArray()).toEqual([-half, -half, -half]);
+  expect(world.max.toArray()).toEqual([half, half, half]);
 });

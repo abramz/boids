@@ -21,9 +21,8 @@ export interface SimulationConfig {
    */
   world: Pick<
     CreateSimulationOptions,
-    | "storageMargin"
-    | "octTreeCapacity"
-    | "octTreeMaxDepth"
+    | "gridCellSize"
+    | "gridBucketsPerBoid"
     | "obstacleOffset"
     | "obstacleRadiusScale"
     | "maxDelta"
@@ -62,11 +61,13 @@ export const DENSE_CONFIG: SimulationConfig = {
     // are what the assertions actually see
     avoidEdgesFactor: 1,
     avoidObstaclesFactor: 1,
+    drawToCenterFactor: 1,
   },
   world: {
-    storageMargin: 0.3,
-    octTreeCapacity: 8,
-    octTreeMaxDepth: 8,
+    /* the perception radius as deriveBoidProperties widens it, which is the
+       radius actually queried and so the cell size that costs least */
+    gridCellSize: 2.6,
+    gridBucketsPerBoid: 4,
     obstacleOffset: 0.5,
     obstacleRadiusScale: 1 / 24,
     maxDelta: 0.25,
@@ -82,12 +83,6 @@ export interface RunOptions {
   properties?: Partial<BoidProperties>;
   /** seconds per step; defaults to a 60fps frame */
   delta?: number;
-  /**
-   * How far storage reaches past the world, as a fraction of the world size.
-   * Overrides the config's; raise it only for tests that need boids to wander
-   * without hitting the tree edge.
-   */
-  storageMargin?: number;
   /** called after every step, before the next one */
   onStep?: (simulation: Simulation, step: number) => void;
 }
@@ -108,7 +103,6 @@ export function runSimulation({
   forceFactors = {},
   properties = {},
   delta = FRAME_DELTA,
-  storageMargin,
   onStep,
 }: RunOptions = {}): RunResult {
   const boidProperties = { ...config.properties, ...properties };
@@ -121,7 +115,6 @@ export function runSimulation({
     worldSize: config.worldSize,
     maxSpeed: boidProperties.maxSpeed,
     random: seededRandom(),
-    ...(storageMargin === undefined ? {} : { storageMargin }),
   });
 
   const { boids } = simulation;

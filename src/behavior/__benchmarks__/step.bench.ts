@@ -42,6 +42,7 @@ const FORCE_FACTORS: ForceFactors = {
   separationFactor: config.SEPARATION_FACTOR,
   avoidEdgesFactor: config.AVOID_EDGES_FACTOR,
   avoidObstaclesFactor: config.AVOID_OBSTACLES_FACTOR,
+  drawToCenterFactor: config.DRAW_TO_CENTER_FACTOR,
 };
 
 const simulation = createSimulation({

@@ -17,6 +17,8 @@ const tempDiff = new THREE.Vector3();
 const tempForward = new THREE.Vector3();
 const tempDesired = new THREE.Vector3();
 const tempSteer = new THREE.Vector3();
+const tempCenter = new THREE.Vector3();
+const tempSize = new THREE.Vector3();
 
 /* the axis avoidObstacles turns around, and a stand-in for when an obstacle
    sits along it and the cross product carries no direction */
@@ -120,6 +122,54 @@ export function avoidEdges(
   }
 
   return outVector;
+}
+
+/**
+ * Steer home, from outside the boundary only.
+ *
+ * Zero while a boid is inside it, so this is no part of how the flock flies and
+ * all of whether it comes back. Outside, it grows with how far a boid has
+ * strayed, and it does not have to beat `maxForce` to do its job: it only has
+ * to take over the direction of what is summed, after which the limit on the
+ * total aims the whole budget home.
+ *
+ * Edge avoidance is the behaviour that turns a boid at a wall, and it is
+ * tunable down to nothing. This is the one that is not: the index has no outer
+ * wall to catch a flock that has slipped its edges, so something has to.
+ *
+ * Spherical where edge avoidance is three axis-aligned pushes, which is the
+ * shape that suits a leash rather than a wall.
+ */
+export function drawToCenter(
+  position: THREE.Vector3,
+  velocity: THREE.Vector3,
+  boundary: THREE.Box3,
+  maxSpeed: number,
+  maxForce: number,
+  /* OUT */ outVector: THREE.Vector3,
+): THREE.Vector3 {
+  /* zero inside the box, and the distance to it outside */
+  const strayed = boundary.distanceToPoint(position);
+  if (strayed === 0) {
+    return outVector.set(0, 0, 0);
+  }
+
+  boundary.getCenter(tempCenter);
+  boundary.getSize(tempSize);
+
+  seekVelocity(
+    velocity,
+    tempDesired.subVectors(tempCenter, position),
+    maxSpeed,
+    maxForce,
+    outVector,
+  );
+
+  /* a world's width out is parity with an ordinary steering force, and it
+     climbs from there, so there is no distance this can be outrun at */
+  return outVector.multiplyScalar(
+    strayed / Math.max(tempSize.x, tempSize.y, tempSize.z),
+  );
 }
 
 /**

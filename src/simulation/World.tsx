@@ -31,7 +31,6 @@ export function InternalWorld({
     <group name={GROUP_NAME}>
       <Helpers
         worldBoundary={simulation.worldBoundary}
-        storageBoundary={simulation.storageBoundary}
         cellBoundaries={simulation.cellBoundaries}
       />
       <Boids boidSize={properties.boidSize} boids={simulation.boids} />
@@ -66,6 +65,7 @@ export default function World(): ReactNode {
     separationFactor: config.SEPARATION_FACTOR,
     avoidEdgesFactor: config.AVOID_EDGES_FACTOR,
     avoidObstaclesFactor: config.AVOID_OBSTACLES_FACTOR,
+    drawToCenterFactor: config.DRAW_TO_CENTER_FACTOR,
   });
 
   /* the initial speed the flock is built with, held apart from the live tuning

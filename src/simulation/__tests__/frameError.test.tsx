@@ -8,13 +8,14 @@ import SeededWorld from "../../__fixtures__/SeededWorld";
 /**
  * r3f calls useFrame subscribers straight out of requestAnimationFrame, so a
  * throw in the simulation step has no React on the stack to catch it and the
- * next frame is already queued. Left alone that is a frozen picture and an error
- * a second, forever. The boid store throws for real when a position goes
- * non-finite and the index cannot hold it, so this is the path that failure
- * actually takes.
+ * next frame is already queued. Left alone that is a frozen picture and an
+ * error a second, forever.
+ *
+ * What throws is beside the point, and the step is mocked to do it: this is
+ * about the plumbing that carries a throw out of a frame and into the boundary.
  */
 
-const BOOM = "boid outside the storage boundary, 0-0";
+const BOOM = "the simulation step failed";
 const FALLBACK = "TestErrorFallback";
 
 const step = vi.hoisted(() =>

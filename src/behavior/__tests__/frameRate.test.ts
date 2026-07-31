@@ -15,10 +15,6 @@ describe("frame rate independence", () => {
   const SLOWEST = 20;
   const FASTEST = 144;
 
-  /* room enough that step's clamp never engages and avoidEdges is what is
-     actually being measured */
-  const STORAGE_MARGIN = 2;
-
   /**
    * Flocking switched off, leaving edge avoidance flying the boids on its own.
    *
@@ -60,7 +56,6 @@ describe("frame rate independence", () => {
     const { boids } = runSimulation({
       steps: Math.round(DURATION * fps),
       delta: 1 / fps,
-      storageMargin: STORAGE_MARGIN,
       forceFactors,
       onStep: (simulation) => {
         simulation.boids.forEach((boid) => {

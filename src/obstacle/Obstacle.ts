@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import type { Node } from "../storage/OctTree";
+import type { Node } from "../storage/HashGrid";
 
 export default class Obstacle implements Node {
   public position: THREE.Vector3;

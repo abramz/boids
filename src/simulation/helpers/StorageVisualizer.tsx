@@ -5,7 +5,7 @@ import * as THREE from "three";
 export const GROUP_NAME = "StorageVisualizer";
 
 /**
- * How many cells the helper can draw at once. A production tree runs to a few
+ * How many cells the helper can draw at once. A production flock occupies a few
  * thousand; anything past this is dropped rather than grown into, because this
  * is a debug overlay and reallocating the mesh mid-frame is not worth it.
  */
