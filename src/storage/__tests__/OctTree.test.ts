@@ -1,10 +1,20 @@
 import * as THREE from "three";
 import { it, expect, beforeEach } from "vitest";
 import { seededRandom } from "../../__fixtures__/seededConfig";
+import Candidates from "../Candidates";
 import OctTree, { Node } from "../OctTree";
 
 const CAPACITY = 4;
 const MAX_DEPTH = 8;
+
+/* the tree fills a buffer rather than returning one; these read it back out */
+const found = new Candidates<Node>();
+
+function query(tree: OctTree<Node>, range: THREE.Sphere): Node[] {
+  tree.queryRange(range, found);
+
+  return [...found];
+}
 
 /* seeded, so a failure in any of the tests that fill a tree is reproducible */
 const random = seededRandom();
@@ -96,11 +106,11 @@ it("returns every node within the range and nothing outside it", () => {
   octTree.insert(sameCellButTooFar);
 
   const range = new THREE.Sphere(new THREE.Vector3(-0.5, 5, 5), 1);
-  const found = octTree.queryRange(range);
+  const inRange = query(octTree, range);
 
-  expect(found).toContain(acrossTheFace);
-  expect(found).not.toContain(sameCellButTooFar);
-  found.forEach((node) =>
+  expect(inRange).toContain(acrossTheFace);
+  expect(inRange).not.toContain(sameCellButTooFar);
+  inRange.forEach((node) =>
     expect(range.containsPoint(node.position)).toBe(true),
   );
 });
@@ -110,7 +120,8 @@ it("returns nothing for a range that holds no nodes", () => {
     octTree.insert({ position: randomPointWithin(boundary) });
   }
 
-  const empty = octTree.queryRange(
+  const empty = query(
+    octTree,
     new THREE.Sphere(new THREE.Vector3(0, 0, 0), 1e-9),
   );
 

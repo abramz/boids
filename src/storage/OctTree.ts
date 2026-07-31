@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import Candidates from "./Candidates";
 
 export interface Node {
   position: THREE.Vector3;
@@ -113,37 +114,38 @@ export default class OctTree<T extends Node> {
   }
 
   /**
-   * Find every node inside the range.
+   * Collect every node inside the range into `out`, which is reset first.
    *
    * Cells that merely overlap the range are descended into, but only the nodes
    * actually within it come back: a caller filtering the result again would be
    * re-deriving the distance the query already knows.
    *
    * @param range range to look for neighbors in
-   * @returns all matching nodes
+   * @param out receives the matching nodes
    */
-  public queryRange(range: THREE.Sphere): T[] {
-    const result: T[] = [];
+  public queryRange(range: THREE.Sphere, /* OUT */ out: Candidates<T>): void {
+    out.reset();
 
-    this.collectRange(range, result);
-
-    return result;
+    this.collectRange(range, out);
   }
 
-  protected collectRange(range: THREE.Sphere, /* OUT */ result: T[]): void {
+  protected collectRange(
+    range: THREE.Sphere,
+    /* OUT */ out: Candidates<T>,
+  ): void {
     if (!this.boundary.intersectsSphere(range)) {
       return;
     }
 
     for (const node of this.nodes) {
       if (range.containsPoint(node.position)) {
-        result.push(node);
+        out.push(node);
       }
     }
 
     if (this.children) {
       for (const child of this.children) {
-        child.collectRange(range, result);
+        child.collectRange(range, out);
       }
     }
   }

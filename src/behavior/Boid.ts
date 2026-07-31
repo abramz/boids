@@ -8,6 +8,7 @@ import {
   seekVelocity,
 } from "./steering";
 import NearestNeighbours from "./NearestNeighbours";
+import type Candidates from "../storage/Candidates";
 import type { Node } from "../storage/OctTree";
 
 export interface BoidOptions {
@@ -53,7 +54,7 @@ export type DerivedBoidProperties = BoidProperties & {
 };
 
 export interface ApplyForcesOptions {
-  neighbors: readonly Boid[];
+  neighbors: Candidates<Boid>;
   boundary: THREE.Box3;
   obstacles?: readonly Obstacle[];
   properties: DerivedBoidProperties;
@@ -295,7 +296,7 @@ export default class Boid implements Node {
    * 2008), which is what keeps a flock coherent as it compresses and spreads.
    */
   public determineFlockingTargets(
-    neighbors: readonly Boid[],
+    neighbors: Candidates<Boid>,
     perceptionRadius: number,
     cosHalfFieldOfView: number,
     desiredSeparation: number,
@@ -308,7 +309,8 @@ export default class Boid implements Node {
     nearestAnyone.reset(neighbourLimit);
     tempForward.copy(this.velocity).normalize();
 
-    for (const neighbor of neighbors) {
+    for (let index = 0; index < neighbors.size; index++) {
+      const neighbor = neighbors.at(index);
       /* storage hands back everything in range, this boid included */
       if (neighbor === this) {
         continue;

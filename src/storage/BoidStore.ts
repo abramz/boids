@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import Candidates from "./Candidates";
 import OctTree from "./OctTree";
 import type Boid from "../behavior/Boid";
 import type Obstacle from "../obstacle/Obstacle";
@@ -64,10 +65,13 @@ export default class BoidStore {
   }
 
   /**
-   * Every boid within `range`.
+   * Every boid within `range`, collected into `out`, which is reset first.
    */
-  public queryRange(range: THREE.Sphere): Boid[] {
-    return this.octTree.queryRange(range);
+  public queryRange(
+    range: THREE.Sphere,
+    /* OUT */ out: Candidates<Boid>,
+  ): void {
+    this.octTree.queryRange(range, out);
   }
 
   /**

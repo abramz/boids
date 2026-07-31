@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { describe, expect, it } from "vitest";
 import Boid from "../Boid";
+import Candidates from "../../storage/Candidates";
 import deriveBoidProperties from "../deriveBoidProperties";
 import { isInFOV } from "../../helpers/math";
 import { DENSE_CONFIG, runSimulation } from "./helpers/simulate";
@@ -72,13 +73,14 @@ describe("neighbour discovery", () => {
        is why this asserts the neighbourhood rather than the frame count */
     const { simulation, boids } = runSimulation({ steps: 300 });
     const range = new THREE.Sphere();
+    const candidates = new Candidates<Boid>();
 
     const missed = boids.flatMap((boid) => {
-      const found = new Set(
-        simulation.storage.queryRange(
-          range.set(boid.position, properties.perceptionRadius),
-        ),
+      simulation.storage.queryRange(
+        range.set(boid.position, properties.perceptionRadius),
+        candidates,
       );
+      const found = new Set(candidates);
 
       return boids
         .filter(

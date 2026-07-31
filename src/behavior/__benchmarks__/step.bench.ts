@@ -2,7 +2,8 @@ import * as THREE from "three";
 import { bench, describe } from "vitest";
 import * as config from "../../config";
 import { seededRandom } from "../../__fixtures__/seededConfig";
-import { BoidProperties, ForceFactors } from "../Boid";
+import Boid, { BoidProperties, ForceFactors } from "../Boid";
+import Candidates from "../../storage/Candidates";
 import createSimulation from "../createSimulation";
 import deriveBoidProperties from "../deriveBoidProperties";
 
@@ -61,6 +62,7 @@ for (let step = 0; step < SETTLE_STEPS; step++) {
 
 const derived = deriveBoidProperties(PROPERTIES);
 const range = new THREE.Sphere();
+const candidates = new Candidates<Boid>();
 
 describe(`frame, ${config.FLOCK_SIZE * config.FLOCK_COUNT} boids`, () => {
   bench("step", () => {
@@ -83,6 +85,7 @@ describe(`index, ${config.FLOCK_SIZE * config.FLOCK_COUNT} boids`, () => {
     for (const boid of simulation.boids) {
       simulation.storage.queryRange(
         range.set(boid.position, derived.perceptionRadius),
+        candidates,
       );
     }
   });

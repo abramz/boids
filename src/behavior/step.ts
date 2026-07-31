@@ -1,9 +1,11 @@
 import * as THREE from "three";
 import BoidStore from "../storage/BoidStore";
+import Candidates from "../storage/Candidates";
 import Boid, { DerivedBoidProperties, ForceFactors } from "./Boid";
 
 /* this is all single threaded so steps can share a temp variable */
 const tempBoundary = new THREE.Sphere();
+const tempNeighbours = new Candidates<Boid>();
 
 export interface StepSimulationOptions {
   storage: BoidStore;
@@ -58,9 +60,10 @@ export default function stepSimulation({
   for (let index = start; index < end; index++) {
     const boid = boids[index];
     tempBoundary.set(boid.position, properties.perceptionRadius);
+    storage.queryRange(tempBoundary, tempNeighbours);
 
     boid.applyForces({
-      neighbors: storage.queryRange(tempBoundary),
+      neighbors: tempNeighbours,
       obstacles: storage.obstacles,
       boundary: worldBoundary,
       properties,

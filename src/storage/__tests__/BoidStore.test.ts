@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { it, beforeEach, expect } from "vitest";
 import Boid from "../../behavior/Boid";
 import Obstacle from "../../obstacle/Obstacle";
+import Candidates from "../Candidates";
 import OctTree from "../OctTree";
 import BoidStore from "../BoidStore";
 
@@ -11,6 +12,15 @@ const MAX_DEPTH = 8;
 let store: BoidStore;
 let octTree: OctTree<Boid>;
 let boundary: THREE.Box3;
+
+/* the store fills a buffer rather than returning one; this reads it back out */
+const found = new Candidates<Boid>();
+
+function query(range: THREE.Sphere): Boid[] {
+  store.queryRange(range, found);
+
+  return [...found];
+}
 
 function makeBoid(id: number, position = new THREE.Vector3()): Boid {
   return new Boid({
@@ -67,7 +77,7 @@ it("should return the boids within a queried range", () => {
   store.insert(near);
   store.insert(far);
 
-  const result = store.queryRange(new THREE.Sphere(new THREE.Vector3(), 3));
+  const result = query(new THREE.Sphere(new THREE.Vector3(), 3));
 
   expect(result).toEqual([near]);
 });
@@ -87,12 +97,12 @@ it("should keep the flock, and its identity, across a reindex", () => {
   expect(store.boids).toEqual(boids);
 
   // and the tree now indexes them where they moved to, not where they were
-  expect(
-    store.queryRange(new THREE.Sphere(new THREE.Vector3(0, 4, 0), 0.5)),
-  ).toEqual([boids[9]]);
-  expect(
-    store.queryRange(new THREE.Sphere(new THREE.Vector3(4, 0, 0), 0.5)),
-  ).toHaveLength(0);
+  expect(query(new THREE.Sphere(new THREE.Vector3(0, 4, 0), 0.5))).toEqual([
+    boids[9],
+  ]);
+  expect(query(new THREE.Sphere(new THREE.Vector3(4, 0, 0), 0.5))).toHaveLength(
+    0,
+  );
 });
 
 it("should index each boid once however many times it is reindexed", () => {
@@ -106,9 +116,7 @@ it("should index each boid once however many times it is reindexed", () => {
 
   // rebuilding without clearing first leaves a stale copy of every boid per
   // rebuild: the tree grows without bound and each boid is its own neighbour
-  const everything = store.queryRange(
-    new THREE.Sphere(new THREE.Vector3(), 100),
-  );
+  const everything = query(new THREE.Sphere(new THREE.Vector3(), 100));
   expect(everything).toHaveLength(boids.length);
   expect(new Set(everything).size).toBe(boids.length);
 });
@@ -134,7 +142,7 @@ it("should leave the index intact when a reindex throws", () => {
 
   // tearing the tree down before checking would leave the caller holding a
   // half-indexed flock to abandon the frame on
-  expect(
-    store.queryRange(new THREE.Sphere(new THREE.Vector3(1, 0, 0), 0.5)),
-  ).toEqual([staying]);
+  expect(query(new THREE.Sphere(new THREE.Vector3(1, 0, 0), 0.5))).toEqual([
+    staying,
+  ]);
 });

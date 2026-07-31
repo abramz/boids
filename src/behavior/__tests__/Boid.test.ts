@@ -1,7 +1,17 @@
 import * as THREE from "three";
 import { beforeEach, describe, expect, it } from "vitest";
 import Boid, { DerivedBoidProperties, ForceFactors } from "../Boid";
+import Candidates from "../../storage/Candidates";
 import Obstacle from "../../obstacle/Obstacle";
+
+/* the simulation hands applyForces the buffer its index filled, so these fill
+   one by hand rather than passing the array they would rather write */
+function candidates(boids: Boid[]): Candidates<Boid> {
+  const filled = new Candidates<Boid>();
+  boids.forEach((boid) => filled.push(boid));
+
+  return filled;
+}
 
 const TEST_ID = 0;
 const TEST_PARENT_ID = 5;
@@ -85,7 +95,7 @@ describe("determineFlockingTargets", () => {
 
   function determine(neighbors: Boid[]): [number, number] {
     return TEST_BOID.determineFlockingTargets(
-      neighbors,
+      candidates(neighbors),
       TEST_PERCEPTION_RADIUS,
       TEST_COS_HALF_FOV,
       TEST_SEPARATION,
@@ -240,7 +250,7 @@ describe("determineFlockingTargets", () => {
 
     expect(
       TEST_BOID.determineFlockingTargets(
-        strungOut,
+        candidates(strungOut),
         TEST_PERCEPTION_RADIUS,
         TEST_COS_HALF_FOV,
         TEST_SEPARATION,
@@ -277,7 +287,7 @@ describe("determineFlockingTargets", () => {
 
     expect(
       TEST_BOID.determineFlockingTargets(
-        [...crowd, ...flockmates],
+        candidates([...crowd, ...flockmates]),
         TEST_PERCEPTION_RADIUS,
         TEST_COS_HALF_FOV,
         TEST_SEPARATION,
@@ -316,7 +326,7 @@ describe("applyForces", () => {
     TEST_BOID.velocity.set(TEST_MAX_SPEED, 0, 0);
 
     TEST_BOID.applyForces({
-      neighbors: [
+      neighbors: candidates([
         // both sit square off the boid's flank, outside its 170deg field of
         // view, so neither contributes and the edge is the only force left
         new Boid({
@@ -331,7 +341,7 @@ describe("applyForces", () => {
           position: new THREE.Vector3(TEST_WORLD_BOUNDARY, 0, 3),
           velocity: new THREE.Vector3(0, TEST_MAX_SPEED, 0),
         }),
-      ],
+      ]),
       boundary: TEST_BOUNDARY,
       properties: TEST_BOID_PROPERTIES,
       forceFactors: TEST_FORCE_FACTORS,
@@ -354,7 +364,7 @@ describe("applyForces", () => {
     TEST_BOID.velocity.set(TEST_MAX_SPEED, 0, 0);
 
     TEST_BOID.applyForces({
-      neighbors: [],
+      neighbors: candidates([]),
       obstacles: [new Obstacle(new THREE.Vector3(5, 0, 0), 1)],
       boundary: TEST_BOUNDARY,
       properties: TEST_BOID_PROPERTIES,
@@ -369,7 +379,7 @@ describe("applyForces", () => {
     expect(scaled.length()).toBeCloseTo(TEST_MAX_FORCE * 2, 12);
 
     TEST_BOID.applyForces({
-      neighbors: [],
+      neighbors: candidates([]),
       obstacles: [new Obstacle(new THREE.Vector3(5, 0, 0), 1)],
       boundary: TEST_BOUNDARY,
       properties: TEST_BOID_PROPERTIES,
@@ -391,10 +401,10 @@ describe("applyForces", () => {
     /* their average is far enough off to pull cohesion and off the boid's own
        heading, and the closer of the two is inside the separation radius */
     TEST_BOID.applyForces({
-      neighbors: [
+      neighbors: candidates([
         flockmate(1, new THREE.Vector3(3, 0, 9)),
         flockmate(2, new THREE.Vector3(0, 0, 2)),
-      ],
+      ]),
       boundary: TEST_BOUNDARY,
       properties: TEST_BOID_PROPERTIES,
       forceFactors: TEST_FORCE_FACTORS,
@@ -405,7 +415,7 @@ describe("applyForces", () => {
     expect(TEST_BOID.forces.separation).not.toEqual([0, 0, 0]);
 
     TEST_BOID.applyForces({
-      neighbors: [],
+      neighbors: candidates([]),
       boundary: TEST_BOUNDARY,
       properties: TEST_BOID_PROPERTIES,
       forceFactors: TEST_FORCE_FACTORS,
