@@ -23,6 +23,7 @@ npm test               # vitest, watch mode
 npm run test:ci        # vitest, single run
 npm run test:coverage  # vitest with coverage
 npm run test:e2e       # playwright browser smoke test
+npm run bench          # vitest bench, a frame at production scale
 ```
 
 ### Deploys and PR previews
