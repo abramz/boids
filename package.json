@@ -13,6 +13,7 @@
     "preview": "vite preview",
     "test": "vitest",
     "test:ci": "vitest run",
+    "bench": "vitest bench --run",
     "test:coverage": "vitest run --coverage",
     "prepare": "husky",
     "lint": "tools/lint/node_modules/.bin/eslint src e2e test-setup.ts",

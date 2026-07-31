@@ -29,6 +29,7 @@ export default defineConfig({
       include: ["src/**/*.{ts,tsx}"],
       exclude: [
         "src/**/__tests__/**",
+        "src/**/__benchmarks__/**",
         "src/__fixtures__/**",
         "src/main.tsx",
         "src/threeElements.ts",
