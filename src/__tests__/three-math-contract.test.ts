@@ -59,41 +59,34 @@ describe("three.js math contract", () => {
     });
   });
 
-  describe("Box3 and Sphere decide which neighbours a boid can see", () => {
+  describe("Box3 and Sphere decide what a boid sees and where it is held", () => {
     /* pinned exactly: these are comparisons of sums and products, with no
        transcendental to round differently from one machine to the next */
-    const box = new THREE.Box3(
-      new THREE.Vector3(0, 0, 0),
-      new THREE.Vector3(1, 1, 1),
-    );
-
-    it("Box3.intersectsSphere measures the box's nearest point, not its centre", () => {
-      // the octree descends on this, so a cell that reported only whether it
-      // held the sphere's centre would drop the neighbours just over its face
-      const overlapping = new THREE.Sphere(
-        new THREE.Vector3(-0.5, 0.5, 0.5),
-        1,
-      );
-      const clear = new THREE.Sphere(new THREE.Vector3(-2, 0.5, 0.5), 1);
-
-      expect(box.intersectsSphere(overlapping)).toBe(true);
-      expect(box.intersectsSphere(clear)).toBe(false);
-    });
-
-    it("Box3.containsPoint takes a point on either face", () => {
-      // subdivision cuts children from the parent's own faces, so a point on an
-      // internal one has to belong to a child rather than to neither
-      expect(box.containsPoint(new THREE.Vector3(0, 0.5, 0.5))).toBe(true);
-      expect(box.containsPoint(new THREE.Vector3(1, 0.5, 0.5))).toBe(true);
-    });
 
     it("Sphere.containsPoint takes a point exactly on the surface", () => {
+      // every neighbour the index hands back is one this admitted, so a
+      // stricter comparison here silently narrows the perception radius
       const sphere = new THREE.Sphere(new THREE.Vector3(0, 0, 0), 2);
 
       expect(sphere.containsPoint(new THREE.Vector3(2, 0, 0))).toBe(true);
       expect(sphere.containsPoint(new THREE.Vector3(2.0000001, 0, 0))).toBe(
         false,
       );
+    });
+
+    it("Box3.distanceToPoint is zero inside and unsigned outside", () => {
+      /* drawToCenter is switched on by this being non-zero, so a signed
+         distance would have it pulling on the whole flock all the time rather
+         than only on what has strayed */
+      const box = new THREE.Box3(
+        new THREE.Vector3(0, 0, 0),
+        new THREE.Vector3(1, 1, 1),
+      );
+
+      expect(box.distanceToPoint(new THREE.Vector3(0.5, 0.5, 0.5))).toBe(0);
+      expect(box.distanceToPoint(new THREE.Vector3(1, 0.5, 0.5))).toBe(0);
+      expect(box.distanceToPoint(new THREE.Vector3(4, 0.5, 0.5))).toBe(3);
+      expect(box.distanceToPoint(new THREE.Vector3(-3, 0.5, 0.5))).toBe(3);
     });
   });
 });

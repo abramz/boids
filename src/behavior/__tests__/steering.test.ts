@@ -4,6 +4,7 @@ import Obstacle from "../../obstacle/Obstacle";
 import {
   avoidEdges,
   avoidObstacles,
+  drawToCenter,
   seekPosition,
   seekVelocity,
 } from "../steering";
@@ -143,6 +144,71 @@ describe("avoidEdges", () => {
     position.set(0.5, -0.5, 0);
 
     expect(steer(narrow, 10)).toEqual([-0.5, 0.5, 0.5]);
+  });
+});
+
+describe("drawToCenter", () => {
+  function steer(boundary = BOUNDARY): THREE.Vector3 {
+    return drawToCenter(
+      position,
+      velocity,
+      boundary,
+      MAX_SPEED,
+      MAX_FORCE,
+      out,
+    ).clone();
+  }
+
+  it("should draw nothing at all while the boid is inside", () => {
+    /* zero inside is what keeps this out of the flocking balance entirely,
+       rather than quietly biasing every boid towards the middle */
+    position.set(WALL - 1, 0, 0);
+
+    expect(steer().toArray()).toEqual([0, 0, 0]);
+  });
+
+  it("should draw nothing from a boid exactly on the wall", () => {
+    position.set(WALL, WALL, WALL);
+
+    expect(steer().toArray()).toEqual([0, 0, 0]);
+  });
+
+  it("should draw a strayed boid back towards the middle", () => {
+    position.set(WALL * 2, 0, 0);
+    velocity.set(MAX_SPEED, 0, 0); // flying further out
+
+    const force = steer();
+
+    expect(force.x).toBeLessThan(0);
+    expect(force.y).toBe(0);
+    expect(force.z).toBe(0);
+  });
+
+  it("should draw harder the further out the boid has got", () => {
+    /* it never has to beat maxForce, only to take over the direction of what
+       is summed, and growing without bound is what guarantees it eventually
+       does whatever else is pulling the other way */
+    velocity.set(MAX_SPEED, 0, 0);
+
+    position.set(WALL * 2, 0, 0);
+    const near = steer().length();
+
+    position.set(WALL * 20, 0, 0);
+    const far = steer().length();
+
+    expect(far).toBeGreaterThan(near);
+  });
+
+  it("should draw towards the boundary's own middle, not the origin", () => {
+    // nothing here assumes the world is centred on zero
+    const offset = new THREE.Box3(
+      new THREE.Vector3(100, -1, -1),
+      new THREE.Vector3(102, 1, 1),
+    );
+    position.set(110, 0, 0);
+    velocity.set(MAX_SPEED, 0, 0);
+
+    expect(steer(offset).x).toBeLessThan(0);
   });
 });
 
