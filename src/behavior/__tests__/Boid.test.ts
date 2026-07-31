@@ -64,6 +64,7 @@ const TEST_BOID_PROPERTIES: DerivedBoidProperties = {
   maxForce: TEST_MAX_FORCE,
   boidSize: 1,
   edgeMargin: TEST_EDGE_MARGIN,
+  cosHalfFieldOfView: TEST_COS_HALF_FOV,
 };
 
 let TEST_BOID: Boid;

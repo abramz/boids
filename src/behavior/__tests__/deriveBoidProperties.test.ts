@@ -54,6 +54,15 @@ describe("deriveBoidProperties", () => {
     });
   });
 
+  it("cosines the field of view once rather than per boid that re-aims", () => {
+    // 230 degrees, so the half-angle is past 90 and the cosine is negative:
+    // isInFOV compares against it directly rather than casing on the angle
+    expect(deriveBoidProperties(PROPERTIES).cosHalfFieldOfView).toBeCloseTo(
+      Math.cos((230 * Math.PI) / 180 / 2),
+      12,
+    );
+  });
+
   it("passes the rest of the properties through untouched", () => {
     const { fieldOfViewDeg, maxSpeed, maxForce, boidSize } =
       deriveBoidProperties(PROPERTIES);

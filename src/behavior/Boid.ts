@@ -53,6 +53,8 @@ export type BoidProperties = {
 export type DerivedBoidProperties = BoidProperties & {
   /** How far from a wall edge avoidance starts steering. */
   edgeMargin: number;
+  /** What `fieldOfViewDeg` is compared as, cosined once rather than per boid. */
+  cosHalfFieldOfView: number;
 };
 
 export interface ApplyForcesOptions {
@@ -131,7 +133,7 @@ export default class Boid implements Node {
     boundary,
     properties: {
       perceptionRadius,
-      fieldOfViewDeg,
+      cosHalfFieldOfView,
       desiredSeparation,
       neighbourLimit,
       edgeMargin,
@@ -150,12 +152,10 @@ export default class Boid implements Node {
     clearForce(this.forces.cohesion);
     clearForce(this.forces.separation);
 
-    const cosHalfFOV = Math.cos((fieldOfViewDeg * THREE.MathUtils.DEG2RAD) / 2);
-
     const [count, separationCount] = this.determineFlockingTargets(
       neighbors,
       perceptionRadius,
-      cosHalfFOV,
+      cosHalfFieldOfView,
       desiredSeparation,
       neighbourLimit,
       tempAveragePosition,
