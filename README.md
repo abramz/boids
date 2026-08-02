@@ -1,11 +1,15 @@
 ## boids
 
-Some toy expirements with three.js, boids, shaders, and more.
+Some toy experiments with three.js, boids, shaders, and more.
+
+Drag to orbit, right-drag to pan, scroll to zoom. The leva panel on the right
+tunes the flock while it flies.
 
 ## Development
 
-Node 24 (see `.nvmrc`). Two installs — the lint toolchain is a separate package,
-for reasons in [`tools/lint/README.md`](tools/lint/README.md):
+Node 24, which is what `.nvmrc` pins and what CI runs. Two installs — the lint
+toolchain is a separate package, for reasons in
+[`tools/lint/README.md`](tools/lint/README.md):
 
 ```sh
 npm ci
@@ -26,6 +30,16 @@ npm run test:e2e       # playwright browser smoke test
 npm run bench          # vitest bench, a frame at production scale
 ```
 
+### The spatial index
+
+`src/storage/` holds the index every neighbour query goes through: a hash grid
+over the cells the boids occupy, with no outer boundary. How it is built and
+queried is documented on `HashGrid` itself.
+
+It has no boundary because the world is a set of forces boids steer by rather
+than a wall. Nothing clamps a position, so a boid can be anywhere, and an index
+with a fixed extent would stop being able to answer for the ones outside it.
+
 ### Deploys and PR previews
 
 Production is served from the root of the `gh-pages` branch; every pull request
@@ -43,7 +57,7 @@ The simulation is plain functions under `src/behavior/`, not a `useFrame`
 closure: `createSimulation.ts` builds a world and drives it, `step.ts` advances
 it one frame. Most of the suite runs without a renderer.
 
-Two things to know before changing anything numeric:
+What gates a change to anything numeric:
 
 - **Golden fixtures** (`src/__fixtures__/golden.simulation.json`) pin position
   and velocity for every boid at fixed frames. Re-record deliberately and
@@ -53,10 +67,24 @@ Two things to know before changing anything numeric:
   UPDATE_GOLDEN=1 npx vitest run golden.sim
   ```
 
-- **`src/__tests__/three-math-contract.test.ts`** pins the three.js primitives
-  the simulation is built on. If it still passes but a golden moved, three did
-  not change and the regression is ours — do not re-record.
+- **`src/__tests__/three-math-contract.test.ts`** pins the two three.js
+  primitives the flock is seeded through, `MathUtils.seededRandom` and
+  `Vector3.setFromSpherical`. If it still passes but a golden moved, the shift
+  did not come from three reseeding the flock and the regression is ours: do
+  not re-record. What three computes from a position afterwards is pinned in
+  the suite that uses it, and fails there under its own name.
+
+- **`src/behavior/__tests__/shippedConfig.test.ts`** flies the values
+  `config.ts` actually ships, and bounds mean speed and how far the leash lets
+  the flock get. Winding a force factor down is what it notices.
+
+- **`src/__tests__/framing.test.ts`** ties where the flock settles to what the
+  camera and the fog are sized for, which nothing else connects. Retune either
+  side and this is what says the flock left the frame.
+
+- **`src/__tests__/config.test.ts`** pins `GRID_CELL_SIZE` to the radius a boid
+  actually queries, coupling `PERCEPTION_RADIUS` and `BOID_SIZE` to the size of
+  an index cell.
 
 `e2e/smoke.spec.ts` is the only test that runs a real browser, and the only one
-that catches a blank canvas, a dead WebGL context, or three's classes being
-tree-shaken out of the bundle.
+that catches a blank canvas or a dead WebGL context.
