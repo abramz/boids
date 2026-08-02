@@ -1,12 +1,11 @@
-import * as THREE from "three";
 import { BoidProperties, ForceFactors } from "../behavior/Boid";
 import { CreateSimulationOptions } from "../behavior/createSimulation";
-import { Random } from "../helpers/math";
+import { pinnedWorld } from "./pinnedWorld";
+import { seededRandom } from "./seededRandom";
 
 export const FLOCK_SIZE = 5;
 export const FLOCK_COUNT = 5;
 export const WORLD_SIZE = 10;
-export const SEED = 123321;
 
 export const BOID_PROPERTIES: BoidProperties = {
   perceptionRadius: 2,
@@ -30,19 +29,6 @@ export const FORCE_FACTORS: ForceFactors = {
 };
 
 /**
- * A deterministic source of randomness for the fixtures.
- *
- * three seeds a single module-level generator, so this is one sequence per
- * process: calling it again restarts the sequence that every generator already
- * handed out is drawing from.
- */
-export function seededRandom(seed: number = SEED): Random {
-  THREE.MathUtils.seededRandom(seed);
-
-  return () => THREE.MathUtils.seededRandom();
-}
-
-/**
  * The world the goldens were recorded against.
  *
  * Every number is pinned here rather than read from config.ts, so the fixtures
@@ -57,9 +43,6 @@ export function seededWorld(): CreateSimulationOptions {
     worldSize: WORLD_SIZE,
     maxSpeed: BOID_PROPERTIES.maxSpeed,
     random: seededRandom(),
-    gridCellSize: BOID_PROPERTIES.perceptionRadius + BOID_PROPERTIES.boidSize,
-    gridBucketsPerBoid: 4,
-    obstacleOffset: 0.5,
-    obstacleRadiusScale: 1 / 24,
+    ...pinnedWorld(BOID_PROPERTIES),
   };
 }

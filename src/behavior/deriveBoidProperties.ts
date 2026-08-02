@@ -2,6 +2,20 @@ import * as THREE from "three";
 import { BoidProperties, DerivedBoidProperties } from "./Boid";
 
 /**
+ * The radius a boid actually queries the index over.
+ *
+ * The index is sized against this rather than against `perceptionRadius`: a
+ * cell of the narrower one is a hair too small, and a hair too small is a whole
+ * extra ring of cells on every side.
+ */
+export function queriedRadius(
+  perceptionRadius: number,
+  boidSize: number,
+): number {
+  return perceptionRadius + boidSize;
+}
+
+/**
  * Fill in the properties that follow from the configured ones.
  *
  * The radii widen to account for boids having a size: a boid perceives another
@@ -30,7 +44,7 @@ export default function deriveBoidProperties(
 
   return {
     ...properties,
-    perceptionRadius: perceptionRadius + boidSize,
+    perceptionRadius: queriedRadius(perceptionRadius, boidSize),
     desiredSeparation: desiredSeparation + 2 * boidSize,
     edgeMargin: (maxSpeed * maxSpeed) / (2 * maxForce) + boidSize,
     cosHalfFieldOfView: Math.cos(

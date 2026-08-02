@@ -1,4 +1,4 @@
-import { seededRandom } from "../../../__fixtures__/seededConfig";
+import { seededRandom } from "../../../__fixtures__/seededRandom";
 import Boid, { BoidProperties, ForceFactors } from "../../Boid";
 import createSimulation, {
   CreateSimulationOptions,

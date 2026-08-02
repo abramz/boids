@@ -56,14 +56,10 @@ export const NEIGHBOUR_LIMIT = 8;
  * The side of one cell of the spatial index.
  *
  * A query walks the block of cells its radius reaches into, so the cheapest
- * cell is one the size of the radius actually being asked for: smaller and the
- * block grows, larger and each cell hands back more to test. The radius is
- * tunable and the index follows it wherever it goes, so this is the size the
- * shipped one costs least at rather than a limit on it.
- *
- * The radius asked for is the one deriveBoidProperties widens by BOID_SIZE, not
- * PERCEPTION_RADIUS itself. A cell of the narrower one is a hair too small, and
- * a hair too small is a whole extra ring of cells on every side.
+ * cell is one the size of the radius actually asked for: smaller and the block
+ * grows, larger and each cell hands back more to test. That radius is the one
+ * `deriveBoidProperties.queriedRadius` computes, restated here rather than
+ * imported so this module stays a leaf; `config.test.ts` pins the two together.
  */
 export const GRID_CELL_SIZE = PERCEPTION_RADIUS + BOID_SIZE;
 

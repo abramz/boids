@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { bench, describe } from "vitest";
 import * as config from "../../config";
-import { seededRandom } from "../../__fixtures__/seededConfig";
+import { seededRandom } from "../../__fixtures__/seededRandom";
 import Boid, { BoidProperties, ForceFactors } from "../Boid";
 import Candidates from "../../storage/Candidates";
 import createSimulation from "../createSimulation";
