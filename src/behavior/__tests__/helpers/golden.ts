@@ -1,21 +1,11 @@
 import * as THREE from "three";
 import Boid from "../../Boid";
-import createSimulation, { Simulation } from "../../createSimulation";
+import createSimulation from "../../createSimulation";
 import * as seeded from "../../../__fixtures__/seededConfig";
 import { FRAME_DELTA } from "./simulate";
 
-/**
- * Frames worth recording. Kept early: this is a chaotic system, so by frame 60
- * the last bit of float difference has amplified into whole units and a
- * comparison can only be exact-or-garbage.
- */
 export const CHECKPOINTS = [1, 2, 3, 10] as const;
 
-/**
- * Math.sin/cos/acos are not required by ECMAScript to be correctly rounded, so
- * their last bits differ between V8 builds and CPU architectures. Exact
- * comparison would fail on a machine other than the one that recorded.
- */
 export const GOLDEN_TOLERANCE = 1e-9;
 
 export interface GoldenFixture {
@@ -25,9 +15,7 @@ export interface GoldenFixture {
     checkpoints: number[];
     boidCount: number;
   };
-  /** state before any step, keyed by compound id */
   initial: Record<string, number[]>;
-  /** frame number -> compound id -> [px,py,pz,vx,vy,vz] */
   frames: Record<string, Record<string, number[]>>;
 }
 
@@ -40,13 +28,7 @@ function sample(boids: readonly Boid[]): Record<string, number[]> {
   );
 }
 
-export interface GoldenCapture {
-  fixture: GoldenFixture;
-  /** the run that produced it, so invariants can be checked against its world */
-  simulation: Simulation;
-}
-
-export function captureGolden(steps = Math.max(...CHECKPOINTS)): GoldenCapture {
+export function captureGolden(steps = Math.max(...CHECKPOINTS)): GoldenFixture {
   const simulation = createSimulation(seeded.seededWorld());
   const { boids } = simulation;
   const frames: GoldenFixture["frames"] = {};
@@ -65,17 +47,14 @@ export function captureGolden(steps = Math.max(...CHECKPOINTS)): GoldenCapture {
   }
 
   return {
-    fixture: {
-      meta: {
-        three: THREE.REVISION,
-        delta: FRAME_DELTA,
-        checkpoints: [...CHECKPOINTS],
-        boidCount: boids.length,
-      },
-      initial,
-      frames,
+    meta: {
+      three: THREE.REVISION,
+      delta: FRAME_DELTA,
+      checkpoints: [...CHECKPOINTS],
+      boidCount: boids.length,
     },
-    simulation,
+    initial,
+    frames,
   };
 }
 
@@ -86,20 +65,11 @@ export interface Divergence {
   absolute: number;
 }
 
-/** Boids on one side of a comparison and not the other. */
 export interface IdMismatch {
-  /** recorded, but not produced by the run */
   missing: string[];
-  /** produced by the run, but never recorded */
   extra: string[];
 }
 
-/**
- * Which boids the two sides disagree about the existence of.
- *
- * `compare` walks the recorded ids, so on its own it cannot see a boid the run
- * grew that the fixture has never heard of.
- */
 export function idMismatch(
   expected: Record<string, number[]>,
   actual: Record<string, number[]>,
@@ -110,7 +80,6 @@ export function idMismatch(
   };
 }
 
-/** Divergences beyond `tolerance`, located and measured. */
 export function compare(
   expected: Record<string, number[]>,
   actual: Record<string, number[]>,
@@ -123,12 +92,12 @@ export function compare(
   Object.entries(expected).forEach(([id, values]) => {
     const other = actual[id];
     if (!other) {
-      return; // idMismatch reports these; there is nothing here to measure
+      return;
     }
 
     values.forEach((value, index) => {
       const absolute = Math.abs(value - other[index]);
-      if (absolute > tolerance) {
+      if (!(absolute <= tolerance)) {
         divergences.push({
           where: `${label} ${id}.${fields[index]}`,
           expected: value,

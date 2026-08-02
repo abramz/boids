@@ -3,8 +3,6 @@ import { InternalWorld } from "../simulation/World";
 import * as config from "./seededConfig";
 
 export default function SeededWorld(): ReactNode {
-  /* built once: the seeded generator advances as the flock is built, so a fresh
-     one per render would hand every render a different flock */
   const [world] = useState(config.seededWorld);
 
   return (

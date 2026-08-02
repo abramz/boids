@@ -1,114 +1,68 @@
-import { seededRandom } from "../../../__fixtures__/seededConfig";
+import { PinnedWorld, pinnedWorld } from "../../../__fixtures__/pinnedWorld";
+import { seededRandom } from "../../../__fixtures__/seededRandom";
 import Boid, { BoidProperties, ForceFactors } from "../../Boid";
-import createSimulation, {
-  CreateSimulationOptions,
-  Simulation,
-} from "../../createSimulation";
+import createSimulation, { Simulation } from "../../createSimulation";
 
-/** One frame at 60fps, which is what the goldens were recorded at. */
 export const FRAME_DELTA = 1 / 60;
 
 export interface SimulationConfig {
   flockSize: number;
   flockCount: number;
-  /** length of the world cube's side */
   worldSize: number;
   properties: BoidProperties;
   forceFactors: ForceFactors;
-  /**
-   * The rest of the world's shape, pinned here rather than defaulted from
-   * config so retuning production moves the flock and not these suites.
-   */
-  world: Pick<
-    CreateSimulationOptions,
-    | "storageMargin"
-    | "octTreeCapacity"
-    | "octTreeMaxDepth"
-    | "obstacleOffset"
-    | "obstacleRadiusScale"
-    | "maxDelta"
-  >;
+  world: PinnedWorld;
 }
 
-/**
- * A denser world than src/__fixtures__/seededConfig.ts.
- *
- * Emergent flocking is a statistical effect: at 25 boids in a 10-unit cube a
- * boid's perception sphere is mostly empty, so alignment and cohesion barely
- * register above the edge-avoidance force. This packs enough boids together for
- * the flocking behaviours to actually be measurable.
- */
-export const DENSE_CONFIG: SimulationConfig = {
+const FLOCKING_PROPERTIES: BoidProperties = {
+  perceptionRadius: 2.5,
+  fieldOfViewDeg: 230,
+  desiredSeparation: 0.8,
+  neighborLimit: 8,
+  minSpeed: 2,
+  maxSpeed: 4,
+  maxForce: 12,
+  boidSize: 0.1,
+};
+
+export const FLOCKING_CONFIG: SimulationConfig = {
   flockSize: 24,
   flockCount: 4,
   worldSize: 10,
-  properties: {
-    perceptionRadius: 2.5,
-    fieldOfViewDeg: 230,
-    desiredSeparation: 0.8,
-    neighbourLimit: 8,
-    minSpeed: 2,
-    maxSpeed: 4,
-    /* units per second squared, like config.MAX_FORCE */
-    maxForce: 12,
-    boidSize: 0.1,
-  },
+  properties: FLOCKING_PROPERTIES,
   forceFactors: {
     alignmentFactor: 1,
     cohesionFactor: 1,
     separationFactor: 1,
-    // the shipped values swamp every other force and make flocking effects
-    // unmeasurable; keep edges and obstacles gentle so the flocking behaviours
-    // are what the assertions actually see
     avoidEdgesFactor: 1,
     avoidObstaclesFactor: 1,
+    drawToCenterFactor: 1,
   },
-  world: {
-    storageMargin: 0.3,
-    octTreeCapacity: 8,
-    octTreeMaxDepth: 8,
-    obstacleOffset: 0.5,
-    obstacleRadiusScale: 1 / 24,
-    maxDelta: 0.25,
-  },
+  world: pinnedWorld(FLOCKING_PROPERTIES),
 };
 
 export interface RunOptions {
   config?: SimulationConfig;
   steps?: number;
-  /** overrides merged over the config's force factors */
   forceFactors?: Partial<ForceFactors>;
-  /** overrides merged over the config's boid properties */
   properties?: Partial<BoidProperties>;
-  /** seconds per step; defaults to a 60fps frame */
   delta?: number;
-  /**
-   * How far storage reaches past the world, as a fraction of the world size.
-   * Overrides the config's; raise it only for tests that need boids to wander
-   * without hitting the tree edge.
-   */
-  storageMargin?: number;
-  /** called after every step, before the next one */
   onStep?: (simulation: Simulation, step: number) => void;
 }
 
 export interface RunResult {
-  /** left running, so a test can take further steps of its own */
   simulation: Simulation;
   boids: readonly Boid[];
-  /** flat [x,y,z] per boid, in stable order — the trajectory fingerprint */
   positions: number[];
   velocities: number[];
 }
 
-/** Runs the real simulation, headlessly and deterministically. */
 export function runSimulation({
-  config = DENSE_CONFIG,
+  config = FLOCKING_CONFIG,
   steps = 120,
   forceFactors = {},
   properties = {},
   delta = FRAME_DELTA,
-  storageMargin,
   onStep,
 }: RunOptions = {}): RunResult {
   const boidProperties = { ...config.properties, ...properties };
@@ -121,7 +75,6 @@ export function runSimulation({
     worldSize: config.worldSize,
     maxSpeed: boidProperties.maxSpeed,
     random: seededRandom(),
-    ...(storageMargin === undefined ? {} : { storageMargin }),
   });
 
   const { boids } = simulation;
@@ -153,7 +106,6 @@ function byFlock(boids: readonly Boid[]): Boid[][] {
   return [...flocks.values()];
 }
 
-/** Mean of a per-flock measure, averaged over the flocks. */
 function meanOverFlocks(
   boids: readonly Boid[],
   measure: (flock: Boid[]) => number,
@@ -163,7 +115,6 @@ function meanOverFlocks(
   return perFlock.reduce((sum, value) => sum + value, 0) / perFlock.length;
 }
 
-/** Mean over the pairs within a flock, or 0 for a flock with no pairs. */
 function meanOverPairs(
   flock: Boid[],
   measure: (a: Boid, b: Boid) => number | undefined,
@@ -184,7 +135,6 @@ function meanOverPairs(
   return pairs > 0 ? total / pairs : 0;
 }
 
-/** Mean cosine similarity of headings within each flock, averaged over flocks. */
 export function meanHeadingAgreement(boids: readonly Boid[]): number {
   return meanOverFlocks(boids, (flock) =>
     meanOverPairs(flock, (a, b) => {
@@ -195,15 +145,13 @@ export function meanHeadingAgreement(boids: readonly Boid[]): number {
   );
 }
 
-/** Mean distance between boids of the same flock, averaged over flocks. */
 export function meanIntraFlockDistance(boids: readonly Boid[]): number {
   return meanOverFlocks(boids, (flock) =>
     meanOverPairs(flock, (a, b) => a.position.distanceTo(b.position)),
   );
 }
 
-/** Mean of the per-boid distance to that boid's nearest neighbour. */
-export function meanNearestNeighbourDistance(boids: readonly Boid[]): number {
+export function meanNearestNeighborDistance(boids: readonly Boid[]): number {
   const distances = boids.map((boid) => {
     let nearest = Infinity;
     boids.forEach((other) => {

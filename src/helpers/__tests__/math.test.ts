@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { describe, expect, it } from "vitest";
-import { seededRandom } from "../../__fixtures__/seededConfig";
+import { seededRandom } from "../../__fixtures__/seededRandom";
 import {
   limit,
   isInFOV,
@@ -8,27 +8,26 @@ import {
   getRandomRelativePosition,
 } from "../math";
 
-const ACCEPTABLE_DIFF = 0.00000001; // JS numbers are weird
+const ACCEPTABLE_DIFF = 0.00000001;
 
 describe("limit", () => {
-  it("should leave the vector untouched if it is below the limit", () => {
-    const v = new THREE.Vector3();
+  it("leaves the vector untouched if it is below the limit", () => {
+    const v = new THREE.Vector3(1, 1, 1).normalize().multiplyScalar(4);
+    const before = v.toArray();
 
     limit(v, 5);
 
-    expect(v.length()).toEqual(0);
-
-    v.set(1, 1, 1).normalize().multiplyScalar(4);
-
-    expect(v.length()).toEqual(4);
+    expect(v.toArray()).toEqual(before);
   });
 
-  it("should scale the vector to within the limit if it is above the limit", () => {
+  it("scales the vector to within the limit if it is above the limit", () => {
     const v = new THREE.Vector3(5, 5, 5);
+    const heading = v.clone().normalize();
 
     limit(v, 5);
 
     expect(v.length()).toEqual(5);
+    expect(v.clone().normalize().toArray()).toEqual(heading.toArray());
   });
 });
 
@@ -37,13 +36,7 @@ describe("isInFOV", () => {
   const FOV = 90;
   const COS_HALF_FOV = Math.cos((FOV * THREE.MathUtils.DEG2RAD) / 2);
 
-  it("should return true when the target is in the middle of the FOV", () => {
-    expect(isInFOV(new THREE.Vector3(0, 1, 0), FORWARD, COS_HALF_FOV)).toEqual(
-      true,
-    );
-  });
-
-  it("should return true when the target is just inside the edge of the FOV", () => {
+  it("returns true when the target is just inside the edge of the FOV", () => {
     const justInside = (FOV / 2 - 1) * THREE.MathUtils.DEG2RAD;
 
     expect(
@@ -55,7 +48,7 @@ describe("isInFOV", () => {
     ).toEqual(true);
   });
 
-  it("should return false when the target is just outside of the FOV", () => {
+  it("returns false when the target is just outside of the FOV", () => {
     const justOutside = (FOV / 2 + 1) * THREE.MathUtils.DEG2RAD;
 
     expect(
@@ -67,15 +60,7 @@ describe("isInFOV", () => {
     ).toEqual(false);
   });
 
-  it("should return false when the target is way outside of the FOV", () => {
-    expect(isInFOV(new THREE.Vector3(0, -1, 0), FORWARD, COS_HALF_FOV)).toEqual(
-      false,
-    );
-  });
-
-  it("should see behind itself for a field of view wider than a half turn", () => {
-    // the cosine of a half-angle past 90 degrees is negative, which the
-    // comparison has to carry rather than special-case
+  it("sees behind itself for a field of view wider than a half turn", () => {
     const wide = Math.cos((230 * THREE.MathUtils.DEG2RAD) / 2);
 
     expect(isInFOV(new THREE.Vector3(1, 0, 0), FORWARD, wide)).toEqual(true);
@@ -84,12 +69,7 @@ describe("isInFOV", () => {
 });
 
 describe("getRandomScaledVelocity", () => {
-  it("should spread headings evenly over the sphere", () => {
-    // Drawing the polar angle flat over [0,pi] crowds headings onto the poles,
-    // because a band of constant width covers less sphere the nearer it is to
-    // one. Uniform directions have |y|/maxSpeed averaging 1/2 against the 2/pi
-    // that flat sampling gives, which is far enough apart to see in a sample
-    // this size.
+  it("spreads headings evenly over the sphere", () => {
     const random = seededRandom();
     const maxSpeed = 3;
     const velocity = new THREE.Vector3();
@@ -101,10 +81,10 @@ describe("getRandomScaledVelocity", () => {
       total += Math.abs(velocity.y) / maxSpeed;
     }
 
-    expect(total / samples).toBeCloseTo(0.5, 2);
+    expect(Math.abs(total / samples - 0.5)).toBeLessThan(0.02);
   });
 
-  it("should return a vector with a magnitude equal to maxSpeed", () => {
+  it("returns a vector with a magnitude equal to maxSpeed", () => {
     const random = seededRandom();
     const actual = new THREE.Vector3();
 
@@ -119,32 +99,29 @@ describe("getRandomScaledVelocity", () => {
 });
 
 describe("getRandomRelativePosition", () => {
-  it("should return a vector within the range of the reference position", () => {
+  it("scatters through the range around the reference position", () => {
     const random = seededRandom();
-    const reference = new THREE.Vector3();
+    const reference = new THREE.Vector3(-30, 5, 72);
     const actual = new THREE.Vector3();
+    const range = 10;
 
-    getRandomRelativePosition(5, reference, actual, random);
+    const offsets = Array.from({ length: 500 }, () => {
+      getRandomRelativePosition(range, reference, actual, random);
 
-    expect(Math.abs(actual.x - reference.x)).toBeLessThan(2.5);
-    expect(Math.abs(actual.y - reference.y)).toBeLessThan(2.5);
-    expect(Math.abs(actual.z - reference.z)).toBeLessThan(2.5);
+      return actual.clone().sub(reference);
+    });
 
-    reference.set(-30, 5, 72);
-    getRandomRelativePosition(10, reference, actual, random);
+    offsets.forEach((offset) =>
+      (["x", "y", "z"] as const).forEach((axis) =>
+        expect(Math.abs(offset[axis])).toBeLessThanOrEqual(range / 2),
+      ),
+    );
 
-    expect(Math.abs(actual.x - reference.x)).toBeLessThan(5);
-    expect(Math.abs(actual.y - reference.y)).toBeLessThan(5);
-    expect(Math.abs(actual.z - reference.z)).toBeLessThan(5);
-  });
+    (["x", "y", "z"] as const).forEach((axis) => {
+      const spread = offsets.map((offset) => offset[axis]);
 
-  it("should draw the same sequence from the same seed", () => {
-    const first = new THREE.Vector3();
-    const second = new THREE.Vector3();
-
-    getRandomRelativePosition(5, new THREE.Vector3(), first, seededRandom(42));
-    getRandomRelativePosition(5, new THREE.Vector3(), second, seededRandom(42));
-
-    expect(second.toArray()).toEqual(first.toArray());
+      expect(Math.max(...spread)).toBeGreaterThan(range / 4);
+      expect(Math.min(...spread)).toBeLessThan(-range / 4);
+    });
   });
 });

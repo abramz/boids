@@ -1,24 +1,16 @@
 import { useControls } from "leva";
 
-export default function useHelpers() {
+export interface Helpers {
+  showWorldBoundary: boolean;
+  showStorageCells: boolean;
+}
+
+export default function useHelpers(): Helpers {
   return useControls(
     "Helpers",
     {
-      showWorldBoundary: {
-        label: "Show world boundary",
-        toggle: true,
-        value: false,
-      },
-      showStorageBoundary: {
-        label: "Show storage boundary",
-        toggle: true,
-        value: false,
-      },
-      showStorageSegmentation: {
-        label: "Show storage segmentation",
-        toggle: true,
-        value: false,
-      },
+      showWorldBoundary: { label: "Show world boundary", value: false },
+      showStorageCells: { label: "Show storage cells", value: false },
     },
     { collapsed: true, order: 1000 },
   );

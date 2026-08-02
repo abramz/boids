@@ -2,18 +2,13 @@ import { useControls } from "leva";
 import { useMemo } from "react";
 import { BoidProperties } from "../behavior/Boid";
 
-/**
- * The tunable half of a boid's properties, bounded by the world this machine
- * got rather than the largest one: a perception radius wider than the world
- * makes every boid a neighbour of every other.
- */
 export default function useBoidProperties(
   worldSize: number,
   {
     perceptionRadius,
     fieldOfViewDeg,
     desiredSeparation,
-    neighbourLimit,
+    neighborLimit,
     minSpeed,
     maxSpeed,
     maxForce,
@@ -41,9 +36,9 @@ export default function useBoidProperties(
         min: 0,
         max: worldSize,
       },
-      neighbourLimit: {
-        label: "Neighbours",
-        value: neighbourLimit,
+      neighborLimit: {
+        label: "Neighbors",
+        value: neighborLimit,
         min: 1,
         max: 32,
         step: 1,
@@ -64,9 +59,6 @@ export default function useBoidProperties(
   return useMemo(
     () => ({
       ...values,
-      /* leva has no way to bound one control by another, and a minimum above
-         the maximum makes maxSpeed stop meaning anything: THREE's clamp
-         resolves an inverted range to its lower bound */
       minSpeed: Math.min(values.minSpeed, values.maxSpeed),
       boidSize,
     }),

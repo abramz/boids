@@ -3,6 +3,6 @@ coverage
 _site
 playwright-report
 test-results
-src/__fixtures__
+src/__fixtures__/golden.simulation.json
 package-lock.json
 tools/lint/package-lock.json

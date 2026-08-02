@@ -1,42 +1,28 @@
 import * as THREE from "three";
-import BoidStore from "../storage/BoidStore";
+import HashGrid from "../storage/HashGrid";
+import QueryResults from "../storage/QueryResults";
+import Obstacle from "../obstacle/Obstacle";
 import Boid, { DerivedBoidProperties, ForceFactors } from "./Boid";
 
-/* this is all single threaded so steps can share a temp variable */
 const tempBoundary = new THREE.Sphere();
+const tempNeighbors = new QueryResults<Boid>();
 
 export interface StepSimulationOptions {
-  storage: BoidStore;
+  grid: HashGrid<Boid>;
   boids: readonly Boid[];
-  /** +1 or -1; selects which half of the flock re-reads its neighbourhood */
+  obstacles: readonly Obstacle[];
   frameSign: number;
-  /** seconds elapsed since the previous frame */
   delta: number;
-  /** deltas above this are dropped rather than integrated */
   maxDelta: number;
   properties: DerivedBoidProperties;
   forceFactors: ForceFactors;
   worldBoundary: THREE.Box3;
 }
 
-/**
- * Advance the simulation by one frame.
- *
- * Half the flock works out what it wants to do per frame, alternating by
- * `frameSign`, because searching the OctTree for neighbours is the expensive
- * part of a frame and the answer barely moves between two of them. Every boid
- * then flies on that answer, every frame: what a boid steers towards changes
- * slowly, but where it is changes constantly, and skipping it every other frame
- * is a visible stutter for no saving.
- *
- * Storage is rebuilt on the negative half-frame, so the OctTree stays roughly
- * accurate without being rebuilt twice per pair.
- *
- * @returns the `frameSign` to use on the next frame
- */
 export default function stepSimulation({
-  storage,
+  grid,
   boids,
+  obstacles,
   frameSign,
   delta,
   maxDelta,
@@ -45,8 +31,6 @@ export default function stepSimulation({
   worldBoundary,
 }: StepSimulationOptions): number {
   if (delta > maxDelta) {
-    /* the frame is dropped rather than integrated, so the flock holds still
-       instead of jumping to where it would have been */
     return frameSign;
   }
 
@@ -54,35 +38,26 @@ export default function stepSimulation({
   const start = frameSign > 0 ? 0 : halfSize;
   const end = frameSign > 0 ? halfSize : boids.length;
 
-  /* half the flock re-reads its neighbourhood and re-aims */
   for (let index = start; index < end; index++) {
     const boid = boids[index];
     tempBoundary.set(boid.position, properties.perceptionRadius);
+    grid.queryRange(tempBoundary, tempNeighbors);
 
     boid.applyForces({
-      neighbors: storage.queryRange(tempBoundary),
-      obstacles: storage.obstacles,
+      neighbors: tempNeighbors,
+      obstacles,
       boundary: worldBoundary,
       properties,
       forceFactors,
     });
   }
 
-  /* and the whole flock flies, on whichever answer it has. A boid holds its
-     acceleration between re-aims, so integrating it against this frame's delta
-     lands on the same velocity by the time it re-aims, reached smoothly */
-  const storageBoundary = storage.boundary;
   for (const boid of boids) {
     boid.applyAcceleration(delta, properties.minSpeed, properties.maxSpeed);
     boid.applyVelocity(delta);
-    // edge avoidance is a steering force rather than a wall, so a boid can
-    // overshoot the world; the index cannot hold one outside its own boundary
-    boid.position.clamp(storageBoundary.min, storageBoundary.max);
   }
 
-  if (frameSign < 0) {
-    storage.reindex();
-  }
+  grid.build(boids);
 
   return frameSign * -1;
 }

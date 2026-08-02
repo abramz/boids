@@ -6,7 +6,7 @@ const PROPERTIES: BoidProperties = {
   perceptionRadius: 3,
   fieldOfViewDeg: 230,
   desiredSeparation: 1,
-  neighbourLimit: 8,
+  neighborLimit: 8,
   minSpeed: 5,
   maxSpeed: 10,
   maxForce: 20,
@@ -15,8 +15,6 @@ const PROPERTIES: BoidProperties = {
 
 describe("deriveBoidProperties", () => {
   it("widens perception by a boid's own reach", () => {
-    // a boid perceives another once its surface is in range, and boidSize is
-    // read as a radius throughout
     expect(deriveBoidProperties(PROPERTIES).perceptionRadius).toBeCloseTo(
       3.2,
       12,
@@ -24,7 +22,6 @@ describe("deriveBoidProperties", () => {
   });
 
   it("measures separation surface to surface", () => {
-    // both boids have a radius, so the gap closes twice as fast as one moves
     expect(deriveBoidProperties(PROPERTIES).desiredSeparation).toBeCloseTo(
       1.4,
       12,
@@ -32,12 +29,8 @@ describe("deriveBoidProperties", () => {
   });
 
   it("starts edge avoidance a boid's braking distance out from the wall", () => {
-    // v^2 / 2a from full speed under the hardest steer, plus its own reach: any
-    // less runway and the boid physically cannot turn before it is through
     expect(deriveBoidProperties(PROPERTIES).edgeMargin).toBeCloseTo(2.7, 12);
-  });
 
-  it("keeps the margin ahead of the braking distance at any tuning", () => {
     [
       { maxSpeed: 1, maxForce: 100 },
       { maxSpeed: 40, maxForce: 5 },
@@ -52,6 +45,13 @@ describe("deriveBoidProperties", () => {
         (maxSpeed * maxSpeed) / (2 * maxForce),
       );
     });
+  });
+
+  it("cosines the field of view once rather than per boid that re-aims", () => {
+    expect(deriveBoidProperties(PROPERTIES).cosHalfFieldOfView).toBeCloseTo(
+      Math.cos((230 * Math.PI) / 180 / 2),
+      12,
+    );
   });
 
   it("passes the rest of the properties through untouched", () => {

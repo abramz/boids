@@ -3,14 +3,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as config from "../../config";
 import useWorldSize from "../useWorldSize";
 
-/**
- * The only place the app decides how much work this machine is asked to do.
- * Both halves of that decision are pinned here: how big a flock a benchmark
- * earns, and the world that holds it at a fixed density: a machine that gets
- * fewer boids has to get a smaller world, or its flock thins out until no boid
- * has a neighbour left to fly with.
- */
-
 const gpu = vi.hoisted(() => ({ result: {} as { fps?: number } }));
 
 vi.mock("@react-three/fiber", () => ({
@@ -28,7 +20,6 @@ function sizeFor(fps: number | undefined) {
   return renderHook(() => useWorldSize()).result.current;
 }
 
-/** Boids per cubic unit, which is what has to hold still across the range. */
 const density = ({
   flockSize,
   worldSize,
@@ -55,16 +46,9 @@ describe("useWorldSize", () => {
     );
   });
 
-  it("gives a machine it could not benchmark the smallest flock", () => {
-    // detect-gpu reports no fps for a GPU it does not recognise, which Firefox
-    // behind resistFingerprinting and every blocklisted card arrive as. Read it
-    // as a full score and the weakest machines would earn the largest flock.
+  it("gives a machine with no usable benchmark the smallest flock", () => {
     expect(sizeFor(undefined).flockSize).toBe(config.MIN_FLOCK_SIZE);
-  });
 
-  it("gives a machine that benchmarked below zero the smallest flock", () => {
-    // detect-gpu answers -1 for a card it benchmarked and then blocklisted, and
-    // lerp does not clamp, so this lands under MIN_FLOCK_SIZE unguarded
     expect(sizeFor(-1).flockSize).toBe(config.MIN_FLOCK_SIZE);
   });
 
@@ -80,9 +64,6 @@ describe("useWorldSize", () => {
       .map(sizeFor)
       .map(density);
 
-    // scale the world's length with the count rather than its cube root and a
-    // machine earning a quarter of the boids gets a sixty-fourth of the space,
-    // which is sixteen times the density rather than the same
     across.forEach((value) => expect(value).toBeCloseTo(across[0], 10));
   });
 });

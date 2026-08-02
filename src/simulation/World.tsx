@@ -31,8 +31,7 @@ export function InternalWorld({
     <group name={GROUP_NAME}>
       <Helpers
         worldBoundary={simulation.worldBoundary}
-        storageBoundary={simulation.storageBoundary}
-        cellBoundaries={simulation.cellBoundaries}
+        occupiedCells={simulation.occupiedCells}
       />
       <Boids boidSize={properties.boidSize} boids={simulation.boids} />
       <ObstacleDisplay obstacles={simulation.obstacles} />
@@ -44,7 +43,6 @@ export default function World(): ReactNode {
   const camera = useThree((state) => state.camera);
   const { flockSize, worldSize } = useWorldSize();
 
-  /* the camera starts back far enough to hold whichever world this machine got */
   useLayoutEffect(() => {
     camera.position.z = cameraDistance(worldSize);
   }, [camera, worldSize]);
@@ -53,7 +51,7 @@ export default function World(): ReactNode {
     perceptionRadius: config.PERCEPTION_RADIUS,
     fieldOfViewDeg: config.FIELD_OF_VIEW_DEG,
     desiredSeparation: config.DESIRED_SEPARATION,
-    neighbourLimit: config.NEIGHBOUR_LIMIT,
+    neighborLimit: config.NEIGHBOR_LIMIT,
     minSpeed: config.MIN_SPEED,
     maxSpeed: config.MAX_SPEED,
     maxForce: config.MAX_FORCE,
@@ -66,11 +64,9 @@ export default function World(): ReactNode {
     separationFactor: config.SEPARATION_FACTOR,
     avoidEdgesFactor: config.AVOID_EDGES_FACTOR,
     avoidObstaclesFactor: config.AVOID_OBSTACLES_FACTOR,
+    drawToCenterFactor: config.DRAW_TO_CENTER_FACTOR,
   });
 
-  /* the initial speed the flock is built with, held apart from the live tuning
-     above so that dragging the max speed slider re-aims the flock instead of
-     replacing it */
   const world = useMemo(
     () => ({
       flockSize,

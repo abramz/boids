@@ -1,13 +1,14 @@
 import { useControls } from "leva";
 import { ForceFactors } from "../behavior/Boid";
+import * as config from "../config";
 
-/** How hard each behaviour pulls, all of it tunable. */
 export default function useForceFactors({
   alignmentFactor,
   cohesionFactor,
   separationFactor,
   avoidEdgesFactor,
   avoidObstaclesFactor,
+  drawToCenterFactor,
 }: ForceFactors): ForceFactors {
   return useControls(
     "Force factors",
@@ -46,6 +47,13 @@ export default function useForceFactors({
         min: 0,
         max: 100,
         step: 0.5,
+      },
+      drawToCenterFactor: {
+        label: "Draw to center",
+        value: drawToCenterFactor,
+        min: config.MIN_DRAW_TO_CENTER_FACTOR,
+        max: 10,
+        step: 0.1,
       },
     },
     { order: 10 },

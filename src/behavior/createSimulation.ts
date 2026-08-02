@@ -1,6 +1,5 @@
 import * as THREE from "three";
-import BoidStore from "../storage/BoidStore";
-import OctTree from "../storage/OctTree";
+import HashGrid from "../storage/HashGrid";
 import Obstacle from "../obstacle/Obstacle";
 import {
   Random,
@@ -14,84 +13,44 @@ import stepSimulation from "./step";
 
 const ORIGIN = new THREE.Vector3(0, 0, 0);
 
-/* the two sides of each axis the obstacle lattice is built from */
 const LATTICE = [-1, 1];
 
 export interface CreateSimulationOptions {
-  /** boids in each flock */
   flockSize: number;
   flockCount: number;
-  /** length of the world cube's side */
   worldSize: number;
-  /** the speed boids set off at */
   maxSpeed: number;
-  /**
-   * Where the initial positions and headings come from. Left out it is
-   * `Math.random`; a fixture passes a seeded one to get a flock it can pin.
-   */
   random?: Random;
-  /**
-   * The shape of the world, defaulted from config. A fixture overrides these to
-   * pin the world its goldens were recorded against, so retuning the production
-   * numbers moves the flock rather than the fixtures.
-   */
-  storageMargin?: number;
-  octTreeCapacity?: number;
-  octTreeMaxDepth?: number;
+  gridCellSize?: number;
+  gridBucketsPerBoid?: number;
   obstacleOffset?: number;
   obstacleRadiusScale?: number;
   maxDelta?: number;
 }
 
 export interface StepOptions {
-  /** seconds elapsed since the previous frame */
   delta: number;
   properties: BoidProperties;
   forceFactors: ForceFactors;
 }
 
-/**
- * A built world and the state of running it.
- *
- * Everything a frame needs beyond the clock and the current tuning lives in
- * here: which half of the flock re-aims next, the boundary the boids are held
- * inside, and the derivation their properties go through on the way in. A
- * caller drives it with a delta.
- */
 export interface Simulation {
-  /**
-   * The flock and the index over it. The behaviour layer's own state, and what
-   * its tests inspect; a renderer wants the read-only projections below rather
-   * than a store it could insert into.
-   */
-  readonly storage: BoidStore;
+  readonly grid: HashGrid<Boid>;
   readonly boids: readonly Boid[];
   readonly obstacles: readonly Obstacle[];
-  /** The cube the boids steer to stay inside, which the index reaches past. */
   readonly worldBoundary: THREE.Box3;
-  /** The cube the index covers, which every position is held inside. */
-  readonly storageBoundary: THREE.Box3;
-  /** The occupied cells of the index, as they stand. For the debug overlay. */
-  cellBoundaries(): THREE.Box3[];
+  occupiedCells(): THREE.Box3[];
   step(options: StepOptions): void;
 }
 
-/**
- * Build the flock, the obstacles it flies around, and the index over the flock.
- *
- * The index reaches beyond the world by `storageMargin`: edge avoidance is a
- * steering force rather than a wall, and a boid it has not turned in time has
- * to stay indexable.
- */
 export default function createSimulation({
   flockSize,
   flockCount,
   worldSize,
   maxSpeed,
   random = Math.random,
-  storageMargin = config.OCT_TREE_BOUNDARY_MARGIN,
-  octTreeCapacity = config.OCT_TREE_CAPACITY,
-  octTreeMaxDepth = config.OCT_TREE_MAX_DEPTH,
+  gridCellSize = config.GRID_CELL_SIZE,
+  gridBucketsPerBoid = config.GRID_BUCKETS_PER_BOID,
   obstacleOffset = config.OBSTACLE_OFFSET,
   obstacleRadiusScale = config.OBSTACLE_RADIUS_SCALE,
   maxDelta = config.MAX_DELTA,
@@ -101,15 +60,15 @@ export default function createSimulation({
     new THREE.Vector3(-halfSize, -halfSize, -halfSize),
     new THREE.Vector3(halfSize, halfSize, halfSize),
   );
-  const storageBoundary = worldBoundary
-    .clone()
-    .expandByScalar(worldSize * storageMargin);
 
-  const storage = new BoidStore(
-    new OctTree<Boid>(storageBoundary, octTreeCapacity, octTreeMaxDepth),
-  );
+  const grid = new HashGrid<Boid>({
+    cellSize: gridCellSize,
+    tableSize: flockSize * flockCount * gridBucketsPerBoid,
+  });
+  const boids: Boid[] = [];
+  const obstacles: Obstacle[] = [];
 
-  let idx = 0;
+  let id = 0;
   for (let flock = 0; flock < flockCount; flock++) {
     for (let member = 0; member < flockSize; member++) {
       const position = getRandomRelativePosition(
@@ -124,18 +83,18 @@ export default function createSimulation({
         random,
       );
 
-      storage.insert(
-        new Boid({ id: idx++, parentId: flock, position, velocity }),
-      );
+      boids.push(new Boid({ id: id++, parentId: flock, position, velocity }));
     }
   }
+
+  grid.build(boids);
 
   const radius = worldSize * obstacleRadiusScale;
   const offset = (worldSize * obstacleOffset) / 2;
   for (const x of LATTICE) {
     for (const y of LATTICE) {
       for (const z of LATTICE) {
-        storage.insertObstacle(
+        obstacles.push(
           new Obstacle(
             new THREE.Vector3(offset * x, offset * y, offset * z),
             radius,
@@ -148,16 +107,16 @@ export default function createSimulation({
   let frameSign = 1;
 
   return {
-    storage,
-    boids: storage.boids,
-    obstacles: storage.obstacles,
+    grid,
+    boids,
+    obstacles,
     worldBoundary,
-    storageBoundary,
-    cellBoundaries: () => storage.boundaries,
+    occupiedCells: () => grid.occupiedCells(),
     step({ delta, properties, forceFactors }: StepOptions): void {
       frameSign = stepSimulation({
-        storage,
-        boids: storage.boids,
+        grid,
+        boids,
+        obstacles,
         frameSign,
         delta,
         maxDelta,

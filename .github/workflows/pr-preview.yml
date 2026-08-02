@@ -16,6 +16,11 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # No gate job here: ci.yml triggers on pull_request itself, so the branch is
+  # already under the full suite. Calling it from this workflow would run every
+  # gate twice and land both runs in ci.yml's own concurrency group, where they
+  # cancel each other. A preview is a per-PR sandbox; production is what the ref
+  # guard in deploy-pages.yml protects.
   deploy:
     name: Publish preview
     if: github.event.action != 'closed'

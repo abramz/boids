@@ -25,31 +25,16 @@ import {
 
 export const GROUP_NAME = "Boids";
 
-/* the dart geometry stands on +Y, so that is the axis swung onto velocity */
 const DART_AXIS = new THREE.Vector3(0, 1, 0);
 
-/* one flock, one thread, one frame: every boid is written through these */
 const tempObject = new THREE.Object3D();
 const tempHeading = new THREE.Vector3();
 const tempMatrix = new THREE.Matrix4();
 const tempColor = new THREE.Color();
 
-/** Which group of the merged geometry each material draws. */
 const HULL = 0;
 const PLUME = 1;
 
-/**
- * A dart standing on +Y, which Boid.tsx rotates onto the boid's velocity, with
- * a plume trailing off its blunt end down -Y.
- *
- * The two are merged into one geometry with one group each so a boid stays a
- * single instance: they need different blending, which one material cannot do,
- * but splitting them into two meshes would mean two instance matrices to write
- * per boid per frame instead of one.
- *
- * `aPlumeGlow` runs 1 where the plume leaves the hull to 0 at its tip, and is 0
- * across the hull, which never reads it.
- */
 function createDartGeometry(size: number): THREE.BufferGeometry {
   const height = size * BOID_LENGTH_RATIO;
   const radius = size * BOID_RADIUS_RATIO;
@@ -61,8 +46,6 @@ function createDartGeometry(size: number): THREE.BufferGeometry {
     plumeLength,
     BOID_FACETS,
   );
-  // turn the plume around so it tapers away from the hull, then seat its base
-  // on the hull's
   plume.rotateX(Math.PI);
   plume.translate(0, -(height + plumeLength) / 2, 0);
 
@@ -90,14 +73,6 @@ function createDartGeometry(size: number): THREE.BufferGeometry {
   return merged;
 }
 
-/**
- * Lights alone leave a dart facing away from the sun as a silhouette, so the
- * hull carries a floor of its own flock colour.
- *
- * Injecting into the standard material rather than writing a ShaderMaterial
- * keeps three's own instancing, fog and tone-mapping chunks. `vColor` carries
- * the per-instance colour drei writes, so the emissive matches the flock.
- */
 function createHullMaterial(): THREE.MeshStandardMaterial {
   const material = new THREE.MeshStandardMaterial({
     roughness: 0.4,
@@ -118,11 +93,6 @@ function createHullMaterial(): THREE.MeshStandardMaterial {
   return material;
 }
 
-/**
- * The thrust the boid is under, read off the back of it. Additive and unlit, so
- * it brightens whatever it is drawn over rather than lighting like a surface,
- * and writes no depth so a flock's plumes pile up instead of occluding.
- */
 function createPlumeMaterial(): THREE.MeshBasicMaterial {
   const material = new THREE.MeshBasicMaterial({
     transparent: true,
@@ -182,12 +152,13 @@ function Boids({ boidSize, boids }: BoidProps): ReactNode {
     [materials],
   );
 
-  /* a boid never changes flock, so this is a one-off rather than frame work */
   useLayoutEffect(() => {
     const mesh = meshRef.current;
     if (!mesh) {
       return;
     }
+
+    mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
 
     boids.forEach((boid, index) => {
       mesh.setColorAt(
@@ -200,14 +171,6 @@ function Boids({ boidSize, boids }: BoidProps): ReactNode {
     }
   }, [boids]);
 
-  /**
-   * One subscription writing every instance, rather than a component each.
-   *
-   * A <Boid> apiece is four lines of copying behind a fiber, a ref and a
-   * useFrame subscription, ten thousand times over: r3f re-sorts its subscriber
-   * list on every subscription, so mounting the flock that way is quadratic
-   * before a single frame is drawn.
-   */
   useFrame(() => {
     const mesh = meshRef.current;
     if (!mesh) {
@@ -221,8 +184,6 @@ function Boids({ boidSize, boids }: BoidProps): ReactNode {
         tempHeading.copy(boid.velocity).normalize();
         tempObject.quaternion.setFromUnitVectors(DART_AXIS, tempHeading);
       } else {
-        /* nothing to point along, so hold the heading this instance was last
-           drawn with rather than the one the previous boid left behind */
         mesh.getMatrixAt(index, tempMatrix);
         tempObject.quaternion.setFromRotationMatrix(tempMatrix);
       }
@@ -234,14 +195,6 @@ function Boids({ boidSize, boids }: BoidProps): ReactNode {
     mesh.instanceMatrix.needsUpdate = true;
   });
 
-  /* Receive but never cast: a boid is a few texels across in the sun's shadow
-     map, so its own shadow would only ever shimmer.
-
-     Culling is off because an InstancedMesh computes its bounding sphere once
-     and nothing writing the instance matrices invalidates it, so the flock
-     would be tested against wherever it happened to be on frame one and
-     eventually dropped all at once. There is nothing to save either way: this
-     is one draw call spanning the whole world. */
   return (
     <instancedMesh
       ref={meshRef}
@@ -256,8 +209,4 @@ function Boids({ boidSize, boids }: BoidProps): ReactNode {
   );
 }
 
-/**
- * Every leva control lives above this, so without it nudging a slider rebuilds
- * the geometry and re-runs the colour pass on each of the frames a drag lasts.
- */
 export default memo(Boids);

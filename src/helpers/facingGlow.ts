@@ -2,27 +2,13 @@ import * as THREE from "three";
 
 export interface FacingGlowOptions {
   color: number;
-  /** Higher powers tighten the glow. */
   power: number;
   intensity: number;
-  /**
-   * Glow where the surface turns away from the camera, which rims a silhouette,
-   * rather than where it faces the camera, which haloes a centre.
-   */
   atSilhouette?: boolean;
   fog?: boolean;
   toneMapped?: boolean;
 }
 
-/**
- * An additive glow driven by how squarely a surface faces the camera.
- *
- * Injecting into the basic material rather than writing a ShaderMaterial keeps
- * three's own instancing, fog and tone-mapping chunks. `project_vertex` leaves
- * the instanced view-space position in `mvPosition` and `defaultnormal_vertex`
- * leaves the matching normal in `transformedNormal`, so the facing term is just
- * the dot of the two.
- */
 export default function createFacingGlow({
   color,
   power,
@@ -40,7 +26,12 @@ export default function createFacingGlow({
     toneMapped,
   });
 
-  const glow = atSilhouette ? "1.0 - vFacing" : "vFacing";
+  const glow = atSilhouette
+    ? "clamp(1.0 - vFacing, 0.0, 1.0)"
+    : "clamp(vFacing, 0.0, 1.0)";
+
+  material.customProgramCacheKey = () =>
+    `facingGlow:${glow}:${power}:${intensity}`;
 
   material.onBeforeCompile = (shader) => {
     shader.vertexShader = shader.vertexShader
