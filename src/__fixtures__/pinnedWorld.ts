@@ -18,8 +18,8 @@ export type PinnedWorld = Pick<
  *
  * The cell size is the perception radius as deriveBoidProperties widens it,
  * which is the radius actually queried and so the cell size that costs least.
- * Derived rather than written out, so retuning the properties passed in cannot
- * quietly leave a fixture querying a detuned index.
+ * Derived here, so retuning the properties passed in cannot leave a fixture
+ * querying an index sized for the old ones.
  */
 export function pinnedWorld(properties: BoidProperties): PinnedWorld {
   return {

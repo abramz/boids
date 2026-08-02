@@ -121,7 +121,8 @@ function createHullMaterial(): THREE.MeshStandardMaterial {
 /**
  * The thrust the boid is under, read off the back of it. Additive and unlit, so
  * it brightens whatever it is drawn over rather than lighting like a surface,
- * and writes no depth so a flock's plumes pile up instead of occluding.
+ * and writes no depth, so a flock's plumes pile up without occluding one
+ * another.
  */
 function createPlumeMaterial(): THREE.MeshBasicMaterial {
   const material = new THREE.MeshBasicMaterial({

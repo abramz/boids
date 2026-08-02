@@ -13,9 +13,9 @@ import type { Node } from "../storage/Node";
 
 /**
  * What the behaviour layer needs of whatever collected its neighbours. The
- * buffer is the caller's, filled by the index through an out parameter, so
- * taking this narrower view of it is what keeps the kernel from pushing to or
- * resetting a buffer it does not own.
+ * buffer is the caller's, filled by the index through an out parameter, so the
+ * kernel takes this narrower view of it and cannot push to or reset a buffer it
+ * does not own.
  */
 export interface NeighbourList<T> {
   readonly size: number;
@@ -53,8 +53,8 @@ export type BoidProperties = {
 
 /**
  * What a boid actually flies on, from deriveBoidProperties.ts. The simulation
- * takes this rather than `BoidProperties` so that deriving is a step the type
- * system asks for rather than one every call site has to remember.
+ * takes this rather than `BoidProperties`, so the type system asks for the
+ * derivation instead of every call site having to remember it.
  */
 export type DerivedBoidProperties = BoidProperties & {
   /** How far from a wall edge avoidance starts steering. */
@@ -74,8 +74,8 @@ export interface ApplyForcesOptions {
 /**
  * How many neighbours the flocking forces found to steer by. A force with none
  * is skipped rather than steered on, so these are what say which of them ran.
- * Filled into a caller's object rather than returned, like the vectors
- * alongside them, since this is read for every re-aiming boid every frame.
+ * Filled into a caller's object, like the vectors alongside them, since this is
+ * read for every re-aiming boid every frame.
  */
 export interface FlockingCounts {
   /** Alignment and cohesion both steer by these, so they share a count. */
@@ -298,7 +298,7 @@ export default class Boid implements Node {
 
     const speed = this.velocity.length();
     if (speed === 0) {
-      /* no heading left to hold, so pick one rather than sit there forever */
+      /* no heading left to hold, so pick one and get moving again */
       this.velocity.copy(COAST_HEADING).multiplyScalar(minSpeed);
       return;
     }
@@ -361,8 +361,8 @@ export default class Boid implements Node {
 
       tempDiff.normalize();
       /* a neighbour exactly on top of this boid leaves no direction to test the
-         field of view against, so skip the test rather than let a zero vector
-         decide it */
+         field of view against, so skip the test; a zero vector cannot decide
+         it */
       if (
         hasHeading &&
         distance > 0 &&

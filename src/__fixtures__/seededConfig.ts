@@ -5,7 +5,7 @@ import { seededRandom } from "./seededRandom";
 
 /**
  * Small enough to record and diff by hand, dense enough that the flocking
- * forces actually fire.
+ * forces fire.
  *
  * A flock of five scattered through a world of ten never puts a boid within
  * range of one of its own, so a fixture recorded there pins the edge, obstacle
@@ -46,8 +46,8 @@ export const FORCE_FACTORS: ForceFactors = {
  *
  * Every number is pinned here rather than read from config.ts, so the fixtures
  * move when behaviour changes and hold still when production is retuned: an
- * obstacle lattice tuned for a 75-unit world would otherwise silently re-place
- * the obstacles this small one flies around.
+ * obstacle lattice tuned for a 75-unit world would otherwise re-place the
+ * obstacles this small one flies around.
  */
 export function seededWorld(): CreateSimulationOptions {
   return {

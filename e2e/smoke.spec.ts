@@ -99,8 +99,8 @@ test.describe("boids renders and runs", () => {
     // getContext creates a context when the canvas has none, so its mere
     // existence proves nothing. An untouched <canvas> does keep its intrinsic
     // 300x150 though, and three sizes this one to the page - so a surface
-    // bigger than that is what says the renderer took the element over, and
-    // proves the resize listener + configure path in Canvas.tsx ran.
+    // bigger than that says the renderer took the element over, and proves the
+    // resize listener + configure path in Canvas.tsx ran.
     expect(surface.clientWidth).toBeGreaterThan(300);
     expect(surface.clientHeight).toBeGreaterThan(150);
     expect(surface.bufferWidth).toBeGreaterThan(300);

@@ -14,8 +14,8 @@ import { runSimulation } from "../behavior/__tests__/helpers/simulate";
  * The two are derived from different things and nothing else connects them: the
  * camera and the fog are sized off `worldSize`, while where the flock actually
  * sits is emergent from DRAW_TO_CENTER_FACTOR against COHESION_FACTOR, and the
- * flock settles well outside the world box. Retune either side and this is what
- * says the flock left the frame.
+ * flock settles well outside the world box. Retune either side and this suite
+ * catches the flock leaving the frame.
  */
 
 /** The narrowest ordinary window, which is the binding case for a wide flock. */
@@ -70,10 +70,11 @@ function flightSample() {
 
 describe("the shipped framing", () => {
   it("keeps most of the flock inside the camera's frustum", () => {
-    /* measured at 68% on the narrowest ordinary window and 75% on 16:9. Not a
-       target, a floor: the rest is behind the camera or out to the sides at any
-       instant, and the flock circulates through frame rather than sitting in
-       it. Pull the camera in, or let the leash out, and this is what notices. */
+    /* measured at 68% on the narrowest ordinary window and 75% on 16:9, and the
+       bound here is a floor under both: the rest of the flock is behind the
+       camera or out to the sides at any instant, since it circulates through
+       frame rather than sitting in it. Pull the camera in, or let the leash
+       out, and this is the assertion that fails. */
     expect(flightSample().inFrame).toBeGreaterThan(0.6);
   });
 

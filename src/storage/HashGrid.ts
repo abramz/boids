@@ -127,7 +127,7 @@ export default class HashGrid<T extends Node> {
 
     const { center, radius } = range;
     /* however many cells deep the radius reaches, so a range wider than a cell
-       still finds everything rather than quietly missing the outside of it */
+       still finds what is out at the edge of it */
     const shell = Math.ceil(radius / this.cellSize);
     const span = 2 * shell + 1;
 

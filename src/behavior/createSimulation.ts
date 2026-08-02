@@ -66,7 +66,7 @@ export interface Simulation {
   /**
    * The cube edge avoidance turns boids at, and that the draw to center takes
    * its centre and its length scale from. With edge avoidance shipped off, the
-   * flock settles outside it rather than within it.
+   * flock settles outside it.
    */
   readonly worldBoundary: THREE.Box3;
   /** The occupied cells of the index, as they stand. For the debug overlay. */

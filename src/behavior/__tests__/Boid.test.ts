@@ -388,8 +388,8 @@ describe("applyForces", () => {
   });
 
   it("should scale obstacle avoidance by its own factor, not the edges'", () => {
-    // the two are separate knobs and ship at the same value, so nothing else in
-    // the suite can tell them apart
+    // the two are separate factors and ship at the same value, so nothing else
+    // in the suite can tell them apart
     TEST_BOID.velocity.set(TEST_MAX_SPEED, 0, 0);
 
     TEST_BOID.applyForces({
@@ -426,7 +426,7 @@ describe("applyForces", () => {
 
   it("should scale the draw to center by its own factor, not the edges'", () => {
     /* the leash and the wall both answer to how far out a boid is, so nothing
-       else in the suite tells their knobs apart */
+       else in the suite tells their factors apart */
     TEST_BOID.position.set(TEST_WORLD_BOUNDARY * 3, 0, 0);
     TEST_BOID.velocity.set(TEST_MAX_SPEED, 0, 0);
 
@@ -518,7 +518,7 @@ describe("applyForces", () => {
 
     /* the force is skipped outright at a factor of zero rather than computed
        and multiplied away, so without clearing it the boid keeps reporting the
-       frame the knob was last up */
+       last frame the factor was up */
     expect(TEST_BOID.forces.avoidEdges).toEqual([0, 0, 0]);
   });
 });

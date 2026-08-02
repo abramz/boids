@@ -28,7 +28,7 @@ function sizeFor(fps: number | undefined) {
   return renderHook(() => useWorldSize()).result.current;
 }
 
-/** Boids per cubic unit, which is what has to hold still across the range. */
+/** Boids per cubic unit, which has to hold still across the range. */
 const density = ({
   flockSize,
   worldSize,

@@ -105,7 +105,7 @@ describe("frame rate independence", () => {
       const { groundSpeed, reportedSpeed } = fly(fps);
 
       // giving a boid one frame's delta for the two frames it waits between
-      // updates halves this, quietly making MAX_SPEED mean half what it says.
+      // updates halves this, leaving MAX_SPEED to mean half what it says.
       // Ground speed sits a hair under, summing chords along a curve.
       expect(reportedSpeed).toBeGreaterThan(0);
       expect(groundSpeed / reportedSpeed).toBeGreaterThan(0.95);

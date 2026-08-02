@@ -6,8 +6,8 @@ import createFacingGlow from "../facingGlow";
  * The glow is injected by string replacement against three's own shader chunk
  * names, so a rename in a three upgrade makes every replacement a no-op and
  * hands back the stock shader: nothing throws, the obstacle rims and the sun's
- * corona simply stop being drawn. Run against the real ShaderLib, which is the
- * thing that can move.
+ * corona stop being drawn. Run against the real ShaderLib, which is the thing
+ * that can move.
  */
 const GLOW = { color: 0xffffff, power: 2, intensity: 3 };
 
@@ -69,8 +69,9 @@ describe("createFacingGlow", () => {
 
   it("keeps two differently tuned glows out of each other's compiled shader", () => {
     /* three keys its program cache on onBeforeCompile's source text, which is
-       identical here however the glow is tuned, so the knobs have to reach the
-       key some other way or the second material draws with the first's shader */
+       identical here however the glow is tuned, so the settings have to reach
+       the key some other way or the second material draws with the first's
+       shader */
     const rim = createFacingGlow({ ...GLOW, atSilhouette: true });
     const halo = createFacingGlow(GLOW);
     const brighter = createFacingGlow({ ...GLOW, intensity: 9 });

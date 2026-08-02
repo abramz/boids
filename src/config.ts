@@ -77,20 +77,20 @@ export const DESIRED_SEPARATION = 1;
  * The floor is a backstop rather than the cruising speed: steering is a force
  * budget in units per second squared, so a boid turns at maxForce/speed radians
  * a second and one allowed to drift towards a stop spins instead of flying.
- * ALIGNMENT_FACTOR is what keeps the balance clear of the floor.
+ * ALIGNMENT_FACTOR keeps the balance clear of the floor.
  */
 export const MIN_SPEED = 4;
 export const MAX_SPEED = 8;
 
 /**
- * How hard a boid can steer, in world units per second squared. A rate against
- * the clock rather than a per-frame budget, so the flock behaves the same
- * however fast the machine draws it.
+ * How hard a boid can steer, in world units per second squared. Per second of
+ * flight, not per frame drawn, so the flock behaves the same however fast the
+ * machine draws it.
  */
 export const MAX_FORCE = 24;
 
 /**
- * Frame deltas above this are discarded rather than integrated. A boid covers
+ * Frame deltas above this are discarded outright: a boid covers
  * `MAX_SPEED * delta` in a frame, so past a quarter second it arrives somewhere
  * it never flew through, having missed whatever was on the way.
  */
@@ -135,12 +135,12 @@ export const AVOID_OBSTACLES_FACTOR = 50.0;
 export const DRAW_TO_CENTER_FACTOR = 1.0;
 
 /**
- * How light the draw to center is allowed to be made. The floor is on the
- * control that tunes it, in useForceFactors.ts, rather than on the force, which
- * is what lets a test turn it off to isolate the rest.
+ * How light the draw to center is allowed to be made. The floor sits on the
+ * control that tunes it, in useForceFactors.ts; the force itself has none, which
+ * lets a test turn it off to isolate the rest.
  *
- * It buys a bound rather than a framing: here the flock settles further out
- * than the camera is sized for, which a viewer can pull back from, and what
- * `shippedConfig.test.ts` holds is that it settles at all.
+ * The floor bounds where the flock settles without framing it: here the flock
+ * settles further out than the camera is sized for, which a viewer can pull
+ * back from, and what `shippedConfig.test.ts` holds is that it settles at all.
  */
 export const MIN_DRAW_TO_CENTER_FACTOR = 0.1;

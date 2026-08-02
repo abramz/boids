@@ -1,8 +1,9 @@
 # Publishes to the gh-pages branch, which GitHub Pages serves.
 #
-# Deploying from a branch rather than actions/deploy-pages is what makes PR
-# previews possible: Pages allows one deployment per repository, so production
-# lives at the root of that branch and previews live under pr-<N>/ beside it.
+# PR previews are only possible because this deploys from a branch instead of
+# through actions/deploy-pages: Pages allows one deployment per repository, so
+# production lives at the root of that branch and previews live under pr-<N>/
+# beside it.
 name: Deploy to GH Pages
 
 on:

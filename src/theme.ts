@@ -5,15 +5,15 @@ import { WORLD_SIZE } from "./config";
  * How the scene is dressed, kept apart from config.ts, which holds the numbers
  * the simulation itself runs on.
  *
- * Anything that has to cover the world takes its size as an argument rather
- * than reading config.WORLD_SIZE, which is only the world the fastest machines
- * earn; useWorldSize.ts has the one a given machine actually gets.
+ * Anything that has to cover the world takes its size as an argument.
+ * config.WORLD_SIZE is only the world the fastest machines earn; useWorldSize.ts
+ * has the one a given machine actually gets.
  *
  * The sky (the sun and the starfield) is the exception, and reads the largest
- * world on purpose: it has to sit beyond every machine's world to read as a
- * backdrop rather than as scenery, so it is placed once against the biggest of
- * them and left there. Sized against it rather than pinned to numbers tuned for
- * one, so retuning WORLD_SIZE does not leave the starfield inside the flock.
+ * world on purpose: a backdrop has to sit beyond every machine's world, so it is
+ * placed once against the biggest of them and left there. Its numbers are sized
+ * off WORLD_SIZE itself, so retuning that moves the sky with it and the
+ * starfield stays clear of the flock.
  */
 
 /**
@@ -40,11 +40,11 @@ export const fogDensity = (worldSize: number): number => 0.45 / worldSize;
 export const cameraDistance = (worldSize: number): number => worldSize;
 
 /**
- * Stated rather than left to r3f's default, which is this number: how much of
- * the flock lands in frame is this against `cameraDistance` and where the leash
+ * Stated, though r3f happens to default to the same number: how much of the
+ * flock lands in frame is this against `cameraDistance` and where the leash
  * settles the flock, and `src/__tests__/framing.test.ts` pins the three
- * together. three's own PerspectiveCamera default is 50, so the value being
- * inherited here is easy to mistake.
+ * together. three's own PerspectiveCamera default is 50, so an inherited value
+ * here would be easy to mistake.
  */
 export const CAMERA_FOV = 75;
 
@@ -55,7 +55,7 @@ export const SUN_COLOR = 0xfff0d4;
 
 /** Beyond the world but inside the starfield, so stars fall behind it. */
 const SUN_DISTANCE = WORLD_SIZE * 2;
-/** High and to one side, so the flock is lit across rather than head on. */
+/** High and to one side, so the light rakes across the flock. */
 export const SUN_POSITION: THREE.Vector3Tuple = new THREE.Vector3(46, 68, 38)
   .normalize()
   .multiplyScalar(SUN_DISTANCE)
@@ -84,8 +84,7 @@ export interface ShadowFrustum {
 /**
  * The orthographic frustum the sun casts through, bracketing the world as seen
  * from the sun and no more. Sized against the world so a machine that earns a
- * smaller one spends its shadow map on that world rather than on empty space
- * around it.
+ * smaller one spends its whole shadow map on it.
  */
 export function shadowFrustum(worldSize: number): ShadowFrustum {
   const extent = worldSize * 0.9;
@@ -98,7 +97,7 @@ export function shadowFrustum(worldSize: number): ShadowFrustum {
 }
 
 export const SHADOW_BIAS = -0.0005;
-/** Offsets the lookup along the normal, which is what keeps facets acne-free. */
+/** Offsets the lookup along the normal, which keeps facets acne-free. */
 export const SHADOW_NORMAL_BIAS = 0.05;
 
 /**
@@ -119,12 +118,12 @@ export const LIGHTS = {
 };
 
 export const STAR_COUNT = 1800;
-/** Well outside the world, so the field parallaxes rather than intersecting it. */
+/** Well outside the world, so the field parallaxes clear of it. */
 export const STAR_RADIUS = WORLD_SIZE * 2.5;
 export const STAR_DEPTH = WORLD_SIZE * 1.1;
 /** drei scales a star down by its distance, and the field is a long way out. */
 export const STAR_SIZE = 6;
-/** drei breathes star size on a sine; slow it to a drift rather than a twinkle. */
+/** drei breathes star size on a sine; slow enough here to barely shimmer. */
 export const STAR_SPEED = 0.15;
 
 /**
@@ -167,12 +166,12 @@ export const OBSTACLE_RIM_INTENSITY = 1.8;
 export const OBSTACLE_RIM_POWER = 3;
 /** A bare icosahedron, so the key light breaks across twenty faces. */
 export const OBSTACLE_CORE_DETAIL = 0;
-/** Subdivided until the glow shell reads as a halo rather than a polygon. */
+/** Subdivided until the glow shell reads as a halo. */
 export const OBSTACLE_RIM_DETAIL = 3;
 /**
  * The shell sits just clear of the faceted core, which puts it about where the
  * radius the boids actually steer around is.
  */
 export const OBSTACLE_RIM_SCALE = 1.04;
-/** Radians per second, slow enough to read as drift rather than motion. */
+/** Radians per second, slow enough that it reads as a drift. */
 export const OBSTACLE_SPIN_SPEED = 0.06;

@@ -27,7 +27,7 @@ describe("neighbour discovery", () => {
     // Only half the flock re-aims per frame while all of it flies, so at the
     // end of a run half the forces answer a neighbourhood one frame old. Two
     // more steps at delta 0 re-aim both halves against positions nothing can
-    // have moved from, which is the question this is actually asking.
+    // have moved from, which is the question this is asking.
     for (let pass = 0; pass < 2; pass++) {
       simulation.step({
         delta: 0,
@@ -66,9 +66,9 @@ describe("neighbour discovery", () => {
 
     expect(blind).toEqual([]);
 
-    /* stop rebuilding the index and every boid quietly goes on flocking
-       against where the flock was at t=0, which looks entirely plausible and
-       is why this asserts the neighbourhood rather than the frame count */
+    /* stop rebuilding the index and every boid goes on flocking against where
+       the flock was at t=0, which still draws a flock, so what this asserts is
+       the neighbourhood and not the frame count */
     const range = new THREE.Sphere();
     const candidates = new Candidates<Boid>();
 

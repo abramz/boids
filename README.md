@@ -7,8 +7,8 @@ tunes the flock while it flies.
 
 ## Development
 
-Node 24, which is what `.nvmrc` pins and what CI runs. Two installs — the lint
-toolchain is a separate package, for reasons in
+Node 24, pinned in `.nvmrc` and run by CI. Two installs — the lint toolchain is
+a separate package, for reasons in
 [`tools/lint/README.md`](tools/lint/README.md):
 
 ```sh
@@ -76,11 +76,11 @@ What gates a change to anything numeric:
 
 - **`src/behavior/__tests__/shippedConfig.test.ts`** flies the values
   `config.ts` actually ships, and bounds mean speed and how far the leash lets
-  the flock get. Winding a force factor down is what it notices.
+  the flock get. It notices a force factor wound down.
 
 - **`src/__tests__/framing.test.ts`** ties where the flock settles to what the
   camera and the fog are sized for, which nothing else connects. Retune either
-  side and this is what says the flock left the frame.
+  side and it catches the flock leaving the frame.
 
 - **`src/__tests__/config.test.ts`** pins `GRID_CELL_SIZE` to the radius a boid
   actually queries, coupling `PERCEPTION_RADIUS` and `BOID_SIZE` to the size of

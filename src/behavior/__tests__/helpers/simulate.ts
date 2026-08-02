@@ -3,7 +3,7 @@ import { seededRandom } from "../../../__fixtures__/seededRandom";
 import Boid, { BoidProperties, ForceFactors } from "../../Boid";
 import createSimulation, { Simulation } from "../../createSimulation";
 
-/** One frame at 60fps, which is what the goldens were recorded at. */
+/** One frame at 60fps, the rate the goldens were recorded at. */
 export const FRAME_DELTA = 1 / 60;
 
 export interface SimulationConfig {

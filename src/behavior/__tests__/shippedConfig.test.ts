@@ -5,7 +5,7 @@ import { runSimulation } from "./helpers/simulate";
 import { SETTLED_STEPS as STEPS, SHIPPED, WORLD_SIZE } from "./helpers/shipped";
 
 /**
- * The values config.ts actually ships, flown.
+ * The shipped numbers, flown.
  *
  * Every other suite here runs on a fixture tuned to make one behaviour legible,
  * so a shipped factor can be wound to zero without a single test noticing. These

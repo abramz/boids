@@ -21,7 +21,7 @@ const UI = lazy(() => import("./UI"));
  * that it lives here.
  *
  * `percentage` is three's PCFShadowMap. The softer variant is deprecated in
- * r185 and silently falls back to this one anyway, with a console warning.
+ * r185 and falls back to this one anyway, with a console warning.
  */
 const RENDERER_CONFIG = {
   events,

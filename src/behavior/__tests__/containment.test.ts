@@ -35,7 +35,7 @@ describe("boid containment", () => {
   });
 
   it("holds the flock at the world with edge avoidance on", () => {
-    // ~5fps: under MAX_DELTA, so it is integrated rather than discarded, and
+    // ~5fps: under MAX_DELTA, so the step is integrated and not dropped, and
     // far enough in one step that avoidEdges is having to work for it
     const held = runSimulation({ steps: 300, delta: 0.2 });
     const leashAlone = runSimulation({
@@ -60,7 +60,7 @@ describe("boid containment", () => {
     const { simulation } = runSimulation({
       steps: 300,
       // the shipped weight rather than the gentle one the flocking suites use,
-      // since this is asking whether obstacle avoidance actually holds
+      // since this is asking whether obstacle avoidance holds
       forceFactors: { avoidObstaclesFactor: 50 },
       onStep: ({ boids, obstacles }, step) => {
         if (step < SETTLED_BY) {
