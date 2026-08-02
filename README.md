@@ -91,5 +91,12 @@ What gates a change to anything numeric:
   actually queries, coupling `PERCEPTION_RADIUS` and `BOID_SIZE` to the size of
   an index cell.
 
+`NEIGHBOR_LIMIT` bounds the answer where `PERCEPTION_RADIUS` bounds the search.
+Uncapped, a boid in a dense patch averages every heading in range and they
+cancel, leaving a weak consensus the steering forces then act on at full
+strength, since `seekVelocity` normalizes whatever it is handed. Starlings
+track about seven nearest birds rather than everything within a distance
+(Ballerini et al., 2008).
+
 `e2e/smoke.spec.ts` is the only test that runs a real browser, and the only one
 that catches a blank canvas or a dead WebGL context.
