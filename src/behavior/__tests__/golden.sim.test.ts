@@ -11,18 +11,11 @@ import {
   idMismatch,
 } from "./helpers/golden";
 
-/**
- * Re-record after a deliberate change:
- *   UPDATE_GOLDEN=1 npx vitest run golden.sim
- * which writes the fixture and then fails, so a run with the variable set
- * cannot be mistaken for a passing one.
- */
 const FIXTURE = resolve(
   process.cwd(),
   "src/__fixtures__/golden.simulation.json",
 );
 
-/* only the documented value re-records, so UPDATE_GOLDEN=0 does what it says */
 const RE_RECORD = process.env.UPDATE_GOLDEN === "1";
 
 const NO_ID_MISMATCH = { missing: [], extra: [] };
@@ -44,14 +37,10 @@ describe("golden simulation", () => {
 
     const expected: GoldenFixture = JSON.parse(readFileSync(FIXTURE, "utf8"));
 
-    // the fixture's own count, not the run's: a flock that grew or shrank makes
-    // every comparison below an argument about a different simulation
     expect(actual.meta.boidCount, "flock size changed").toBe(
       expected.meta.boidCount,
     );
 
-    // if three's seeded RNG or setFromSpherical moved, every boid starts
-    // somewhere else and the per-frame comparison below is noise
     expect(
       idMismatch(expected.initial, actual.initial),
       "the recorded boids and the simulated boids are not the same set",
@@ -79,18 +68,23 @@ describe("golden simulation", () => {
     });
   });
 
+  it("reports a boid that has gone NaN as a divergence", () => {
+    const clean = { "0-0": [1, 2, 3, 4, 5, 6] };
+    const blown = { "0-0": [1, NaN, 3, 4, 5, 6] };
+
+    const divergences = compare(clean, blown, "frame 1");
+
+    expect(divergences).toHaveLength(1);
+    expect(divergences[0].where).toBe("frame 1 0-0.py");
+  });
+
   it("is reproducible across runs", () => {
     const first = captureGolden(10);
     const second = captureGolden(10);
 
-    /* the layer steps every boid through module-level scratch - the temp
-       vectors, the neighbour buffers, the index's typed arrays - so a run that
-       leaves any of it dirty shows up here and nowhere else */
     expect(second.frames["10"]).toEqual(first.frames["10"]);
   });
 
-  /* asserted against the capture rather than the fixture, so they hold through
-     a re-record: the fixture says the trajectory moved, this says it broke */
   it("stays finite and within the speed limit", () => {
     Object.entries(actual.frames).forEach(([frame, boids]) => {
       Object.entries(boids).forEach(([id, [px, py, pz, vx, vy, vz]]) => {

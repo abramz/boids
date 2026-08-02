@@ -1,23 +1,10 @@
-/**
- * The nearest `limit` of whatever is offered, unordered.
- *
- * Held worst-first so a candidate that cannot make the cut is rejected on one
- * comparison, and the O(limit) rescan only runs when one displaces the current
- * worst, which stops happening almost immediately once the buffer holds the
- * nearest of a large candidate set.
- *
- * Reset and reused rather than allocated: this runs over every candidate the
- * index returns, for every boid that re-aims, every frame.
- */
-export default class NearestNeighbours<T> {
+export default class NearestNeighbors<T> {
   private readonly items: T[] = [];
   private readonly distances: number[] = [];
   private limit = 0;
   private count = 0;
-  /** which slot a nearer candidate displaces, valid only once full */
   private worst = 0;
 
-  /** How many are held. */
   public get size(): number {
     return this.count;
   }

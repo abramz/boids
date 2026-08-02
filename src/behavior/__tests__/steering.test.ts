@@ -32,7 +32,7 @@ beforeEach(() => {
 });
 
 describe("seekVelocity", () => {
-  it("should steer towards flying along the target at full speed", () => {
+  it("steers towards flying along the target at full speed", () => {
     velocity.set(3, 3, 3).normalize().multiplyScalar(MAX_SPEED);
     const expected = new THREE.Vector3(0, -3, -3).normalize().divideScalar(2);
 
@@ -47,7 +47,7 @@ describe("seekVelocity", () => {
     expect(out.toArray()).toEqual(expected.toArray());
   });
 
-  it("should read a zero target as no preference rather than as a stop", () => {
+  it("reads a zero target as no preference rather than as a stop", () => {
     velocity.set(3, 3, 3).normalize().multiplyScalar(MAX_SPEED);
 
     seekVelocity(velocity, new THREE.Vector3(), MAX_SPEED, MAX_FORCE, out);
@@ -57,7 +57,7 @@ describe("seekVelocity", () => {
 });
 
 describe("seekPosition", () => {
-  it("should steer towards the target", () => {
+  it("steers towards the target", () => {
     velocity.set(3, 3, 3).normalize().multiplyScalar(MAX_SPEED);
     const expected = new THREE.Vector3(-3, 0, -3).normalize().divideScalar(2);
 
@@ -74,9 +74,7 @@ describe("seekPosition", () => {
     expect(out.toArray()).toEqual(expected.toArray());
   });
 
-  it("should ease off over the last of the distance to the target", () => {
-    /* left stationary, so the steer before easing is the whole budget whatever
-       the distance and the easing is all that is left to measure */
+  it("eases off over the last of the distance to the target", () => {
     const steerAt = (distance: number): number => {
       seekPosition(
         position,
@@ -97,7 +95,7 @@ describe("seekPosition", () => {
     expect(steerAt(SEPARATION / 4)).toBeCloseTo(MAX_FORCE / 4, 12);
   });
 
-  it("should steer nowhere from on top of the target", () => {
+  it("steers nowhere from on top of the target", () => {
     velocity.set(3, 3, 3).normalize().multiplyScalar(MAX_SPEED);
 
     seekPosition(
@@ -121,22 +119,17 @@ describe("avoidEdges", () => {
     return out.toArray();
   }
 
-  it("should not consider a wall it is not within the margin of", () => {
+  it("does not consider a wall it is not within the margin of", () => {
     expect(steer()).toEqual([0, 0, 0]);
   });
 
-  it("should steer away from every wall it is up against, not just the last", () => {
+  it("steers away from every wall it is up against, not just the last", () => {
     position.set(-WALL, WALL, -WALL);
 
-    // keeping only the wall checked last would leave two of the three at zero
     expect(steer()).toEqual([0.5, -0.5, 0.5]);
   });
 
-  it("should steer off the nearer wall when both are within the margin", () => {
-    /* edgeMargin is a braking distance, so a low enough maxForce derives one
-       wider than the world it is applied to and puts every boid inside both
-       walls at once. Tested in order rather than by distance, the whole flock
-       is then steered into the far one. */
+  it("steers off the nearer wall when both are within the margin", () => {
     const narrow = new THREE.Box3(
       new THREE.Vector3(-1, -1, -1),
       new THREE.Vector3(1, 1, 1),
@@ -159,19 +152,19 @@ describe("drawToCenter", () => {
     ).clone();
   }
 
-  it("should draw nothing at all while the boid is inside", () => {
+  it("draws nothing at all while the boid is inside", () => {
     position.set(WALL - 1, 0, 0);
 
     expect(steer().toArray()).toEqual([0, 0, 0]);
   });
 
-  it("should draw nothing from a boid exactly on the wall", () => {
+  it("draws nothing from a boid exactly on the wall", () => {
     position.set(WALL, WALL, WALL);
 
     expect(steer().toArray()).toEqual([0, 0, 0]);
   });
 
-  it("should draw a strayed boid back towards the middle", () => {
+  it("draws a strayed boid back towards the middle", () => {
     position.set(WALL * 2, 0, 0);
     velocity.set(MAX_SPEED, 0, 0);
 
@@ -182,7 +175,7 @@ describe("drawToCenter", () => {
     expect(force.z).toBe(0);
   });
 
-  it("should draw harder the further out the boid has got", () => {
+  it("draws harder the further out the boid has got", () => {
     velocity.set(MAX_SPEED, 0, 0);
 
     position.set(WALL * 2, 0, 0);
@@ -194,9 +187,7 @@ describe("drawToCenter", () => {
     expect(far).toBeGreaterThan(near);
   });
 
-  it("should draw towards the boundary's own middle, not the origin", () => {
-    /* stood between the origin and a boundary that is nowhere near it, so the
-       two lie in opposite directions and flying crosswise picks neither */
+  it("draws towards the boundary's own middle, not the origin", () => {
     const offset = new THREE.Box3(
       new THREE.Vector3(100, -1, -1),
       new THREE.Vector3(102, 1, 1),
@@ -223,16 +214,14 @@ describe("avoidObstacles", () => {
     return out.clone();
   }
 
-  it("should ignore an obstacle further off than it can perceive", () => {
+  it("ignores an obstacle further off than it can perceive", () => {
     velocity.set(MAX_SPEED, 0, 0);
     const far = new Obstacle(new THREE.Vector3(PERCEPTION_RADIUS + 5, 0, 0), 1);
 
     expect(steer([far]).toArray()).toEqual([0, 0, 0]);
   });
 
-  it("should never steer towards an obstacle, from any bearing", () => {
-    // a pure tangent carries -velocity.toObstacle into the force, which points
-    // back at an obstacle the boid is receding from; sweep the whole circle
+  it("never steers towards an obstacle, from any bearing", () => {
     for (let degrees = 0; degrees < 360; degrees += 5) {
       const radians = degrees * THREE.MathUtils.DEG2RAD;
       const toObstacle = new THREE.Vector3(
@@ -250,18 +239,16 @@ describe("avoidObstacles", () => {
     }
   });
 
-  it("should push straight out once it is on the surface", () => {
+  it("pushes straight out once it is on the surface", () => {
     velocity.set(MAX_SPEED, 0, 0);
 
     const force = steer([new Obstacle(new THREE.Vector3(2, 0, 0), 2)]);
 
-    // at the surface the turn is entirely away from the obstacle, where the
-    // tangent it uses further out has no outward component at all
     expect(force.x).toBeLessThan(0);
     expect(force.z).toBeCloseTo(0, 12);
   });
 
-  it("should steer around every obstacle in range, not just the last", () => {
+  it("steers around every obstacle in range, not just the last", () => {
     velocity.set(MAX_SPEED, 0, 0);
     const left = new Obstacle(new THREE.Vector3(3, 0, 1), 1);
     const right = new Obstacle(new THREE.Vector3(3, 1, -1), 1);
@@ -270,14 +257,13 @@ describe("avoidObstacles", () => {
     const justLeft = steer([left]);
     const justRight = steer([right]);
 
-    // keeping only the one checked last would land on justRight
     expect(both.x).toBeCloseTo(justLeft.x + justRight.x, 12);
     expect(both.y).toBeCloseTo(justLeft.y + justRight.y, 12);
     expect(both.z).toBeCloseTo(justLeft.z + justRight.z, 12);
     expect(both.distanceTo(justRight)).toBeGreaterThan(0.1);
   });
 
-  it("should turn the way the boid is already heading", () => {
+  it("turns the way the boid is already heading", () => {
     const ahead = [new Obstacle(new THREE.Vector3(5, 0, 0), 1)];
 
     velocity.set(MAX_SPEED, 0, 3);
@@ -286,21 +272,15 @@ describe("avoidObstacles", () => {
     velocity.set(MAX_SPEED, 0, -3);
     const driftingNegative = steer(ahead);
 
-    // the tangent has two directions and the boid takes the one it is already
-    // going, so the same obstacle turns these two opposite ways
     expect(driftingPositive.z).toBeGreaterThan(0);
     expect(driftingNegative.z).toBeLessThan(0);
   });
 
-  it("should still pick a turn for an obstacle straight along its turning axis", () => {
-    // flying straight up at an obstacle directly overhead, where every
-    // horizontal turn is equivalent and the usual cross product is degenerate
+  it("still picks a turn for an obstacle straight along its turning axis", () => {
     velocity.set(0, MAX_SPEED, 0);
 
     const turn = steer([new Obstacle(new THREE.Vector3(0, 3, 0), 1)]);
 
-    // a turn was taken off the fallback axis rather than collapsing to a pure
-    // deceleration back down the boid's own heading
     expect(turn.z).toBeGreaterThan(0);
   });
 });

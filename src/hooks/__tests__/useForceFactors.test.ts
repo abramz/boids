@@ -13,15 +13,11 @@ const SHIPPED = {
   drawToCenterFactor: config.DRAW_TO_CENTER_FACTOR,
 };
 
-/* driven through leva's own store rather than through a schema assertion: what
-   has to hold is that a value the panel is dragged to comes back clamped */
 function drag(control: keyof typeof SHIPPED, to: number): void {
   act(() => levaStore.setValueAtPath(`Force factors.${control}`, to, true));
 }
 
 it("will not let the leash be tuned down to nothing", () => {
-  // edge avoidance ships off and the index has no outer wall, so a draw to
-  // center of zero leaves nothing at all to bring a strayed flock back
   const { result } = renderHook(() => useForceFactors(SHIPPED));
 
   drag("drawToCenterFactor", 0);

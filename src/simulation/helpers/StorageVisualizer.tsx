@@ -4,29 +4,21 @@ import * as THREE from "three";
 
 export const GROUP_NAME = "StorageVisualizer";
 
-/**
- * How many cells the helper can draw at once. A production flock occupies a few
- * thousand; anything past this is dropped rather than grown into, because this
- * is a debug overlay and reallocating the mesh mid-frame is not worth it.
- */
 const CAPACITY = 10000;
 
 const tempObject = new THREE.Object3D();
 
 export interface StorageVisualizerProps {
   show?: boolean;
-  /** read fresh each frame: the cells move as the index is rebuilt */
-  cellBoundaries: () => THREE.Box3[];
+  occupiedCells: () => THREE.Box3[];
 }
 
 export default function StorageVisualizer({
   show = false,
-  cellBoundaries,
+  occupiedCells,
 }: StorageVisualizerProps): ReactNode {
   const meshRef = useRef<THREE.InstancedMesh | null>(null);
 
-  /* rewritten every frame, and three's default hint says the opposite. It
-     cannot be changed once the buffer has been used. */
   useLayoutEffect(() => {
     meshRef.current?.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
   }, []);
@@ -37,13 +29,13 @@ export default function StorageVisualizer({
       return;
     }
 
-    const boundaries = cellBoundaries();
-    const drawn = Math.min(boundaries.length, CAPACITY);
-    for (let i = 0; i < drawn; i++) {
-      boundaries[i].getCenter(tempObject.position);
-      boundaries[i].getSize(tempObject.scale);
+    const cells = occupiedCells();
+    const drawn = Math.min(cells.length, CAPACITY);
+    for (let index = 0; index < drawn; index++) {
+      cells[index].getCenter(tempObject.position);
+      cells[index].getSize(tempObject.scale);
       tempObject.updateMatrix();
-      mesh.setMatrixAt(i, tempObject.matrix);
+      mesh.setMatrixAt(index, tempObject.matrix);
     }
 
     mesh.count = drawn;
@@ -51,10 +43,6 @@ export default function StorageVisualizer({
   });
 
   return (
-    /* culling off for the same reason as the flock: an InstancedMesh computes
-       its bounding sphere once and writing instance matrices does not
-       invalidate it, so the overlay would be tested against wherever the cells
-       happened to be on the frame it was switched on */
     <instancedMesh
       ref={meshRef}
       args={[undefined, undefined, CAPACITY]}

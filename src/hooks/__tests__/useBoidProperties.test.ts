@@ -10,7 +10,7 @@ const PROPERTIES: BoidProperties = {
   perceptionRadius: 3,
   fieldOfViewDeg: 230,
   desiredSeparation: 1,
-  neighbourLimit: 8,
+  neighborLimit: 8,
   minSpeed: 4,
   maxSpeed: 8,
   maxForce: 24,
@@ -22,9 +22,6 @@ function drag(control: string, to: number): void {
 }
 
 it("never leaves the floor on a boid's speed above the ceiling", () => {
-  /* leva has no way to bound one control by another, and three's clamp resolves
-     an inverted range to its lower bound, so maxSpeed would stop meaning
-     anything at all */
   const { result } = renderHook(() =>
     useBoidProperties(WORLD_SIZE, PROPERTIES),
   );

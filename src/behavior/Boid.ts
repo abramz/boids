@@ -8,16 +8,10 @@ import {
   seekPosition,
   seekVelocity,
 } from "./steering";
-import NearestNeighbours from "./NearestNeighbours";
+import NearestNeighbors from "./NearestNeighbors";
 import type { Node } from "../storage/Node";
 
-/**
- * What the behaviour layer needs of whatever collected its neighbours. The
- * buffer is the caller's, filled by the index through an out parameter, so the
- * kernel takes this narrower view of it and cannot push to or reset a buffer it
- * does not own.
- */
-export interface NeighbourList<T> {
+export interface NeighborList<T> {
   readonly size: number;
   at(index: number): T;
 }
@@ -42,48 +36,31 @@ export type BoidProperties = {
   perceptionRadius: number;
   fieldOfViewDeg: number;
   desiredSeparation: number;
-  /** How many neighbours a boid flocks with, taken nearest first. */
-  neighbourLimit: number;
-  /** Boids do not hover; this is the speed they fall back to when idle. */
+  neighborLimit: number;
   minSpeed: number;
   maxSpeed: number;
   maxForce: number;
   boidSize: number;
 };
 
-/**
- * What a boid actually flies on, from deriveBoidProperties.ts. The simulation
- * takes this rather than `BoidProperties`, so the type system asks for the
- * derivation instead of every call site having to remember it.
- */
 export type DerivedBoidProperties = BoidProperties & {
-  /** How far from a wall edge avoidance starts steering. */
   edgeMargin: number;
-  /** What `fieldOfViewDeg` is compared as, cosined once rather than per boid. */
   cosHalfFieldOfView: number;
 };
 
 export interface ApplyForcesOptions {
-  neighbors: NeighbourList<Boid>;
+  neighbors: NeighborList<Boid>;
   boundary: THREE.Box3;
   obstacles?: readonly Obstacle[];
   properties: DerivedBoidProperties;
   forceFactors: ForceFactors;
 }
 
-/**
- * How many neighbours the flocking forces found to steer by. A force with none
- * is skipped rather than steered on, so these are what say which of them ran.
- * Filled into a caller's object, like the vectors alongside them, since this is
- * read for every re-aiming boid every frame.
- */
 export interface FlockingCounts {
-  /** Alignment and cohesion both steer by these, so they share a count. */
   flockmates: number;
   separation: number;
 }
 
-/* this is all single threaded so Boid instances can share temp variables */
 const tempAveragePosition = new THREE.Vector3();
 const tempAverageVelocity = new THREE.Vector3();
 const tempSeparationVelocity = new THREE.Vector3();
@@ -91,10 +68,8 @@ const tempDiff = new THREE.Vector3();
 const tempForward = new THREE.Vector3();
 const tempForce = new THREE.Vector3();
 
-/* one neighbourhood for the boid's own flock and one for everything around
-   it, reused between boids like the vectors above */
-const nearestFlockmates = new NearestNeighbours<Boid>();
-const nearestAnyone = new NearestNeighbours<Boid>();
+const nearestFlockmates = new NearestNeighbors<Boid>();
+const nearestAnyone = new NearestNeighbors<Boid>();
 const tempCounts: FlockingCounts = { flockmates: 0, separation: 0 };
 
 const COAST_HEADING = new THREE.Vector3(0, 0, 1);
@@ -111,8 +86,6 @@ export default class Boid implements Node {
   public readonly position: THREE.Vector3;
   public readonly velocity: THREE.Vector3;
   public readonly acceleration = new THREE.Vector3();
-  /** What each behaviour last contributed. Nothing in the app reads it; it is
-   *  how the behaviour tests see which forces a frame actually engaged. */
   public readonly forces: {
     alignment: THREE.Vector3Tuple;
     cohesion: THREE.Vector3Tuple;
@@ -149,7 +122,7 @@ export default class Boid implements Node {
       perceptionRadius,
       cosHalfFieldOfView,
       desiredSeparation,
-      neighbourLimit,
+      neighborLimit,
       edgeMargin,
       maxSpeed,
       maxForce,
@@ -157,8 +130,6 @@ export default class Boid implements Node {
     forceFactors,
   }: ApplyForcesOptions): void {
     this.acceleration.set(0, 0, 0);
-    /* the flocking forces below are skipped outright when nothing is in range,
-       so clear them here or they report the last frame a flockmate was seen */
     clearForce(this.forces.alignment);
     clearForce(this.forces.cohesion);
     clearForce(this.forces.separation);
@@ -168,7 +139,7 @@ export default class Boid implements Node {
       perceptionRadius,
       cosHalfFieldOfView,
       desiredSeparation,
-      neighbourLimit,
+      neighborLimit,
       tempAveragePosition,
       tempAverageVelocity,
       tempSeparationVelocity,
@@ -176,7 +147,6 @@ export default class Boid implements Node {
     );
 
     if (tempCounts.flockmates > 0) {
-      // ALIGNMENT: fly the way the neighbourhood is already going
       seekVelocity(
         this.velocity,
         tempAverageVelocity,
@@ -190,8 +160,6 @@ export default class Boid implements Node {
         tempForce,
       );
 
-      // COHESION: close on where the neighbourhood is, easing off over the last
-      // of the spacing it wants to keep from any one of them
       seekPosition(
         this.position,
         this.velocity,
@@ -209,7 +177,6 @@ export default class Boid implements Node {
     }
 
     if (tempCounts.separation > 0) {
-      // SEPARATION: away from the crowd, weighted towards the nearest of it
       seekVelocity(
         this.velocity,
         tempSeparationVelocity,
@@ -224,9 +191,6 @@ export default class Boid implements Node {
       );
     }
 
-    /* skipped rather than multiplied away: the factor ships at zero and the
-       flock settles outside the box, which is where avoidEdges' per-axis skip
-       stops firing and every re-aiming boid steers off three walls for nothing */
     if (forceFactors.avoidEdgesFactor === 0) {
       clearForce(this.forces.avoidEdges);
     } else {
@@ -246,49 +210,46 @@ export default class Boid implements Node {
       );
     }
 
-    avoidObstacles(
-      this.position,
-      this.velocity,
-      obstacles,
-      perceptionRadius,
-      maxSpeed,
-      maxForce,
-      tempForce,
-    );
-    this.accumulate(
-      forceFactors.avoidObstaclesFactor,
-      this.forces.avoidObstacles,
-      tempForce,
-    );
+    if (forceFactors.avoidObstaclesFactor === 0) {
+      clearForce(this.forces.avoidObstacles);
+    } else {
+      avoidObstacles(
+        this.position,
+        this.velocity,
+        obstacles,
+        perceptionRadius,
+        maxSpeed,
+        maxForce,
+        tempForce,
+      );
+      this.accumulate(
+        forceFactors.avoidObstaclesFactor,
+        this.forces.avoidObstacles,
+        tempForce,
+      );
+    }
 
-    drawToCenter(
-      this.position,
-      this.velocity,
-      boundary,
-      maxSpeed,
-      maxForce,
-      tempForce,
-    );
-    this.accumulate(
-      forceFactors.drawToCenterFactor,
-      this.forces.drawToCenter,
-      tempForce,
-    );
+    if (forceFactors.drawToCenterFactor === 0) {
+      clearForce(this.forces.drawToCenter);
+    } else {
+      drawToCenter(
+        this.position,
+        this.velocity,
+        boundary,
+        maxSpeed,
+        maxForce,
+        tempForce,
+      );
+      this.accumulate(
+        forceFactors.drawToCenterFactor,
+        this.forces.drawToCenter,
+        tempForce,
+      );
+    }
 
     limit(this.acceleration, maxForce);
   }
 
-  /**
-   * Apply the current acceleration to the velocity over `delta` seconds.
-   *
-   * Acceleration is in units per second squared, so the delta has to be carried
-   * through here as well as into `applyVelocity`; integrating it raw would make
-   * how hard a boid can steer a function of the frame rate.
-   *
-   * Speed is held above `minSpeed` as well as under `maxSpeed`, because a boid
-   * turns through `maxForce / speed` radians a second and one left at a crawl
-   * spins instead of flying.
-   */
   public applyAcceleration(
     delta: number,
     minSpeed: number,
@@ -298,7 +259,6 @@ export default class Boid implements Node {
 
     const speed = this.velocity.length();
     if (speed === 0) {
-      /* no heading left to hold, so pick one and get moving again */
       this.velocity.copy(COAST_HEADING).multiplyScalar(minSpeed);
       return;
     }
@@ -312,42 +272,30 @@ export default class Boid implements Node {
     this.position.addScaledVector(this.velocity, delta);
   }
 
-  /**
-   * Work out what this boid's neighbourhood wants it to do.
-   *
-   * Every force reads the nearest `neighbourLimit` of what is in view, which is
-   * what makes the answer independent of how crowded the world happens to be.
-   *
-   * Two neighbourhoods, because who counts differs: alignment and cohesion ask
-   * what this boid's own flock is doing, separation asks who is crowding it,
-   * which is no respecter of flocks. Sharing one would let a boid surrounded by
-   * another flock fill up on strangers and find nothing of its own to fly with.
-   */
   public determineFlockingTargets(
-    neighbors: NeighbourList<Boid>,
+    neighbors: NeighborList<Boid>,
     perceptionRadius: number,
     cosHalfFieldOfView: number,
     desiredSeparation: number,
-    neighbourLimit: number,
-    /* OUT */ outAveragePosition: THREE.Vector3,
-    /* OUT */ outAverageVelocity: THREE.Vector3,
-    /* OUT */ outSeparationVelocity: THREE.Vector3,
-    /* OUT */ outCounts: FlockingCounts,
+    neighborLimit: number,
+    outAveragePosition: THREE.Vector3,
+    outAverageVelocity: THREE.Vector3,
+    outSeparationVelocity: THREE.Vector3,
+    outCounts: FlockingCounts,
   ): void {
     outAveragePosition.set(0, 0, 0);
     outAverageVelocity.set(0, 0, 0);
     outSeparationVelocity.set(0, 0, 0);
-    nearestFlockmates.reset(neighbourLimit);
-    nearestAnyone.reset(neighbourLimit);
+    nearestFlockmates.reset(neighborLimit);
+    nearestAnyone.reset(neighborLimit);
 
-    /* a boid with no heading has no preference either, rather than a forward of
-       nowhere that every neighbour is behind */
     const hasHeading = this.velocity.lengthSq() > 0;
-    tempForward.copy(this.velocity).normalize();
+    if (hasHeading) {
+      tempForward.copy(this.velocity).normalize();
+    }
 
     for (let index = 0; index < neighbors.size; index++) {
       const neighbor = neighbors.at(index);
-      /* storage hands back everything in range, this boid included */
       if (neighbor === this) {
         continue;
       }
@@ -356,19 +304,16 @@ export default class Boid implements Node {
       const distance = tempDiff.length();
 
       if (distance > perceptionRadius) {
-        continue; // out of range
+        continue;
       }
 
       tempDiff.normalize();
-      /* a neighbour exactly on top of this boid leaves no direction to test the
-         field of view against, so skip the test; a zero vector cannot decide
-         it */
       if (
         hasHeading &&
         distance > 0 &&
         !isInFOV(tempDiff, tempForward, cosHalfFieldOfView)
       ) {
-        continue; // out of field of view
+        continue;
       }
 
       nearestAnyone.offer(neighbor, distance);
@@ -395,11 +340,6 @@ export default class Boid implements Node {
         continue;
       }
 
-      /* nearer neighbours pull the direction harder, and only the direction
-         survives, so there is nothing to divide by the count afterwards. The
-         floor is for a neighbour in this boid's exact position, where 1/0 would
-         scale a zero-length direction to NaN and poison the accumulator for the
-         rest of the run. */
       const distSq = Math.max(distance * distance, 1e-7);
       tempDiff
         .subVectors(nearestAnyone.at(index).position, this.position)
@@ -412,10 +352,9 @@ export default class Boid implements Node {
     outCounts.separation = separationCount;
   }
 
-  /** Scale a behaviour's steering into the acceleration, and record it. */
   protected accumulate(
     forceFactor: number,
-    /* OUT */ forcePersistence: THREE.Vector3Tuple,
+    forcePersistence: THREE.Vector3Tuple,
     force: THREE.Vector3,
   ): void {
     force.multiplyScalar(forceFactor);

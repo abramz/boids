@@ -1,21 +1,12 @@
 import * as THREE from "three";
 import { describe, expect, it } from "vitest";
 import Boid from "../Boid";
-import Candidates from "../../storage/Candidates";
+import QueryResults from "../../storage/QueryResults";
 import deriveBoidProperties from "../deriveBoidProperties";
 import { isInFOV } from "../../helpers/math";
 import { FLOCKING_CONFIG, runSimulation } from "./helpers/simulate";
 
-/**
- * A boid with flockmates in range must actually steer by them.
- *
- * The index is the one part of a frame a boid cannot check for itself: hand it
- * back the wrong neighbourhood and flocking runs on an arbitrary spatial subset
- * while still looking entirely plausible. So these work out what each boid
- * should be able to see from the positions alone, and assert the simulation
- * agreed.
- */
-describe("neighbour discovery", () => {
+describe("neighbor discovery", () => {
   const properties = deriveBoidProperties(FLOCKING_CONFIG.properties);
 
   it("hands every boid the flockmates it can see, and steers it by them", () => {
@@ -24,10 +15,6 @@ describe("neighbour discovery", () => {
       (properties.fieldOfViewDeg * THREE.MathUtils.DEG2RAD) / 2,
     );
 
-    // Only half the flock re-aims per frame while all of it flies, so at the
-    // end of a run half the forces answer a neighbourhood one frame old. Two
-    // more steps at delta 0 re-aim both halves against positions nothing can
-    // have moved from, which is the question this is asking.
     for (let pass = 0; pass < 2; pass++) {
       simulation.step({
         delta: 0,
@@ -36,18 +23,18 @@ describe("neighbour discovery", () => {
       });
     }
 
-    const toNeighbour = new THREE.Vector3();
+    const toNeighbor = new THREE.Vector3();
     const forward = new THREE.Vector3();
     const canSee = (boid: Boid, other: Boid) => {
-      toNeighbour.subVectors(other.position, boid.position);
-      const distance = toNeighbour.length();
+      toNeighbor.subVectors(other.position, boid.position);
+      const distance = toNeighbor.length();
       if (distance === 0 || distance > properties.perceptionRadius) {
         return false;
       }
 
       forward.copy(boid.velocity).normalize();
 
-      return isInFOV(toNeighbour.normalize(), forward, cosHalfFOV);
+      return isInFOV(toNeighbor.normalize(), forward, cosHalfFOV);
     };
 
     const blind = boids
@@ -66,18 +53,15 @@ describe("neighbour discovery", () => {
 
     expect(blind).toEqual([]);
 
-    /* stop rebuilding the index and every boid goes on flocking against where
-       the flock was at t=0, which still draws a flock, so what this asserts is
-       the neighbourhood and not the frame count */
     const range = new THREE.Sphere();
-    const candidates = new Candidates<Boid>();
+    const results = new QueryResults<Boid>();
 
     const missed = boids.flatMap((boid) => {
-      simulation.storage.queryRange(
+      simulation.grid.queryRange(
         range.set(boid.position, properties.perceptionRadius),
-        candidates,
+        results,
       );
-      const found = new Set(candidates);
+      const found = new Set(results);
 
       return boids
         .filter(
@@ -92,26 +76,24 @@ describe("neighbour discovery", () => {
   });
 
   it("keeps the index level with the flock on every frame, not every other one", () => {
-    /* a long frame, where a boid covers enough ground to leave the cell it was
-       indexed in. Everything above runs at a delta where it does not. */
     const range = new THREE.Sphere();
-    const candidates = new Candidates<Boid>();
+    const results = new QueryResults<Boid>();
     const missed: string[] = [];
 
     runSimulation({
       steps: 120,
       delta: 0.2,
-      onStep: ({ storage, boids }, step) => {
+      onStep: ({ grid, boids }, step) => {
         if (step < 100 || missed.length > 0) {
           return;
         }
 
         boids.forEach((boid) => {
-          storage.queryRange(
+          grid.queryRange(
             range.set(boid.position, properties.perceptionRadius),
-            candidates,
+            results,
           );
-          const found = new Set(candidates);
+          const found = new Set(results);
 
           boids.forEach((other) => {
             if (

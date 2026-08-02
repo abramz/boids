@@ -2,11 +2,6 @@ import { act, renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import usePageVisibility from "../usePageVisibility";
 
-/**
- * Replaces react-page-visibility, so the behaviour it provided needs pinning:
- * the simulation clock is started and stopped off this value.
- */
-
 function setVisibility(state: DocumentVisibilityState): void {
   Object.defineProperty(document, "visibilityState", {
     configurable: true,
@@ -33,9 +28,6 @@ describe("usePageVisibility", () => {
     expect(result.current).toBe(true);
   });
 
-  // `result.current` freezes at the last render either way, so it can say
-  // nothing about whether the listener actually went away. document is the
-  // external dependency here, so its own book-keeping is what to read.
   it("gives its visibilitychange listener back on unmount", () => {
     const subscribe = vi.spyOn(document, "addEventListener");
     const unsubscribe = vi.spyOn(document, "removeEventListener");

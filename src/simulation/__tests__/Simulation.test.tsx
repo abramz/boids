@@ -14,8 +14,6 @@ vi.mock("../../hooks/useHelpers", () => ({ default: vi.fn() }));
 vi.mock("../../hooks/useWorldSize", () => ({ default: vi.fn() }));
 
 beforeEach(() => {
-  /* the built flock is cached under its world's shape, so without this a second
-     render is handed the first one's advanced simulation */
   clear();
   vi.useFakeTimers();
   vi.mocked(useHelpers).mockReturnValue({
@@ -61,13 +59,7 @@ async function renderScene() {
   return renderer;
 }
 
-/**
- * Every piece of the scene has a test of its own; this is the one that says
- * they are mounted. Each absence is a scene-wide effect - no fog, no key light,
- * a camera that cannot be moved, a backgrounded tab integrating a minute in one
- * frame - which renders as a scene that merely looks different.
- */
-it("should compose the whole scene, not just the world in it", async () => {
+it("composes the whole scene, not just the world in it", async () => {
   const renderer = await renderScene();
   const scene = renderer.scene.instance as unknown as THREE.Scene;
   const mounted = (constructor: string) =>
@@ -88,7 +80,7 @@ it("should compose the whole scene, not just the world in it", async () => {
   expect(mounted("AmbientLight"), "fill light").toHaveLength(1);
 });
 
-it("should stop the simulation clock when the tab goes away", async () => {
+it("stops the simulation clock when the tab goes away", async () => {
   await renderScene();
   expect(clock?.running, "no clock reached the scene").toBe(true);
 

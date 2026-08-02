@@ -1,7 +1,6 @@
 import { ReactNode } from "react";
 
 export interface ErrorPanelProps {
-  /** Anything can be thrown, so this narrows rather than assumes a message. */
   error: unknown;
 }
 

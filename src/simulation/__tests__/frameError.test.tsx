@@ -5,16 +5,6 @@ import { act, create, waitFor } from "@react-three/test-renderer";
 import { clear } from "suspend-react";
 import SeededWorld from "../../__fixtures__/SeededWorld";
 
-/**
- * r3f calls useFrame subscribers straight out of requestAnimationFrame, so a
- * throw in the simulation step has no React on the stack to catch it and the
- * next frame is already queued. Left alone that is a frozen picture and an
- * error a second, forever.
- *
- * What throws is beside the point, and the step is mocked to do it: this is
- * about the plumbing that carries a throw out of a frame and into the boundary.
- */
-
 const BOOM = "the simulation step failed";
 const FALLBACK = "TestErrorFallback";
 
@@ -35,8 +25,6 @@ function Fallback(): ReactNode {
 }
 
 beforeEach(() => {
-  /* the built flock is cached under its world's shape, so without this a
-     second render in this file is handed the first one's advanced simulation */
   clear();
   vi.useFakeTimers();
 });
@@ -69,7 +57,5 @@ it("hands a throw from the simulation step to the error boundary", async () => {
     renderer.scene.findAllByType("Group").map((node) => node.instance.name),
   ).toContain(FALLBACK);
 
-  // and the loop gave up rather than throwing once per frame until React got
-  // around to tearing the subtree down
   expect(step).toHaveBeenCalledTimes(1);
 });

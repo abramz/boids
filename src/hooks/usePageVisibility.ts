@@ -10,7 +10,6 @@ function getSnapshot(): boolean {
   return document.visibilityState !== "hidden";
 }
 
-/** Whether the document is currently visible. */
 export default function usePageVisibility(): boolean {
   return useSyncExternalStore(subscribe, getSnapshot);
 }

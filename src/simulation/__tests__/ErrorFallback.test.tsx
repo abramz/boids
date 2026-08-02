@@ -3,11 +3,6 @@ import { create } from "@react-three/test-renderer";
 import { AlertContext } from "../../hooks/alertContext";
 import ErrorFallback from "../ErrorFallback";
 
-/**
- * What the boundary inside the r3f tree renders. Nothing it returns is drawn
- * where it sits - the panel is DOM, and the tree it is in is canvas - so what
- * has to hold is that the message is handed up to the shell that can show it.
- */
 async function fallbackFor(thrown: unknown) {
   const setAlertContents = vi.fn();
 
@@ -20,7 +15,7 @@ async function fallbackFor(thrown: unknown) {
   return setAlertContents;
 }
 
-it("should hand the message up to the shell that can draw it", async () => {
+it("hands the message up to the shell that can draw it", async () => {
   const setAlertContents = await fallbackFor(new Error("the flock exploded"));
 
   expect(setAlertContents).toHaveBeenCalledOnce();
@@ -28,9 +23,7 @@ it("should hand the message up to the shell that can draw it", async () => {
   expect(panel.props.error).toEqual(new Error("the flock exploded"));
 });
 
-it("should carry something thrown that was never an Error", async () => {
-  // react-error-boundary types what it catches as unknown, because anything can
-  // be thrown, and a panel that renders "[object Object]" says nothing
+it("carries something thrown that was never an Error", async () => {
   const setAlertContents = await fallbackFor("a bare string");
 
   const [panel] = setAlertContents.mock.calls[0];

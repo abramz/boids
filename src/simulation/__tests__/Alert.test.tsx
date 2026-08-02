@@ -14,14 +14,14 @@ beforeEach(() => {
 
 const children = <div>{"foo"}</div>;
 
-it("should set the alert contents on mount", async () => {
+it("sets the alert contents on mount", async () => {
   await ReactThreeTestRenderer.create(<Alert>{children}</Alert>);
 
   expect(setAlertContents).toHaveBeenCalledOnce();
   expect(setAlertContents).toHaveBeenCalledWith(children);
 });
 
-it("should clear the alert contents on unmount", async () => {
+it("clears the alert contents on unmount", async () => {
   const renderer = await ReactThreeTestRenderer.create(
     <Alert>{children}</Alert>,
   );

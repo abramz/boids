@@ -3,9 +3,6 @@
   line-height: 1.5;
   font-weight: 400;
 
-  /* channels rather than colours, so the panels can tint them at any alpha.
-     --background is BACKGROUND_COLOR in theme.ts, which the canvas clears to:
-     the page shows around and behind it, so the two move together. */
   --background: 10 15 18;
   --accent: 124 199 255;
   --accent-text: 191 228 255;
@@ -13,7 +10,6 @@
   --error-heading: 255 138 122;
   --error-text: 255 154 140;
 
-  /* the canvas paints the page edge to edge, and it is always the night sky */
   color-scheme: dark;
   color: rgb(255 255 255 / 0.87);
   background-color: rgb(var(--background));
@@ -40,8 +36,6 @@ body {
   display: block;
 }
 
-/* centres whatever is showing without covering the canvas: the panel takes its
-   own pointer events back, so the camera stays draggable around it */
 .alert {
   position: fixed;
   inset: 0;
@@ -55,7 +49,7 @@ body {
 .panel {
   pointer-events: auto;
   box-sizing: border-box;
-  /* prose fills the cap, a one-line loading message does not have to */
+
   width: fit-content;
   max-width: min(440px, 100%);
   padding: 24px 28px;
@@ -83,7 +77,6 @@ body {
   margin-bottom: 0;
 }
 
-/* input on the left, what it does on the right */
 .panel-keys {
   display: grid;
   grid-template-columns: auto 1fr;

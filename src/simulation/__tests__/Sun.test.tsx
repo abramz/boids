@@ -28,9 +28,6 @@ it("casts through a frustum sized to the world it was given", async () => {
   const { light } = await renderSun();
   expect(light, "no shadow-casting light").toBeTruthy();
 
-  /* three reads the shadow camera's projection as it stands, so a frustum left
-     at three's defaults brackets a couple of units around the origin and
-     nothing in the world casts at all */
   const { extent, near, far } = shadowFrustum(WORLD_SIZE);
   const camera = light!.shadow.camera;
 
@@ -48,8 +45,6 @@ it("throws the key light from where the sun is drawn", async () => {
   const { light, disc } = await renderSun();
   expect(disc, "nothing drawn for the sun itself").toBeTruthy();
 
-  // the light and the disc are one thing to a viewer, so a lit face has to
-  // agree with where the sun appears to be
   expect(light!.position.toArray()).toEqual(disc!.position.toArray());
   expect(light!.position.toArray()).toEqual(SUN_POSITION);
 });

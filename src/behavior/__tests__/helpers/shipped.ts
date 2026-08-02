@@ -2,19 +2,10 @@ import * as config from "../../../config";
 import { queriedRadius } from "../../deriveBoidProperties";
 import { SimulationConfig } from "./simulate";
 
-/**
- * The values config.ts actually ships, at a flock small enough to fly in a test.
- *
- * The world is shrunk with the flock the way useWorldSize.ts shrinks it for a
- * machine that cannot carry the full one, so the density, and every radius and
- * rate, are the shipped ones. Distances therefore scale with `WORLD_SIZE` and
- * are best asserted as multiples of it rather than in absolute units.
- */
 export const FLOCK_SIZE = 50;
 export const WORLD_SIZE =
   config.WORLD_SIZE * Math.cbrt(FLOCK_SIZE / config.FLOCK_SIZE);
 
-/** Ten seconds at 60fps, by which the flock has long since settled. */
 export const SETTLED_STEPS = 600;
 
 export const SHIPPED: SimulationConfig = {
@@ -25,7 +16,7 @@ export const SHIPPED: SimulationConfig = {
     perceptionRadius: config.PERCEPTION_RADIUS,
     fieldOfViewDeg: config.FIELD_OF_VIEW_DEG,
     desiredSeparation: config.DESIRED_SEPARATION,
-    neighbourLimit: config.NEIGHBOUR_LIMIT,
+    neighborLimit: config.NEIGHBOR_LIMIT,
     minSpeed: config.MIN_SPEED,
     maxSpeed: config.MAX_SPEED,
     maxForce: config.MAX_FORCE,

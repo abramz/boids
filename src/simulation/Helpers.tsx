@@ -7,12 +7,12 @@ export const GROUP_NAME = "Helpers";
 
 export interface HelpersProps {
   worldBoundary: THREE.Box3;
-  cellBoundaries: () => THREE.Box3[];
+  occupiedCells: () => THREE.Box3[];
 }
 
 export default function Helpers({
   worldBoundary,
-  cellBoundaries,
+  occupiedCells,
 }: HelpersProps): ReactNode {
   const { showWorldBoundary, showStorageCells } = useHelpers();
   return (
@@ -23,7 +23,7 @@ export default function Helpers({
       />
       <StorageVisualizer
         show={showStorageCells}
-        cellBoundaries={cellBoundaries}
+        occupiedCells={occupiedCells}
       />
     </group>
   );

@@ -24,10 +24,6 @@ function instanceAt(mesh: THREE.InstancedMesh, index: number) {
   };
 }
 
-/**
- * The core is the lit body and the rim is the additive shell around it, told
- * apart by their materials rather than by the order they are declared in.
- */
 async function render(obstacles: readonly Obstacle[] = OBSTACLES) {
   const renderer = await create(<ObstacleDisplay obstacles={obstacles} />);
   await renderer.advanceFrames(2, 0.01);
@@ -35,8 +31,6 @@ async function render(obstacles: readonly Obstacle[] = OBSTACLES) {
   const meshes = renderer.scene
     .findAllByType("Mesh")
     .map((node) => node.instance as unknown as THREE.InstancedMesh);
-  /* by material type rather than instanceof: the test renderer bundles its own
-     copy of three, so its classes are not the ones the component built with */
   const withMaterial = (type: string) =>
     meshes.find((mesh) => (mesh.material as THREE.Material).type === type);
 
@@ -47,7 +41,7 @@ async function render(obstacles: readonly Obstacle[] = OBSTACLES) {
   };
 }
 
-it("should draw a body and a rim on every obstacle, where the obstacle is", async () => {
+it("draws a body and a rim on every obstacle, where the obstacle is", async () => {
   const { core, rim } = await render();
   expect(core, "no lit body").toBeTruthy();
   expect(rim, "no rim shell").toBeTruthy();
@@ -60,26 +54,22 @@ it("should draw a body and a rim on every obstacle, where the obstacle is", asyn
   });
 });
 
-it("should turn each body on its own, and leave the rim still", async () => {
+it("turns each body on its own, and leaves the rim still", async () => {
   const { core, rim } = await render();
 
-  /* the rim is a sphere, so turning it would not show; the bodies are faceted
-     and are offset from each other so the cluster does not turn as one piece */
   expect(instanceAt(core!, 0).turned).toBe(true);
   expect(instanceAt(rim!, 0).turned).toBe(false);
 });
 
-it("should cast the only shadows in the scene from the body", async () => {
+it("casts the only shadows in the scene from the body", async () => {
   const { core, rim } = await render();
 
-  // few enough and big enough that the sun's shadow map resolves them sharply,
-  // which is what its frustum is sized for
   expect(core!.castShadow).toBe(true);
   expect(core!.receiveShadow).toBe(true);
   expect(rim!.castShadow).toBe(false);
 });
 
-it("should draw nothing at all for a world with no obstacles", async () => {
+it("draws nothing at all for a world with no obstacles", async () => {
   const { renderer } = await render([]);
 
   expect(

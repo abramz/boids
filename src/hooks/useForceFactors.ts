@@ -2,14 +2,6 @@ import { useControls } from "leva";
 import { ForceFactors } from "../behavior/Boid";
 import * as config from "../config";
 
-/**
- * How hard each behaviour pulls.
- *
- * Every factor tunes down to nothing except the draw to center, which bottoms
- * out just above zero: edge avoidance ships off and the index has no outer
- * wall, so a leash that could be switched off leaves nothing to bring a strayed
- * flock back.
- */
 export default function useForceFactors({
   alignmentFactor,
   cohesionFactor,

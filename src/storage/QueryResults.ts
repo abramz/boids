@@ -1,10 +1,4 @@
-/**
- * What a spatial index hands back, reset and refilled rather than allocated: a
- * query runs for every boid that re-aims, every frame, and a fresh array out of
- * each one is thousands of throwaway arrays a second on the one path that
- * cannot afford them.
- */
-export default class Candidates<T> {
+export default class QueryResults<T> {
   private readonly items: T[] = [];
   private count = 0;
 
@@ -25,7 +19,6 @@ export default class Candidates<T> {
     this.count++;
   }
 
-  /** For assertions; the hot path reads `size` and `at` instead. */
   public *[Symbol.iterator](): IterableIterator<T> {
     for (let index = 0; index < this.count; index++) {
       yield this.items[index];

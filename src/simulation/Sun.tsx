@@ -18,19 +18,9 @@ import useWorldSize from "../hooks/useWorldSize";
 
 export const GROUP_NAME = "Sun";
 
-/**
- * The key light and the thing it comes from, kept together so the two cannot
- * drift apart.
- *
- * The disc sits well beyond the world and opts out of the fog, which at this
- * range would otherwise erase it completely, so orbiting far enough round finds
- * a sun rather than an empty sky.
- */
 export default function Sun(): ReactNode {
   const light = useRef<THREE.DirectionalLight>(null!);
   const { worldSize } = useWorldSize();
-  /* graded like the disc it wraps: tone map one and not the other and the seam
-     between them moves with the exposure */
   const [corona] = useState(() =>
     createFacingGlow({
       color: SUN_COLOR,
@@ -43,8 +33,6 @@ export default function Sun(): ReactNode {
 
   useEffect(() => () => corona.dispose(), [corona]);
 
-  /* three reads the shadow camera's projection as it stands, so the frustum has
-     to be recomputed once it has been sized to the world */
   useLayoutEffect(() => {
     const { camera } = light.current.shadow;
     const { extent, near, far } = shadowFrustum(worldSize);

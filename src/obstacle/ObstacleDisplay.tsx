@@ -40,7 +40,6 @@ export default function ObstacleDisplay({
 
   useEffect(() => () => rimMaterial.dispose(), [rimMaterial]);
 
-  /* the shell is a sphere, so spinning it would not show; place it once */
   useLayoutEffect(() => {
     const rim = rimRef.current;
     if (!rim) {
@@ -66,7 +65,6 @@ export default function ObstacleDisplay({
     spin.current += delta * OBSTACLE_SPIN_SPEED;
     obstacles.forEach((obstacle, index) => {
       tempObject.position.copy(obstacle.position);
-      /* offset each obstacle so the cluster does not turn as one piece */
       tempObject.rotation.set(
         spin.current * 0.6 + index,
         spin.current + index * 2,
@@ -83,14 +81,10 @@ export default function ObstacleDisplay({
     return null;
   }
 
-  /* one geometry for the lot: createSimulation builds the lattice at a single
-     radius, so instancing them needs no per-instance scale */
   const { radius } = obstacles[0];
 
   return (
     <group name={GROUP_NAME}>
-      {/* the only casters in the scene: few enough and big enough that the
-          sun's shadow map resolves them sharply */}
       <instancedMesh
         ref={coreRef}
         args={[undefined, undefined, obstacles.length]}

@@ -32,13 +32,18 @@ npm run bench          # vitest bench, a frame at production scale
 
 ### The spatial index
 
-`src/storage/` holds the index every neighbour query goes through: a hash grid
+`src/storage/` holds the index every neighbor query goes through: a hash grid
 over the cells the boids occupy, with no outer boundary. How it is built and
 queried is documented on `HashGrid` itself.
 
 It has no boundary because the world is a set of forces boids steer by rather
 than a wall. Nothing clamps a position, so a boid can be anywhere, and an index
 with a fixed extent would stop being able to answer for the ones outside it.
+
+What keeps the flock about the world instead is the leash: a pull home that is
+zero inside the world box and grows with how far a boid has strayed past it
+(`DRAW_TO_CENTER_FACTOR` in `src/config.ts`). Edge avoidance, the force that
+does turn boids at the wall, ships switched off.
 
 ### Deploys and PR previews
 

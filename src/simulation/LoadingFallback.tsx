@@ -1,10 +1,6 @@
 import { ReactNode } from "react";
 import Alert from "./Alert";
 
-/**
- * Shown while GPU detection runs, which is a fetch and the slow half of
- * starting up. Building the flock behind it is a few milliseconds.
- */
 export default function LoadingFallback(): ReactNode {
   return (
     <Alert>

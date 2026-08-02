@@ -15,7 +15,7 @@ const tempScale = new THREE.Vector3();
 
 async function render(show: boolean, cells: () => THREE.Box3[]) {
   const renderer = await create(
-    <StorageVisualizer show={show} cellBoundaries={cells} />,
+    <StorageVisualizer show={show} occupiedCells={cells} />,
   );
   await renderer.advanceFrames(2, 0.01);
 
@@ -24,7 +24,7 @@ async function render(show: boolean, cells: () => THREE.Box3[]) {
     .map((node) => node.instance)[0] as unknown as THREE.InstancedMesh;
 }
 
-it("should draw one box over each cell the index is holding", async () => {
+it("draws one box over each cell the index is holding", async () => {
   const mesh = await render(true, () => CELLS);
 
   expect(mesh.count).toBe(CELLS.length);
@@ -33,7 +33,6 @@ it("should draw one box over each cell the index is holding", async () => {
     mesh.getMatrixAt(index, tempMatrix);
     tempMatrix.decompose(tempPosition, tempQuaternion, tempScale);
 
-    // a unit box scaled and moved onto the cell, so the two coincide
     expect(tempPosition.toArray()).toEqual(
       cell.getCenter(new THREE.Vector3()).toArray(),
     );
@@ -43,7 +42,7 @@ it("should draw one box over each cell the index is holding", async () => {
   });
 });
 
-it("should follow the cells as the index is rebuilt under it", async () => {
+it("follows the cells as the index is rebuilt under it", async () => {
   const moved = new THREE.Box3(
     new THREE.Vector3(20, 20, 20),
     new THREE.Vector3(22, 22, 22),
@@ -55,8 +54,6 @@ it("should follow the cells as the index is rebuilt under it", async () => {
 
   const mesh = await render(true, cells);
 
-  /* read fresh every frame rather than captured on mount: the cells move as
-     the flock does, and a stale read draws the world as it was at t=0 */
   expect(cells.mock.calls.length).toBeGreaterThan(1);
 
   mesh.getMatrixAt(0, tempMatrix);
@@ -64,7 +61,7 @@ it("should follow the cells as the index is rebuilt under it", async () => {
   expect(tempPosition.toArray()).toEqual([21, 21, 21]);
 });
 
-it("should do no frame work at all while it is switched off", async () => {
+it("does no frame work at all while it is switched off", async () => {
   const cells = vi.fn<() => THREE.Box3[]>().mockReturnValue(CELLS);
 
   const mesh = await render(false, cells);

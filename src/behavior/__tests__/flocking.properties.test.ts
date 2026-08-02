@@ -5,15 +5,11 @@ import {
   FLOCKING_CONFIG,
   meanHeadingAgreement,
   meanIntraFlockDistance,
-  meanNearestNeighbourDistance,
+  meanNearestNeighborDistance,
   runSimulation,
 } from "./helpers/simulate";
 
-/**
- * Controlled comparisons, the same seeded world with one force switched off,
- * so the assertions survive a correct refactor and any three.js version.
- */
-describe("emergent flocking behaviour", () => {
+describe("emergent flocking behavior", () => {
   it("alignment makes flockmates head the same way", () => {
     const aligned = runSimulation();
     const unaligned = runSimulation({ forceFactors: { alignmentFactor: 0 } });
@@ -24,10 +20,6 @@ describe("emergent flocking behaviour", () => {
   });
 
   it("cohesion pulls flockmates closer together", () => {
-    /* run long enough for the two to separate by more than the noise: over the
-       first couple of hundred frames a flock still unwinding from its scatter
-       is drawing in under separation and the walls whether cohesion is on or
-       not, and the two arms sit within a percent of each other */
     const cohesive = runSimulation({ steps: 600 });
     const scattered = runSimulation({
       steps: 600,
@@ -43,16 +35,12 @@ describe("emergent flocking behaviour", () => {
     const separated = runSimulation();
     const crowded = runSimulation({ forceFactors: { separationFactor: 0 } });
 
-    expect(meanNearestNeighbourDistance(separated.boids)).toBeGreaterThan(
-      meanNearestNeighbourDistance(crowded.boids),
+    expect(meanNearestNeighborDistance(separated.boids)).toBeGreaterThan(
+      meanNearestNeighborDistance(crowded.boids),
     );
   });
 
   it("holds a heading rather than spinning on the spot", () => {
-    /* a boid turns through maxForce/speed radians a second, so the slower it is
-       left flying the faster it can be spun. Cohesion and separation oppose
-       each other in a packed flock and the balance between them settles at a
-       crawl, which reads as jitter rather than as flight. */
     const meanTurnPerFrame = (minSpeed: number) => {
       const previous = new Map<string, THREE.Vector3>();
       let total = 0;
@@ -65,8 +53,6 @@ describe("emergent flocking behaviour", () => {
           boids.forEach((boid) => {
             const heading = boid.velocity.clone().normalize();
             const before = previous.get(boid.compoundId);
-            /* measured once the flock has settled, not while it is still
-               unwinding from its seeded scatter */
             if (before && step > 60 && heading.lengthSq() > 0) {
               total += before.angleTo(heading);
               samples++;
@@ -102,10 +88,6 @@ describe("emergent flocking behaviour", () => {
         }),
     });
 
-    /* createSimulation builds the obstacle lattice on every run, headless
-       included, and FLOCKING_CONFIG flies every factor at 1, so every force in
-       the record is reachable from here: a force that never fires is one wired
-       to nothing rather than one this world does not ask for */
     (
       [
         "alignment",
