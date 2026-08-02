@@ -4,7 +4,7 @@ import { ReactNode, Suspense, lazy, useEffect, useRef, useState } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import { AlertContext } from "../hooks/alertContext";
 import { WORLD_SIZE } from "../config";
-import { TONE_MAPPING_EXPOSURE, cameraDistance } from "../theme";
+import { CAMERA_FOV, TONE_MAPPING_EXPOSURE, cameraDistance } from "../theme";
 import ErrorFallback from "../simulation/ErrorFallback";
 
 const Simulation = lazy(() => import("../simulation/Simulation"));
@@ -56,6 +56,7 @@ export default function Canvas(): ReactNode {
       // set up once and then owned by OrbitControls, so it is deliberately not
       // part of what the resize handler re-applies
       camera: {
+        fov: CAMERA_FOV,
         near: CAMERA_NEAR,
         /* how big a world this machine earns is not known until detect-gpu has
            run inside the tree, so start on the largest one; World pulls the

@@ -36,30 +36,23 @@ describe("fogDensity", () => {
     WORLD_SIZES.forEach((worldSize) => {
       const density = fogDensity(worldSize);
 
-      expect(fogAt(density, worldSize / 4)).toBeLessThan(
-        fogAt(density, worldSize),
-      );
-      /* readable rather than washed out where the flock actually flies */
+      /* readable rather than washed out where the flock actually flies, and
+         thick enough at the far wall to read as depth rather than as nothing */
       expect(fogAt(density, worldSize / 2)).toBeLessThan(0.1);
+      expect(fogAt(density, worldSize)).toBeGreaterThan(0.1);
     });
   });
 });
 
 describe("shadowFrustum", () => {
-  it("reaches the corners of the world cube at any world size", () => {
+  it("reaches the corners of the world cube and no further", () => {
     WORLD_SIZES.forEach((worldSize) => {
-      expect(shadowFrustum(worldSize).extent).toBeGreaterThanOrEqual(
-        cornerReach(worldSize),
-      );
-    });
-  });
+      const reach = cornerReach(worldSize);
 
-  it("spends the map on the world rather than the space around it", () => {
-    WORLD_SIZES.forEach((worldSize) => {
-      /* an extent well past the corners is shadow map resolution thrown away */
-      expect(shadowFrustum(worldSize).extent).toBeLessThan(
-        cornerReach(worldSize) * 1.1,
-      );
+      /* short leaves the corners of the world unshadowed, and well past them is
+         shadow map resolution thrown away */
+      expect(shadowFrustum(worldSize).extent).toBeGreaterThanOrEqual(reach);
+      expect(shadowFrustum(worldSize).extent).toBeLessThan(reach * 1.1);
     });
   });
 

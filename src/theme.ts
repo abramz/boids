@@ -27,8 +27,8 @@ export const BACKGROUND_COLOR = 0x0a0f12;
  * Exponential-squared fog density, so the far side of the world dims by about
  * as much whatever world the machine earned: hold a density fixed while the
  * world grows and the far side goes from distant to gone. The coefficient is
- * set against cameraDistance above, since how much fog the flock picks up
- * depends on how far back the camera watches it from.
+ * set against cameraDistance, since how much fog the flock picks up depends on
+ * how far back the camera watches it from.
  */
 export const fogDensity = (worldSize: number): number => 0.45 / worldSize;
 
@@ -37,7 +37,16 @@ export const fogDensity = (worldSize: number): number => 0.45 / worldSize;
  * out is clear of the boundary with the far wall still in frame, where half of
  * one puts the camera on the boundary face, inside the flock.
  */
-export const cameraDistance = (worldSize: number): number => worldSize * 1;
+export const cameraDistance = (worldSize: number): number => worldSize;
+
+/**
+ * Stated rather than left to r3f's default, which is this number: how much of
+ * the flock lands in frame is this against `cameraDistance` and where the leash
+ * settles the flock, and `src/__tests__/framing.test.ts` pins the three
+ * together. three's own PerspectiveCamera default is 50, so the value being
+ * inherited here is easy to mistake.
+ */
+export const CAMERA_FOV = 75;
 
 /** ACES rolls highlights off rather than clipping them, so lights can exceed 1. */
 export const TONE_MAPPING_EXPOSURE = 1.05;
