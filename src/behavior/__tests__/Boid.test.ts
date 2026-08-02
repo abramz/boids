@@ -208,31 +208,60 @@ describe("determineFlockingTargets", () => {
     expect(outSeparationVelocity.toArray()).toEqual([0, 0, 0]);
   });
 
-  it("should not consider neighbors outside the field of view", () => {
-    /* flying along +z with an 85 degree half-angle, so square abeam and
-       anything behind is out of view while everything is well within range */
+  /* flying along +z with an 85 degree half-angle: square abeam is already out
+     of view, and all four are well within range */
+  const outOfView = [
+    neighbor(100, new THREE.Vector3(1, 0, 0)),
+    neighbor(101, new THREE.Vector3(-1, 0, 0)),
+    neighbor(102, new THREE.Vector3(0, 1, 0)),
+    neighbor(103, new THREE.Vector3(0, 0, -1)),
+  ];
+
+  it("should not consider neighbours outside the field of view", () => {
     TEST_BOID.velocity.set(0, 0, TEST_MAX_SPEED);
 
-    expect(
-      determine([
-        neighbor(100, new THREE.Vector3(1, 0, 0)),
-        neighbor(101, new THREE.Vector3(-1, 0, 0)),
-        neighbor(102, new THREE.Vector3(0, 1, 0)),
-        neighbor(103, new THREE.Vector3(0, 0, -1)),
-      ]),
-    ).toEqual({ flockmates: 0, separation: 0 });
+    expect(determine(outOfView)).toEqual({ flockmates: 0, separation: 0 });
     expect(outAveragePosition.toArray()).toEqual([0, 0, 0]);
     expect(outAverageVelocity.toArray()).toEqual([0, 0, 0]);
     expect(outSeparationVelocity.toArray()).toEqual([0, 0, 0]);
   });
 
-  it("should still see a neighbour dead ahead", () => {
+  it("should read a boid with no heading as having no preference", () => {
+    /* a stopped boid has a forward of nowhere, which every neighbour is a
+       right angle from: on a field of view under a half turn that reads as
+       nothing in sight at all */
+    const narrowFieldOfView = Math.cos((120 * THREE.MathUtils.DEG2RAD) / 2);
+
+    TEST_BOID.determineFlockingTargets(
+      candidates([neighbor(100, new THREE.Vector3(0, 0, 2))]),
+      TEST_PERCEPTION_RADIUS,
+      narrowFieldOfView,
+      TEST_SEPARATION,
+      TEST_NEIGHBOUR_LIMIT,
+      outAveragePosition,
+      outAverageVelocity,
+      outSeparationVelocity,
+      outCounts,
+    );
+
+    expect(outCounts).toEqual({ flockmates: 1, separation: 1 });
+  });
+
+  it("should still count a neighbour sitting exactly on top of it", () => {
     TEST_BOID.velocity.set(0, 0, TEST_MAX_SPEED);
 
-    expect(determine([neighbor(100, new THREE.Vector3(0, 0, 1))])).toEqual({
-      flockmates: 1,
-      separation: 1,
-    });
+    /* no distance means no direction: dropping it leaves the boid blind to
+       whatever is closest to it, and dividing by it poisons the accumulator
+       with a NaN that every later neighbour is added into */
+    expect(
+      determine([
+        neighbor(100, new THREE.Vector3()),
+        neighbor(101, new THREE.Vector3(0, 0, 2)),
+      ]),
+    ).toEqual({ flockmates: 2, separation: 2 });
+
+    expect(outSeparationVelocity.toArray().every(Number.isFinite)).toBe(true);
+    expect(outSeparationVelocity.length()).toBeGreaterThan(0);
   });
 
   it("should only align and cohere with its own flock, but separate from anyone", () => {

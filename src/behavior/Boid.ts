@@ -350,6 +350,10 @@ export default class Boid implements Node {
     outSeparationVelocity.set(0, 0, 0);
     nearestFlockmates.reset(neighbourLimit);
     nearestAnyone.reset(neighbourLimit);
+
+    /* a boid with no heading has no preference either, rather than a forward of
+       nowhere that every neighbour is behind */
+    const hasHeading = this.velocity.lengthSq() > 0;
     tempForward.copy(this.velocity).normalize();
 
     for (let index = 0; index < neighbors.size; index++) {
@@ -370,7 +374,11 @@ export default class Boid implements Node {
       /* a neighbour exactly on top of this boid leaves no direction to test the
          field of view against, so skip the test rather than let a zero vector
          decide it */
-      if (distance > 0 && !isInFOV(tempDiff, tempForward, cosHalfFieldOfView)) {
+      if (
+        hasHeading &&
+        distance > 0 &&
+        !isInFOV(tempDiff, tempForward, cosHalfFieldOfView)
+      ) {
         continue; // out of field of view
       }
 
