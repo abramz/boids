@@ -29,21 +29,16 @@ afterEach(() => {
 });
 
 it("stops the clock while the tab is hidden and starts it again on return", () => {
-  clock.start();
+  clock.stop();
+
+  // mounted against a clock that was never running, which is how the app loads
   render(<PauseWhenNotVisible />);
+  expect(clock.running).toBe(true);
 
   act(() => setVisibility("hidden"));
   expect(clock.running).toBe(false);
   expect(clock.getDelta()).toBe(0);
 
   act(() => setVisibility("visible"));
-  expect(clock.running).toBe(true);
-});
-
-it("starts a clock that was never running once the tab is visible", () => {
-  clock.stop();
-
-  render(<PauseWhenNotVisible />);
-
   expect(clock.running).toBe(true);
 });

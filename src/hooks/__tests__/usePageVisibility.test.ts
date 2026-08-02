@@ -4,8 +4,7 @@ import usePageVisibility from "../usePageVisibility";
 
 /**
  * Replaces react-page-visibility, so the behaviour it provided needs pinning:
- * the simulation clock is started and stopped off this value, and a wrong
- * initial reading would freeze the whole app on load.
+ * the simulation clock is started and stopped off this value.
  */
 
 function setVisibility(state: DocumentVisibilityState): void {
@@ -22,14 +21,10 @@ afterEach(() => {
 });
 
 describe("usePageVisibility", () => {
-  it("reports visible on mount", () => {
+  it("goes false when the document is hidden and back when it returns", () => {
     const { result } = renderHook(() => usePageVisibility());
 
     expect(result.current).toBe(true);
-  });
-
-  it("goes false when the document is hidden and back when it returns", () => {
-    const { result } = renderHook(() => usePageVisibility());
 
     act(() => setVisibility("hidden"));
     expect(result.current).toBe(false);

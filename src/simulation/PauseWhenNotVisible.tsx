@@ -14,7 +14,11 @@ export default function PauseWhenNotVisible(): ReactNode {
 
   useEffect(() => {
     if (isVisible && !clock.running) {
+      /* start() zeroes elapsedTime, and anything animating off the clock rather
+         than off a delta - drei's Stars - snaps back to its t=0 phase */
+      const elapsed = clock.elapsedTime;
       clock.start();
+      clock.elapsedTime = elapsed;
     }
 
     if (!isVisible && clock.running) {
