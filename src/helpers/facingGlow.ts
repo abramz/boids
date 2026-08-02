@@ -40,7 +40,18 @@ export default function createFacingGlow({
     toneMapped,
   });
 
-  const glow = atSilhouette ? "1.0 - vFacing" : "vFacing";
+  /* clamped: vFacing is a dot of two normalized vectors, which can land a hair
+     over 1 in fp32, and pow() of a negative base is undefined in GLSL */
+  const glow = atSilhouette
+    ? "clamp(1.0 - vFacing, 0.0, 1.0)"
+    : "clamp(vFacing, 0.0, 1.0)";
+
+  /* three keys the program cache on onBeforeCompile's source text, which is the
+     same for every material this builds. Without a key of its own, two glows
+     alike in fog, tone mapping and instancing share one compiled shader and the
+     second silently draws with the first's falloff. */
+  material.customProgramCacheKey = () =>
+    `facingGlow:${glow}:${power}:${intensity}`;
 
   material.onBeforeCompile = (shader) => {
     shader.vertexShader = shader.vertexShader
