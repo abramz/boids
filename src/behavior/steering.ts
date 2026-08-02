@@ -59,30 +59,37 @@ export function seekVelocity(
 }
 
 /**
- * Steer towards flying at `targetPosition`, or nowhere if it is already closer
- * than `desiredSeparation`.
+ * Steer towards flying at `targetPosition`, easing off as it is reached.
+ *
+ * Full strength from `easeRadius` out, fading to nothing at the target itself.
+ * A cutoff at that radius would arrive as chatter instead: full budget a hair
+ * outside, none a hair inside.
+ *
+ * The easing scales the steering rather than the speed sought. Winding the
+ * desired speed down would make this a brake at close range, and a boid pushed
+ * towards a stop turns faster than it flies.
  */
 export function seekPosition(
   position: THREE.Vector3,
   velocity: THREE.Vector3,
   targetPosition: THREE.Vector3,
-  desiredSeparation: number,
+  easeRadius: number,
   maxSpeed: number,
   maxForce: number,
   /* OUT */ outVector: THREE.Vector3,
 ): THREE.Vector3 {
   outVector.subVectors(targetPosition, position);
+  const distance = outVector.length();
 
-  if (outVector.length() > desiredSeparation) {
-    limit(
-      outVector.normalize().multiplyScalar(maxSpeed).sub(velocity),
-      maxForce,
-    );
-  } else {
-    outVector.set(0, 0, 0);
+  /* already there, so there is nowhere to steer: normalising would give a
+     direction of nowhere, and steering towards that is a full-strength brake */
+  if (distance === 0) {
+    return outVector.set(0, 0, 0);
   }
 
-  return outVector;
+  limit(outVector.normalize().multiplyScalar(maxSpeed).sub(velocity), maxForce);
+
+  return outVector.multiplyScalar(Math.min(1, distance / easeRadius));
 }
 
 /**

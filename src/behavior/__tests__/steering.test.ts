@@ -77,13 +77,36 @@ describe("seekPosition", () => {
     expect(out.toArray()).toEqual(expected.toArray());
   });
 
-  it("should not steer towards a target it is already close to", () => {
+  it("should ease off over the last of the distance to the target", () => {
+    /* left stationary, so the steer before easing is the whole budget whatever
+       the distance and the easing is all that is left to measure */
+    const steerAt = (distance: number): number => {
+      seekPosition(
+        position,
+        velocity,
+        new THREE.Vector3(distance, 0, 0),
+        SEPARATION,
+        MAX_SPEED,
+        MAX_FORCE,
+        out,
+      );
+
+      return out.length();
+    };
+
+    expect(steerAt(2 * SEPARATION)).toBeCloseTo(MAX_FORCE, 12);
+    expect(steerAt(SEPARATION)).toBeCloseTo(MAX_FORCE, 12);
+    expect(steerAt(SEPARATION / 2)).toBeCloseTo(MAX_FORCE / 2, 12);
+    expect(steerAt(SEPARATION / 4)).toBeCloseTo(MAX_FORCE / 4, 12);
+  });
+
+  it("should steer nowhere from on top of the target", () => {
     velocity.set(3, 3, 3).normalize().multiplyScalar(MAX_SPEED);
 
     seekPosition(
       position,
       velocity,
-      new THREE.Vector3(2, 2, 2),
+      position.clone(),
       SEPARATION,
       MAX_SPEED,
       MAX_FORCE,

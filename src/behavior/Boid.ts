@@ -199,8 +199,8 @@ export default class Boid implements Node {
         tempForce,
       );
 
-      // COHESION: close on where the neighbourhood is, but no nearer than it
-      // wants to be to any one of them
+      // COHESION: close on where the neighbourhood is, easing off over the last
+      // of the spacing it wants to keep from any one of them
       seekPosition(
         this.position,
         this.velocity,
