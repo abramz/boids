@@ -25,8 +25,11 @@ jobs:
   checks:
     uses: ./.github/workflows/ci.yml
 
+  # the ref guard is on the job, not the trigger: workflow_dispatch takes a ref
+  # of the caller's choosing, and publishing replaces the whole site root
   deploy:
     needs: checks
+    if: github.ref == 'refs/heads/primary'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
