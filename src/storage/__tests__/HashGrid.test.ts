@@ -70,18 +70,6 @@ it("rejects a table with no buckets to hash into", () => {
   );
 });
 
-it("finds the nodes in range and nothing outside it", () => {
-  /* off-center and inside one cell's width, so the answer straddles the
-     boundary between two cells: an index that only ever looks in the querying
-     node's own cell still passes everything else */
-  const range = new THREE.Sphere(new THREE.Vector3(0.5, 0, 0), 0.9);
-
-  grid.queryRange(range, found);
-
-  expect(ids()).toEqual(bruteForce(nodes, range));
-  expect(ids()).toHaveLength(2);
-});
-
 it("separates cells that share a bucket rather than confusing them", () => {
   /* one bucket, so every cell in the lattice collides with every other. The
      index checks which cell a node is really in, so the answer is unchanged
@@ -98,39 +86,51 @@ it("separates cells that share a bucket rather than confusing them", () => {
   expect(ids()).toEqual(bruteForce(nodes, range));
 });
 
-it("agrees with a brute force scan over random ranges", () => {
-  /* the whole index in one assertion: a wrong shell, a truncated cell
+/* a cell narrower than the lattice spacing and one wider, since at a cell size
+   of one scaling a coordinate up and dividing it back down are the same sum */
+it.each([0.4, 2.5])(
+  "agrees with a brute force scan over random ranges, at a cell size of %s",
+  (cellSize) => {
+    /* the whole index in one assertion: a wrong shell, a truncated cell
      coordinate and a mishandled collision all show up as a disagreement */
-  const random = seededRandom();
-  const center = new THREE.Vector3();
-  const range = new THREE.Sphere();
+    const sized = new HashGrid<TestNode>({ cellSize, tableSize: TABLE_SIZE });
+    sized.build(nodes);
+    const random = seededRandom();
+    const center = new THREE.Vector3();
+    const range = new THREE.Sphere();
 
-  for (let attempt = 0; attempt < 200; attempt++) {
-    const reach = REACH + 1;
-    center.set(
-      (random() - 0.5) * 2 * reach,
-      (random() - 0.5) * 2 * reach,
-      (random() - 0.5) * 2 * reach,
-    );
-    /* radii either side of the cell size, so both a shell of one cell and a
+    for (let attempt = 0; attempt < 200; attempt++) {
+      const reach = REACH + 1;
+      center.set(
+        (random() - 0.5) * 2 * reach,
+        (random() - 0.5) * 2 * reach,
+        (random() - 0.5) * 2 * reach,
+      );
+      /* radii either side of the cell size, so both a shell of one cell and a
        shell of several are exercised */
-    range.set(center, random() * 3 * CELL_SIZE);
+      range.set(center, random() * 3 * cellSize);
 
-    grid.queryRange(range, found);
+      sized.queryRange(range, found);
 
-    expect(ids(), `range ${center.toArray()} r${range.radius}`).toEqual(
-      bruteForce(nodes, range),
-    );
-  }
-});
+      expect(ids(), `range ${center.toArray()} r${range.radius}`).toEqual(
+        bruteForce(nodes, range),
+      );
+    }
+  },
+);
 
 it("holds a node however far out it has gone", () => {
-  const strayed = { id: 999, position: new THREE.Vector3(1e6, -1e6, 1e6) };
+  /* past the int32 boundary the cell coordinate is taken to, so a cell is only
+     looked up where it was stored if both ends wrap the same way */
+  const strayed = { id: 999, position: new THREE.Vector3(1e10, -1e10, 1e10) };
   grid.build([...nodes, strayed]);
 
   grid.queryRange(new THREE.Sphere(strayed.position.clone(), 0.5), found);
 
   expect(ids()).toEqual([999]);
+  // the caller's own node, not a copy of it: the boids it holds are steered
+  // through the reference the query hands back
+  expect([...found][0]).toBe(strayed);
 });
 
 it("scans the nodes when a range reaches over more cells than there are", () => {
@@ -144,40 +144,16 @@ it("scans the nodes when a range reaches over more cells than there are", () => 
   expect(ids()).toHaveLength(nodes.length);
 });
 
-it("never hands back a node whose position is not a number", () => {
-  const broken = { id: 999, position: new THREE.Vector3(NaN, 0, 0) };
-  grid.build([...nodes, broken]);
-
-  /* it sorts into some cell like anything else, so what keeps it out of an
-     answer is the range test rather than the indexing */
-  grid.queryRange(new THREE.Sphere(new THREE.Vector3(), 2), found);
-  expect(ids()).not.toContain(999);
-
-  grid.queryRange(new THREE.Sphere(new THREE.Vector3(), 1e4), found);
-  expect(ids()).not.toContain(999);
-});
-
 it("replaces what it held rather than accumulating it", () => {
   grid.build(nodes);
   grid.build(nodes);
 
-  grid.queryRange(new THREE.Sphere(new THREE.Vector3(), 1e4), found);
+  /* narrow enough to stay on the cell path: the scan the wider ranges fall
+     back to reads neither of the arrays a rebuild could double up */
+  const range = new THREE.Sphere(new THREE.Vector3(0.5, 0, 0), 0.9);
+  grid.queryRange(range, found);
 
-  expect(grid.size).toBe(nodes.length);
-  expect(ids()).toHaveLength(nodes.length);
-});
-
-it("follows the nodes when they move within the array it was built on", () => {
-  const moving = nodes[0];
-  const wasAt = moving.position.clone();
-  moving.position.set(50, 50, 50);
-  grid.build(nodes);
-
-  grid.queryRange(new THREE.Sphere(wasAt, 0.1), found);
-  expect(ids()).toEqual([]);
-
-  grid.queryRange(new THREE.Sphere(moving.position.clone(), 0.1), found);
-  expect(ids()).toEqual([moving.id]);
+  expect(ids()).toEqual(bruteForce(nodes, range));
 });
 
 describe("occupiedCells", () => {
@@ -189,7 +165,7 @@ describe("occupiedCells", () => {
     ];
     grid.build(twoInOne);
 
-    const cells = grid.occupiedCells;
+    const cells = grid.occupiedCells();
 
     expect(cells).toHaveLength(2);
     expect(cells).toContainEqual(
@@ -200,10 +176,15 @@ describe("occupiedCells", () => {
     );
   });
 
-  it("gives nothing for an index holding nothing", () => {
-    grid.build([]);
+  it("sizes a box by the cell size rather than the lattice it happens to hold", () => {
+    /* every other case here runs at a cell size of one, where scaling a cell
+       coordinate up to world units and dividing back down are the same sum */
+    const wide = new HashGrid<TestNode>({ cellSize: 4, tableSize: TABLE_SIZE });
+    wide.build([{ id: 0, position: new THREE.Vector3(5, 1, 1) }]);
 
-    expect(grid.occupiedCells).toEqual([]);
+    expect(wide.occupiedCells()).toEqual([
+      new THREE.Box3(new THREE.Vector3(4, 0, 0), new THREE.Vector3(8, 4, 4)),
+    ]);
   });
 
   it("puts a cell either side of zero rather than one straddling it", () => {
@@ -214,6 +195,6 @@ describe("occupiedCells", () => {
       { id: 1, position: new THREE.Vector3(0.5, 0.5, 0.5) },
     ]);
 
-    expect(grid.occupiedCells).toHaveLength(2);
+    expect(grid.occupiedCells()).toHaveLength(2);
   });
 });

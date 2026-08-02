@@ -18,13 +18,9 @@ export default class BoidStore {
   }
 
   /**
-   * Add a boid to the store.
-   *
-   * The index is built in one pass over the whole flock rather than a boid at a
-   * time, so a boid inserted here is not visible to `queryRange` until the next
-   * `reindex`.
-   *
-   * @param boid the boid to insert
+   * Add a boid to the store. The index is built in one pass over the whole
+   * flock rather than a boid at a time, so this one is not visible to
+   * `queryRange` until the next `reindex`.
    */
   public insert(boid: Boid): void {
     if (this.insertedIds.has(boid.compoundId)) {
@@ -36,12 +32,9 @@ export default class BoidStore {
   }
 
   /**
-   * Rebuild the index around where the boids are now.
-   *
-   * The flock itself is untouched: these are the same boid objects frame after
-   * frame, and only the positions the index holds them by have moved on. There
-   * is nowhere a boid can have gone that the index cannot follow it to, so this
-   * has no failure to report.
+   * Rebuild the index around where the boids are now. The flock itself is
+   * untouched: the same boid objects frame after frame, only the positions the
+   * index holds them by have moved on.
    */
   public reindex(): void {
     this.grid.build(this.boidsList);
@@ -51,9 +44,7 @@ export default class BoidStore {
     this.obstacleList.push(obstacle);
   }
 
-  /**
-   * Every boid within `range`, collected into `out`, which is reset first.
-   */
+  /** Every boid within `range`, collected into `out`, which is reset first. */
   public queryRange(
     range: THREE.Sphere,
     /* OUT */ out: Candidates<Boid>,
@@ -62,10 +53,9 @@ export default class BoidStore {
   }
 
   /**
-   * Every boid in the store, in the order they were inserted.
-   *
-   * The array is the store's own and holds its identity across `reindex`, so a
-   * renderer can hang memoisation off it. Read it, don't write to it.
+   * Every boid in the store, in insertion order. The array is the store's own
+   * and holds its identity across `reindex`, so a renderer can hang memoisation
+   * off it. Read it, don't write to it.
    */
   public get boids(): readonly Boid[] {
     return this.boidsList;
@@ -77,7 +67,7 @@ export default class BoidStore {
   }
 
   /** The cells of the index the flock actually occupies. */
-  public get boundaries(): THREE.Box3[] {
-    return this.grid.occupiedCells;
+  public cellBoundaries(): THREE.Box3[] {
+    return this.grid.occupiedCells();
   }
 }

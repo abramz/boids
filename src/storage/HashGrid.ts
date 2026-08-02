@@ -32,13 +32,12 @@ function nextPowerOfTwo(value: number): number {
  * and a fixed table of buckets stands in for the infinite array of cells they
  * index. Two cells can therefore share a bucket, so every entry carries the
  * cell it actually belongs to and a query skips the ones that only collided
- * with it. That makes a collision cost a comparison rather than a wrong answer,
- * and it is what lets the table be smaller than the space it covers.
+ * with it: a collision costs a comparison rather than a wrong answer.
  *
- * Built by counting sort, in three linear passes over two typed arrays and
- * without allocating: count per bucket, prefix sum into offsets, scatter. The
- * flock is rebuilt into it every frame it moves, so the build is as much of the
- * cost as the query.
+ * Built by counting sort, in three linear passes over typed arrays it owns:
+ * count per bucket, prefix sum into offsets, scatter. They are sized to the
+ * flock, so a build allocates only when the flock changes size, and the flock
+ * is rebuilt into it every frame it moves.
  */
 export default class HashGrid<T extends Node> {
   private readonly cellSize: number;
@@ -47,6 +46,12 @@ export default class HashGrid<T extends Node> {
   /** bucket b holds sorted[cellStart[b]..cellStart[b + 1]) */
   private readonly cellStart: Int32Array;
   private nodes: readonly T[] = [];
+  /**
+   * How many of `nodes` are indexed. The array is the caller's and may grow
+   * after a build, where `sorted` and `cells` are fixed at the size they were
+   * built to, so everything below counts by this rather than its live length.
+   */
+  private count = 0;
   private sorted = new Int32Array(0);
   /** the cell each node sits in, three coordinates per node */
   private cells = new Int32Array(0);
@@ -76,6 +81,7 @@ export default class HashGrid<T extends Node> {
    */
   public build(nodes: readonly T[]): void {
     this.nodes = nodes;
+    this.count = nodes.length;
 
     if (this.sorted.length !== nodes.length) {
       this.sorted = new Int32Array(nodes.length);
@@ -112,10 +118,9 @@ export default class HashGrid<T extends Node> {
   }
 
   /**
-   * Collect every node inside the range into `out`, which is reset first.
-   *
-   * Only the nodes actually within the range come back, so a caller filtering
-   * the result again would be re-deriving what the query already knows.
+   * Collect every node inside the range into `out`, which is reset first. Only
+   * the nodes actually within it come back, so a caller has nothing left to
+   * filter.
    */
   public queryRange(range: THREE.Sphere, /* OUT */ out: Candidates<T>): void {
     out.reset();
@@ -126,7 +131,7 @@ export default class HashGrid<T extends Node> {
     const shell = Math.ceil(radius / this.cellSize);
     const span = 2 * shell + 1;
 
-    if (span * span * span >= this.nodes.length) {
+    if (span * span * span >= this.count) {
       /* more cells to walk than there are nodes to test, which is where a wide
          enough perception radius takes this */
       this.collectAll(range, out);
@@ -147,12 +152,17 @@ export default class HashGrid<T extends Node> {
     }
   }
 
-  /** The cell of every node in the index, deduplicated. For the debug overlay. */
-  public get occupiedCells(): THREE.Box3[] {
+  /**
+   * The cell of every node in the index, deduplicated. For the debug overlay.
+   *
+   * A method rather than a getter because it costs what it looks like it costs:
+   * a pass over the index, a key per node, and a box per cell it finds.
+   */
+  public occupiedCells(): THREE.Box3[] {
     const seen = new Set<string>();
     const boxes: THREE.Box3[] = [];
 
-    for (let index = 0; index < this.nodes.length; index++) {
+    for (let index = 0; index < this.count; index++) {
       const base = index * 3;
       const x = this.cells[base];
       const y = this.cells[base + 1];
@@ -181,11 +191,6 @@ export default class HashGrid<T extends Node> {
     }
 
     return boxes;
-  }
-
-  /** How many nodes are indexed. */
-  public get size(): number {
-    return this.nodes.length;
   }
 
   private collectCell(
@@ -220,7 +225,8 @@ export default class HashGrid<T extends Node> {
   }
 
   private collectAll(range: THREE.Sphere, /* OUT */ out: Candidates<T>): void {
-    for (const node of this.nodes) {
+    for (let index = 0; index < this.count; index++) {
+      const node = this.nodes[index];
       if (range.containsPoint(node.position)) {
         out.push(node);
       }
@@ -230,10 +236,9 @@ export default class HashGrid<T extends Node> {
   /**
    * Which cell an axis coordinate falls in.
    *
-   * Floored rather than truncated, so that the cells either side of zero are
-   * distinct rather than sharing the one straddling it, and taken to int32 at
-   * both ends so that a coordinate far enough out to wrap wraps the same way
-   * when it is stored as when it is looked up.
+   * Floored rather than truncated, so the cells either side of zero are
+   * distinct, and taken to int32 at both ends so a coordinate far enough out to
+   * wrap wraps the same way stored as looked up.
    */
   private cellOf(coordinate: number): number {
     return Math.floor(coordinate / this.cellSize) | 0;

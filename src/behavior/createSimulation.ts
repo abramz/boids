@@ -152,7 +152,7 @@ export default function createSimulation({
     boids: storage.boids,
     obstacles: storage.obstacles,
     worldBoundary,
-    cellBoundaries: () => storage.boundaries,
+    cellBoundaries: () => storage.cellBoundaries(),
     step({ delta, properties, forceFactors }: StepOptions): void {
       frameSign = stepSimulation({
         storage,
