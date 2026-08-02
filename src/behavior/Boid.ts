@@ -9,8 +9,18 @@ import {
   seekVelocity,
 } from "./steering";
 import NearestNeighbours from "./NearestNeighbours";
-import type Candidates from "../storage/Candidates";
-import type { Node } from "../storage/HashGrid";
+import type { Node } from "../storage/Node";
+
+/**
+ * What the behaviour layer needs of whatever collected its neighbours. The
+ * buffer is the caller's, filled by the index through an out parameter, so
+ * taking this narrower view of it is what keeps the kernel from pushing to or
+ * resetting a buffer it does not own.
+ */
+export interface NeighbourList<T> {
+  readonly size: number;
+  at(index: number): T;
+}
 
 export interface BoidOptions {
   id: number;
@@ -58,7 +68,7 @@ export type DerivedBoidProperties = BoidProperties & {
 };
 
 export interface ApplyForcesOptions {
-  neighbors: Candidates<Boid>;
+  neighbors: NeighbourList<Boid>;
   boundary: THREE.Box3;
   obstacles?: readonly Obstacle[];
   properties: DerivedBoidProperties;
@@ -314,7 +324,7 @@ export default class Boid implements Node {
    * 2008), which is what keeps a flock coherent as it compresses and spreads.
    */
   public determineFlockingTargets(
-    neighbors: Candidates<Boid>,
+    neighbors: NeighbourList<Boid>,
     perceptionRadius: number,
     cosHalfFieldOfView: number,
     desiredSeparation: number,

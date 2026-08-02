@@ -2,7 +2,8 @@ import * as THREE from "three";
 import { beforeEach, describe, expect, it } from "vitest";
 import { seededRandom } from "../../__fixtures__/seededConfig";
 import Candidates from "../Candidates";
-import HashGrid, { Node } from "../HashGrid";
+import HashGrid from "../HashGrid";
+import { Node } from "../Node";
 
 interface TestNode extends Node {
   id: number;

@@ -1,7 +1,6 @@
 import * as THREE from "three";
-import type { Node } from "../storage/HashGrid";
 
-export default class Obstacle implements Node {
+export default class Obstacle {
   public position: THREE.Vector3;
   public radius: number;
 

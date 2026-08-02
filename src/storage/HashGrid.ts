@@ -1,9 +1,6 @@
 import * as THREE from "three";
 import Candidates from "./Candidates";
-
-export interface Node {
-  position: THREE.Vector3;
-}
+import type { Node } from "./Node";
 
 export interface HashGridOptions {
   /** the side of one cell, in world units */
