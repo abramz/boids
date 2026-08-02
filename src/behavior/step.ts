@@ -25,14 +25,10 @@ export interface StepSimulationOptions {
  * Advance the simulation by one frame.
  *
  * Half the flock works out what it wants to do per frame, alternating by
- * `frameSign`, because searching the index for neighbours is the expensive part
- * of a frame and the answer barely moves between two of them. Every boid then
- * flies on that answer, every frame: what a boid steers towards changes slowly,
- * but where it is changes constantly, and skipping it every other frame is a
- * visible stutter for no saving.
- *
- * Storage is rebuilt on the negative half-frame, so the index stays roughly
- * accurate without being rebuilt twice per pair.
+ * `frameSign`, because searching the index is the expensive part of a frame and
+ * the answer barely moves between two of them. Every boid then flies on that
+ * answer, every frame: where a boid is changes constantly, and skipping that is
+ * a visible stutter for no saving.
  *
  * @returns the `frameSign` to use on the next frame
  */
@@ -47,8 +43,6 @@ export default function stepSimulation({
   worldBoundary,
 }: StepSimulationOptions): number {
   if (delta > maxDelta) {
-    /* the frame is dropped rather than integrated, so the flock holds still
-       instead of jumping to where it would have been */
     return frameSign;
   }
 
@@ -56,7 +50,6 @@ export default function stepSimulation({
   const start = frameSign > 0 ? 0 : halfSize;
   const end = frameSign > 0 ? halfSize : boids.length;
 
-  /* half the flock re-reads its neighbourhood and re-aims */
   for (let index = start; index < end; index++) {
     const boid = boids[index];
     tempBoundary.set(boid.position, properties.perceptionRadius);
@@ -79,9 +72,13 @@ export default function stepSimulation({
     boid.applyVelocity(delta);
   }
 
-  if (frameSign < 0) {
-    storage.reindex();
-  }
+  /* every frame, not every other one: a query picks its cells from where the
+     index last saw a boid and then filters on where the boid actually is, so an
+     index a frame out of date drops whatever crossed a cell edge in between.
+     Which half that lands on is fixed by the array order, so rebuilding on one
+     frame of the pair biases the same flocks every frame, and the loss grows
+     with the delta. */
+  storage.reindex();
 
   return frameSign * -1;
 }

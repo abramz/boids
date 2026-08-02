@@ -18,8 +18,8 @@ import { DENSE_CONFIG, runSimulation } from "./helpers/simulate";
 describe("neighbour discovery", () => {
   const properties = deriveBoidProperties(DENSE_CONFIG.properties);
 
-  it("gives every boid with flockmates in range a non-zero alignment force", () => {
-    const { simulation, boids } = runSimulation({ steps: 30 });
+  it("hands every boid the flockmates it can see, and steers it by them", () => {
+    const { simulation, boids } = runSimulation({ steps: 300 });
     const cosHalfFOV = Math.cos(
       (properties.fieldOfViewDeg * THREE.MathUtils.DEG2RAD) / 2,
     );
@@ -65,13 +65,10 @@ describe("neighbour discovery", () => {
       .map((boid) => boid.compoundId);
 
     expect(blind).toEqual([]);
-  });
 
-  it("keeps the index level with the flock as it moves", () => {
     /* stop rebuilding the index and every boid quietly goes on flocking
        against where the flock was at t=0, which looks entirely plausible and
        is why this asserts the neighbourhood rather than the frame count */
-    const { simulation, boids } = runSimulation({ steps: 300 });
     const range = new THREE.Sphere();
     const candidates = new Candidates<Boid>();
 
@@ -89,6 +86,47 @@ describe("neighbour discovery", () => {
               properties.perceptionRadius && !found.has(other),
         )
         .map((other) => `${boid.compoundId} could not see ${other.compoundId}`);
+    });
+
+    expect(missed).toEqual([]);
+  });
+
+  it("keeps the index level with the flock on every frame, not every other one", () => {
+    /* a long frame, where a boid covers enough ground to leave the cell it was
+       indexed in. Everything above runs at a delta where it does not. */
+    const range = new THREE.Sphere();
+    const candidates = new Candidates<Boid>();
+    const missed: string[] = [];
+
+    runSimulation({
+      steps: 120,
+      delta: 0.2,
+      onStep: ({ storage, boids }, step) => {
+        if (step < 100 || missed.length > 0) {
+          return;
+        }
+
+        boids.forEach((boid) => {
+          storage.queryRange(
+            range.set(boid.position, properties.perceptionRadius),
+            candidates,
+          );
+          const found = new Set(candidates);
+
+          boids.forEach((other) => {
+            if (
+              other !== boid &&
+              other.position.distanceTo(boid.position) <=
+                properties.perceptionRadius &&
+              !found.has(other)
+            ) {
+              missed.push(
+                `frame ${step}: ${boid.compoundId} could not see ${other.compoundId}`,
+              );
+            }
+          });
+        });
+      },
     });
 
     expect(missed).toEqual([]);
