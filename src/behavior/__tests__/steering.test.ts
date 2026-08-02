@@ -200,14 +200,16 @@ describe("drawToCenter", () => {
 });
 
 describe("avoidObstacles", () => {
-  function steer(obstacles: Obstacle[]): THREE.Vector3 {
+  const UNCLIPPED_FORCE = 1000;
+
+  function steer(obstacles: Obstacle[], maxForce = MAX_FORCE): THREE.Vector3 {
     avoidObstacles(
       position,
       velocity,
       obstacles,
       PERCEPTION_RADIUS,
       MAX_SPEED,
-      MAX_FORCE,
+      maxForce,
       out,
     );
 
@@ -246,6 +248,22 @@ describe("avoidObstacles", () => {
 
     expect(force.x).toBeLessThan(0);
     expect(force.z).toBeCloseTo(0, 12);
+  });
+
+  it("carries around an obstacle rather than back off it at half the approach", () => {
+    velocity.set(MAX_SPEED, 0, 0);
+    const radius = 1;
+    const halfway = radius + PERCEPTION_RADIUS / 2;
+
+    const force = steer(
+      [new Obstacle(new THREE.Vector3(halfway, 0, 0), radius)],
+      UNCLIPPED_FORCE,
+    );
+    const desiredVelocity = force.add(velocity);
+
+    expect(Math.abs(desiredVelocity.z)).toBeGreaterThan(
+      2 * Math.abs(desiredVelocity.x),
+    );
   });
 
   it("steers around every obstacle in range, not just the last", () => {
