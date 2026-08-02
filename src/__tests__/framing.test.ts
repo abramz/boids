@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { CAMERA_FOV, cameraDistance, fogDensity } from "../theme";
 import {
   SETTLED_STEPS,
@@ -57,12 +57,18 @@ function flightSample() {
 }
 
 describe("the shipped framing", () => {
+  let flight: ReturnType<typeof flightSample>;
+
+  beforeAll(() => {
+    flight = flightSample();
+  });
+
   it("keeps most of the flock inside the camera's frustum", () => {
-    expect(flightSample().inFrame).toBeGreaterThan(0.6);
+    expect(flight.inFrame).toBeGreaterThan(0.6);
   });
 
   it("fogs the flock where it flies rather than where the world box ends", () => {
-    const { medianDepth } = flightSample();
+    const { medianDepth } = flight;
     const density = fogDensity(WORLD_SIZE);
     const fogAt = (depth: number) =>
       1 - Math.exp(-(density * density) * (depth * depth));

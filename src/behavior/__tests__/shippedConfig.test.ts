@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import Boid from "../Boid";
 import * as config from "../../config";
 import { runSimulation } from "./helpers/simulate";
@@ -13,8 +13,13 @@ const furthest = (boids: readonly Boid[]): number =>
   boids.reduce((worst, boid) => Math.max(worst, boid.position.length()), 0);
 
 describe("the shipped configuration", () => {
+  let shipped: ReturnType<typeof runSimulation>;
+
+  beforeAll(() => {
+    shipped = runSimulation({ config: SHIPPED, steps: STEPS });
+  });
+
   it("flies the flock rather than leaving it on the speed floor", () => {
-    const shipped = runSimulation({ config: SHIPPED, steps: STEPS });
     const unaligned = runSimulation({
       config: SHIPPED,
       steps: STEPS,
@@ -28,7 +33,6 @@ describe("the shipped configuration", () => {
   });
 
   it("keeps the flock on the leash with edge avoidance shipped off", () => {
-    const shipped = runSimulation({ config: SHIPPED, steps: STEPS });
     const loose = runSimulation({
       config: SHIPPED,
       steps: STEPS,
@@ -40,19 +44,23 @@ describe("the shipped configuration", () => {
   });
 
   it("still catches the flock at the loosest the panel allows", () => {
-    const horizon = STEPS * 4;
-    const floored = runSimulation({
-      config: SHIPPED,
-      steps: horizon,
-      forceFactors: { drawToCenterFactor: config.MIN_DRAW_TO_CENTER_FACTOR },
-    });
-    const loose = runSimulation({
-      config: SHIPPED,
-      steps: horizon,
-      forceFactors: { drawToCenterFactor: 0 },
-    });
+    const excursion = (drawToCenterFactor: number): number => {
+      let peak = 0;
+      runSimulation({
+        config: SHIPPED,
+        steps: STEPS * 2,
+        forceFactors: { drawToCenterFactor },
+        onStep: ({ boids }) => {
+          peak = Math.max(peak, furthest(boids));
+        },
+      });
 
-    expect(furthest(floored.boids)).toBeLessThan(HALF_WORLD * 10);
-    expect(furthest(loose.boids)).toBeGreaterThan(HALF_WORLD * 10);
+      return peak;
+    };
+
+    expect(excursion(config.MIN_DRAW_TO_CENTER_FACTOR)).toBeLessThan(
+      HALF_WORLD * 13,
+    );
+    expect(excursion(0)).toBeGreaterThan(HALF_WORLD * 13);
   });
 });
