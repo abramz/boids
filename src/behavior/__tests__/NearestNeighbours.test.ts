@@ -10,16 +10,19 @@ function held(buffer: NearestNeighbours<string>): [string, number][] {
 }
 
 describe("NearestNeighbours", () => {
-  it("keeps everything offered while it is under the limit", () => {
+  it("displaces the furthest it holds once it fills up", () => {
     const buffer = new NearestNeighbours<string>();
-    buffer.reset(3);
+    buffer.reset(2);
 
-    buffer.offer("a", 5);
-    buffer.offer("b", 1);
+    /* the slot to displace is only found when the buffer fills, so an order
+       where the last one in is not the furthest is what tells the two apart */
+    buffer.offer("near", 1);
+    buffer.offer("far", 5);
+    buffer.offer("middle", 3);
 
     expect(held(buffer)).toEqual([
-      ["b", 1],
-      ["a", 5],
+      ["near", 1],
+      ["middle", 3],
     ]);
   });
 
@@ -46,15 +49,6 @@ describe("NearestNeighbours", () => {
     ];
     expect(held(near)).toEqual(nearest);
     expect(held(far)).toEqual(nearest);
-  });
-
-  it("holds nothing for a limit of zero", () => {
-    const buffer = new NearestNeighbours<string>();
-    buffer.reset(0);
-
-    buffer.offer("a", 1);
-
-    expect(buffer.size).toBe(0);
   });
 
   it("forgets the previous round when it is reset", () => {

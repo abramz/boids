@@ -50,23 +50,24 @@ export interface StepOptions {
 }
 
 /**
- * A built world and the state of running it.
- *
- * Everything a frame needs beyond the clock and the current tuning lives in
- * here: which half of the flock re-aims next, the boundary the boids are held
- * inside, and the derivation their properties go through on the way in. A
- * caller drives it with a delta.
+ * A built world and the state of running it. Everything a frame needs beyond
+ * the clock and the current tuning lives in here, and a caller drives it with a
+ * delta.
  */
 export interface Simulation {
   /**
-   * The flock and the index over it. The behaviour layer's own state, and what
-   * its tests inspect; a renderer wants the read-only projections below rather
-   * than a store it could insert into.
+   * The flock and the index over it. Exposed for the callers that drive the
+   * store itself - `step.ts` and the benchmark, which time a rebuild and a
+   * query apart from a frame. A renderer wants the projections below.
    */
   readonly storage: BoidStore;
   readonly boids: readonly Boid[];
   readonly obstacles: readonly Obstacle[];
-  /** The cube the boids steer to stay inside, and are drawn back to. */
+  /**
+   * The cube edge avoidance turns boids at, and that the draw to center takes
+   * its centre and its length scale from. With edge avoidance shipped off, the
+   * flock settles outside it rather than within it.
+   */
   readonly worldBoundary: THREE.Box3;
   /** The occupied cells of the index, as they stand. For the debug overlay. */
   cellBoundaries(): THREE.Box3[];
@@ -77,8 +78,8 @@ export interface Simulation {
  * Build the flock, the obstacles it flies around, and the index over the flock.
  *
  * The index covers unbounded space, so the world here is only what the boids
- * steer to stay inside and are drawn back to; it is not a wall, and nothing
- * goes wrong for the index when a boid overshoots it.
+ * steer to stay inside; it is not a wall, and nothing goes wrong for the index
+ * when a boid overshoots it.
  */
 export default function createSimulation({
   flockSize,

@@ -18,17 +18,14 @@ export function queriedRadius(
 /**
  * Fill in the properties that follow from the configured ones.
  *
- * The radii widen to account for boids having a size: a boid perceives another
- * once its surface is in range, and separation is measured surface to surface.
+ * The radii widen because boids have a size: one perceives another once its
+ * surface is in range, and separation is measured surface to surface.
  *
- * `edgeMargin` is where edge avoidance starts, and it is a braking distance
- * rather than a spacing: turning around under the hardest steer it has takes a
- * boid `maxSpeed^2 / (2 * maxForce)`, and it overruns the wall by whatever it
- * is given short of that.
- *
- * `cosHalfFieldOfView` is what the field of view is actually compared against,
- * so it is worked out here rather than by every boid that re-aims. It goes
- * negative past 180 degrees, which the comparison handles without a case.
+ * `edgeMargin` is a runway rather than a spacing: `maxSpeed^2 / (2 * maxForce)`
+ * plus the boid's own reach, which is what it takes to stop dead. A boid held
+ * above `minSpeed` turns instead of stopping, and turning takes twice that, so
+ * this is where avoidance starts pushing rather than a promise that no boid
+ * crosses the wall. What has crossed is the leash's problem.
  */
 export default function deriveBoidProperties(
   properties: BoidProperties,

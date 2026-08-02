@@ -7,9 +7,7 @@ import Obstacle from "../obstacle/Obstacle";
  * going. Each writes its answer into an out vector and returns it.
  *
  * Free of Boid on purpose: none of them needs a boid's identity or its flock,
- * only its position and heading, and a behaviour that can be exercised without
- * building one is a behaviour whose tests do not have to reach through a class
- * to get at it.
+ * only its position and heading.
  */
 
 /* single threaded, so every boid is steered through the same scratch */
@@ -115,10 +113,9 @@ export function avoidEdges(
       continue;
     }
 
-    /* away from the nearer wall rather than off whichever side was tested
-       first: a margin wider than the world, which a low enough maxForce
-       derives, puts a boid inside both at once and an ordered test would steer
-       the whole flock into the far one */
+    /* away from the nearer wall rather than whichever side was tested first: a
+       margin wider than the world, which a low enough maxForce derives, puts a
+       boid inside both at once */
     tempDesired.set(0, 0, 0);
     tempDesired[axis] = fromMin <= fromMax ? 1 : -1;
 
@@ -136,15 +133,11 @@ export function avoidEdges(
  *
  * Zero while a boid is inside it, so this is no part of how the flock flies and
  * all of whether it comes back. Outside, it grows with how far a boid has
- * strayed, and it does not have to beat `maxForce` to do its job: it only has
- * to take over the direction of what is summed, after which the limit on the
- * total aims the whole budget home.
+ * strayed, and it does not have to beat `maxForce`: it only has to take over
+ * the direction of what is summed, after which the limit on the total aims the
+ * whole budget home.
  *
- * Edge avoidance is the behaviour that turns a boid at a wall, and it is
- * tunable down to nothing. This is the one that is not: the index has no outer
- * wall to catch a flock that has slipped its edges, so something has to.
- *
- * Spherical where edge avoidance is three axis-aligned pushes, which is the
+ * Spherical, where edge avoidance is three axis-aligned pushes, which is the
  * shape that suits a leash rather than a wall.
  */
 export function drawToCenter(
@@ -184,9 +177,8 @@ export function drawToCenter(
  *
  * The turn is horizontally tangential far out, so a boid carries its momentum
  * around an obstacle rather than reversing across its face, and swings out to
- * straight away from it as the surface closes. A pure tangent has no component
- * away from the obstacle at all, and leaves a boid grazing into one it is
- * already turning around.
+ * straight away from it as the surface closes. A pure tangent has no outward
+ * component at all, and leaves a boid grazing into what it is turning around.
  *
  * Only obstacles the boid is closing on count. Steering by tangent alone puts
  * `-velocity . toObstacle` into the force, which for an obstacle already behind
@@ -227,10 +219,8 @@ export function avoidObstacles(
       tempDesired.negate();
     }
 
-    /* squared rather than linear so the turn stays tangential across most of
-       the approach and only swings outward as the surface closes; ramped
-       straight the outward half swamps the tangent at every useful range and a
-       boid meets an obstacle head on instead of carrying around it */
+    /* squared rather than linear, or the outward half swamps the tangent at
+       every useful range and a boid meets an obstacle head on */
     const closeness = THREE.MathUtils.clamp(
       1 - (distance - obstacle.radius) / perceptionRadius,
       0,

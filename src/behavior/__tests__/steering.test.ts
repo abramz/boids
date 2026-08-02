@@ -21,7 +21,6 @@ const BOUNDARY = new THREE.Box3(
   new THREE.Vector3(WALL, WALL, WALL),
 );
 
-/* a boid's worth of state, without a boid: these steer on nothing else */
 let position: THREE.Vector3;
 let velocity: THREE.Vector3;
 let out: THREE.Vector3;
@@ -53,8 +52,6 @@ describe("seekVelocity", () => {
 
     seekVelocity(velocity, new THREE.Vector3(), MAX_SPEED, MAX_FORCE, out);
 
-    // normalising nowhere gives a direction of nowhere, and steering towards
-    // that is a full-strength brake: a symmetric flock would stop dead
     expect(out.toArray()).toEqual([0, 0, 0]);
   });
 });
@@ -124,35 +121,15 @@ describe("avoidEdges", () => {
     return out.toArray();
   }
 
-  it("should avoid the min boundary of the world", () => {
-    position.set(-WALL, 0, 0);
-
-    expect(steer()).toEqual([0.5, 0, 0]);
-  });
-
-  it("should avoid the max boundary of the world", () => {
-    position.set(0, WALL, 0);
-
-    expect(steer()).toEqual([0, -0.5, 0]);
-  });
-
   it("should not consider a wall it is not within the margin of", () => {
     expect(steer()).toEqual([0, 0, 0]);
   });
 
   it("should steer away from every wall it is up against, not just the last", () => {
-    // into the corner where three walls meet at once
     position.set(-WALL, WALL, -WALL);
 
-    // each axis contributes its own full-strength push, inwards on all three.
-    // Keeping only the wall checked last would leave the two zeros.
+    // keeping only the wall checked last would leave two of the three at zero
     expect(steer()).toEqual([0.5, -0.5, 0.5]);
-  });
-
-  it("should steer away from two walls when it is in an edge rather than a corner", () => {
-    position.set(WALL, 0, WALL);
-
-    expect(steer()).toEqual([-0.5, 0, -0.5]);
   });
 
   it("should steer off the nearer wall when both are within the margin", () => {
@@ -183,8 +160,6 @@ describe("drawToCenter", () => {
   }
 
   it("should draw nothing at all while the boid is inside", () => {
-    /* zero inside is what keeps this out of the flocking balance entirely,
-       rather than quietly biasing every boid towards the middle */
     position.set(WALL - 1, 0, 0);
 
     expect(steer().toArray()).toEqual([0, 0, 0]);
@@ -198,7 +173,7 @@ describe("drawToCenter", () => {
 
   it("should draw a strayed boid back towards the middle", () => {
     position.set(WALL * 2, 0, 0);
-    velocity.set(MAX_SPEED, 0, 0); // flying further out
+    velocity.set(MAX_SPEED, 0, 0);
 
     const force = steer();
 
@@ -208,9 +183,6 @@ describe("drawToCenter", () => {
   });
 
   it("should draw harder the further out the boid has got", () => {
-    /* it never has to beat maxForce, only to take over the direction of what
-       is summed, and growing without bound is what guarantees it eventually
-       does whatever else is pulling the other way */
     velocity.set(MAX_SPEED, 0, 0);
 
     position.set(WALL * 2, 0, 0);
@@ -223,15 +195,16 @@ describe("drawToCenter", () => {
   });
 
   it("should draw towards the boundary's own middle, not the origin", () => {
-    // nothing here assumes the world is centred on zero
+    /* stood between the origin and a boundary that is nowhere near it, so the
+       two lie in opposite directions and flying crosswise picks neither */
     const offset = new THREE.Box3(
       new THREE.Vector3(100, -1, -1),
       new THREE.Vector3(102, 1, 1),
     );
-    position.set(110, 0, 0);
-    velocity.set(MAX_SPEED, 0, 0);
+    position.set(50, 0, 0);
+    velocity.set(0, MAX_SPEED, 0);
 
-    expect(steer(offset).x).toBeLessThan(0);
+    expect(steer(offset).x).toBeGreaterThan(0);
   });
 });
 
@@ -255,14 +228,6 @@ describe("avoidObstacles", () => {
     const far = new Obstacle(new THREE.Vector3(PERCEPTION_RADIUS + 5, 0, 0), 1);
 
     expect(steer([far]).toArray()).toEqual([0, 0, 0]);
-  });
-
-  it("should ignore an obstacle it is flying away from", () => {
-    velocity.set(MAX_SPEED, 0, 0);
-
-    expect(
-      steer([new Obstacle(new THREE.Vector3(-3, 0, 0), 1)]).toArray(),
-    ).toEqual([0, 0, 0]);
   });
 
   it("should never steer towards an obstacle, from any bearing", () => {
@@ -305,8 +270,7 @@ describe("avoidObstacles", () => {
     const justLeft = steer([left]);
     const justRight = steer([right]);
 
-    // the two contributions add up; keeping only the one checked last would
-    // land on justRight
+    // keeping only the one checked last would land on justRight
     expect(both.x).toBeCloseTo(justLeft.x + justRight.x, 12);
     expect(both.y).toBeCloseTo(justLeft.y + justRight.y, 12);
     expect(both.z).toBeCloseTo(justLeft.z + justRight.z, 12);

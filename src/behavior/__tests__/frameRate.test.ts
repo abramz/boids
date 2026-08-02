@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { describe, expect, it } from "vitest";
-import { DENSE_CONFIG, runSimulation } from "./helpers/simulate";
+import { FLOCKING_CONFIG, runSimulation } from "./helpers/simulate";
 
 /**
  * The simulation integrates on a clock, not on frames, so the same stretch of
@@ -16,12 +16,13 @@ describe("frame rate independence", () => {
   const FASTEST = 144;
 
   /**
-   * Flocking switched off, leaving edge avoidance flying the boids on its own.
+   * Flocking switched off, leaving the containment forces - the wall, the leash
+   * and the obstacles - flying the boids.
    *
    * Two runs of a flock diverge chaotically within a second, so how often any
    * of them happens to be at a wall becomes a coin toss rather than a
-   * measurement. Left to itself the edge force gives every boid the same
-   * deterministic bounce at either frame rate, which is the thing being
+   * measurement. None of what is left reads a neighbour, so every boid takes
+   * the same deterministic path at either frame rate, which is the thing being
    * compared.
    */
   const EDGES_ONLY = {
@@ -51,7 +52,7 @@ describe("frame rate independence", () => {
     let speeds = 0;
     let samples = 0;
     const previous = new Map<string, THREE.Vector3>();
-    const halfWorldSize = DENSE_CONFIG.worldSize / 2;
+    const halfWorldSize = FLOCKING_CONFIG.worldSize / 2;
 
     const { boids } = runSimulation({
       steps: Math.round(DURATION * fps),

@@ -1,9 +1,7 @@
+import { PinnedWorld, pinnedWorld } from "../../../__fixtures__/pinnedWorld";
 import { seededRandom } from "../../../__fixtures__/seededRandom";
 import Boid, { BoidProperties, ForceFactors } from "../../Boid";
-import createSimulation, {
-  CreateSimulationOptions,
-  Simulation,
-} from "../../createSimulation";
+import createSimulation, { Simulation } from "../../createSimulation";
 
 /** One frame at 60fps, which is what the goldens were recorded at. */
 export const FRAME_DELTA = 1 / 60;
@@ -15,63 +13,43 @@ export interface SimulationConfig {
   worldSize: number;
   properties: BoidProperties;
   forceFactors: ForceFactors;
-  /**
-   * The rest of the world's shape, pinned here rather than defaulted from
-   * config so retuning production moves the flock and not these suites.
-   */
-  world: Pick<
-    CreateSimulationOptions,
-    | "gridCellSize"
-    | "gridBucketsPerBoid"
-    | "obstacleOffset"
-    | "obstacleRadiusScale"
-    | "maxDelta"
-  >;
+  world: PinnedWorld;
 }
 
+const FLOCKING_PROPERTIES: BoidProperties = {
+  perceptionRadius: 2.5,
+  fieldOfViewDeg: 230,
+  desiredSeparation: 0.8,
+  neighbourLimit: 8,
+  minSpeed: 2,
+  maxSpeed: 4,
+  /* units per second squared, like config.MAX_FORCE */
+  maxForce: 12,
+  boidSize: 0.1,
+};
+
 /**
- * A denser world than src/__fixtures__/seededConfig.ts.
+ * The world the behaviour suites measure flocking in.
  *
- * Emergent flocking is a statistical effect: at 25 boids in a 10-unit cube a
- * boid's perception sphere is mostly empty, so alignment and cohesion barely
- * register above the edge-avoidance force. This packs enough boids together for
- * the flocking behaviours to actually be measurable.
+ * Separate from src/__fixtures__/seededConfig.ts, which is sized to be recorded
+ * and diffed by hand and ships the edge and obstacle weights that swamp
+ * everything else. This one gives the flock room to fly and winds those two
+ * down, so what an assertion sees is the flocking behaviour it asks about.
  */
-export const DENSE_CONFIG: SimulationConfig = {
+export const FLOCKING_CONFIG: SimulationConfig = {
   flockSize: 24,
   flockCount: 4,
   worldSize: 10,
-  properties: {
-    perceptionRadius: 2.5,
-    fieldOfViewDeg: 230,
-    desiredSeparation: 0.8,
-    neighbourLimit: 8,
-    minSpeed: 2,
-    maxSpeed: 4,
-    /* units per second squared, like config.MAX_FORCE */
-    maxForce: 12,
-    boidSize: 0.1,
-  },
+  properties: FLOCKING_PROPERTIES,
   forceFactors: {
     alignmentFactor: 1,
     cohesionFactor: 1,
     separationFactor: 1,
-    // the shipped values swamp every other force and make flocking effects
-    // unmeasurable; keep edges and obstacles gentle so the flocking behaviours
-    // are what the assertions actually see
     avoidEdgesFactor: 1,
     avoidObstaclesFactor: 1,
     drawToCenterFactor: 1,
   },
-  world: {
-    /* the perception radius as deriveBoidProperties widens it, which is the
-       radius actually queried and so the cell size that costs least */
-    gridCellSize: 2.6,
-    gridBucketsPerBoid: 4,
-    obstacleOffset: 0.5,
-    obstacleRadiusScale: 1 / 24,
-    maxDelta: 0.25,
-  },
+  world: pinnedWorld(FLOCKING_PROPERTIES),
 };
 
 export interface RunOptions {
@@ -98,7 +76,7 @@ export interface RunResult {
 
 /** Runs the real simulation, headlessly and deterministically. */
 export function runSimulation({
-  config = DENSE_CONFIG,
+  config = FLOCKING_CONFIG,
   steps = 120,
   forceFactors = {},
   properties = {},

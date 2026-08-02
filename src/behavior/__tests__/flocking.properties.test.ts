@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { describe, expect, it } from "vitest";
 import Boid from "../Boid";
 import {
-  DENSE_CONFIG,
+  FLOCKING_CONFIG,
   meanHeadingAgreement,
   meanIntraFlockDistance,
   meanNearestNeighbourDistance,
@@ -24,11 +24,18 @@ describe("emergent flocking behaviour", () => {
   });
 
   it("cohesion pulls flockmates closer together", () => {
-    const cohesive = runSimulation();
-    const scattered = runSimulation({ forceFactors: { cohesionFactor: 0 } });
+    /* run long enough for the two to separate by more than the noise: over the
+       first couple of hundred frames a flock still unwinding from its scatter
+       is drawing in under separation and the walls whether cohesion is on or
+       not, and the two arms sit within a percent of each other */
+    const cohesive = runSimulation({ steps: 600 });
+    const scattered = runSimulation({
+      steps: 600,
+      forceFactors: { cohesionFactor: 0 },
+    });
 
     expect(meanIntraFlockDistance(cohesive.boids)).toBeLessThan(
-      meanIntraFlockDistance(scattered.boids),
+      meanIntraFlockDistance(scattered.boids) * 0.9,
     );
   });
 
@@ -72,7 +79,7 @@ describe("emergent flocking behaviour", () => {
       return total / samples;
     };
 
-    expect(meanTurnPerFrame(DENSE_CONFIG.properties.minSpeed)).toBeLessThan(
+    expect(meanTurnPerFrame(FLOCKING_CONFIG.properties.minSpeed)).toBeLessThan(
       meanTurnPerFrame(0),
     );
   });
@@ -95,15 +102,20 @@ describe("emergent flocking behaviour", () => {
         }),
     });
 
-    // createSimulation builds the obstacle lattice on every run, headless
-    // included, so every force in the record is reachable from here
-    [
-      "alignment",
-      "cohesion",
-      "separation",
-      "avoidEdges",
-      "avoidObstacles",
-    ].forEach((force) =>
+    /* createSimulation builds the obstacle lattice on every run, headless
+       included, and FLOCKING_CONFIG flies every factor at 1, so every force in
+       the record is reachable from here: a force that never fires is one wired
+       to nothing rather than one this world does not ask for */
+    (
+      [
+        "alignment",
+        "cohesion",
+        "separation",
+        "avoidEdges",
+        "avoidObstacles",
+        "drawToCenter",
+      ] as const
+    ).forEach((force) =>
       expect(live.has(force), `${force} never contributed`).toBe(true),
     );
   });

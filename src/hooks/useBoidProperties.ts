@@ -4,8 +4,9 @@ import { BoidProperties } from "../behavior/Boid";
 
 /**
  * The tunable half of a boid's properties, bounded by the world this machine
- * got rather than the largest one: a perception radius wider than the world
- * makes every boid a neighbour of every other.
+ * got rather than the largest one. Past the world's own width a wider radius
+ * buys nothing: the neighbour cap already decides how many of what it turns up
+ * a boid steers by, so all the extra reach costs is the query.
  */
 export default function useBoidProperties(
   worldSize: number,

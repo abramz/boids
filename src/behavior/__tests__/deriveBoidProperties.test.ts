@@ -35,9 +35,7 @@ describe("deriveBoidProperties", () => {
     // v^2 / 2a from full speed under the hardest steer, plus its own reach: any
     // less runway and the boid physically cannot turn before it is through
     expect(deriveBoidProperties(PROPERTIES).edgeMargin).toBeCloseTo(2.7, 12);
-  });
 
-  it("keeps the margin ahead of the braking distance at any tuning", () => {
     [
       { maxSpeed: 1, maxForce: 100 },
       { maxSpeed: 40, maxForce: 5 },

@@ -42,11 +42,7 @@ export type BoidProperties = {
   perceptionRadius: number;
   fieldOfViewDeg: number;
   desiredSeparation: number;
-  /**
-   * How many neighbours a boid flocks with, taken nearest first. A radius alone
-   * hands it however many the local crowding happens to put in range, and the
-   * steering forces read the mean of that set as if it were a firm preference.
-   */
+  /** How many neighbours a boid flocks with, taken nearest first. */
   neighbourLimit: number;
   /** Boids do not hover; this is the speed they fall back to when idle. */
   minSpeed: number;
@@ -101,8 +97,6 @@ const nearestFlockmates = new NearestNeighbours<Boid>();
 const nearestAnyone = new NearestNeighbours<Boid>();
 const tempCounts: FlockingCounts = { flockmates: 0, separation: 0 };
 
-/* a boid with no velocity at all has no heading to hold, so it needs one from
-   somewhere rather than sitting still forever */
 const COAST_HEADING = new THREE.Vector3(0, 0, 1);
 
 function clearForce(force: THREE.Vector3Tuple): void {
@@ -147,9 +141,6 @@ export default class Boid implements Node {
     return `${this.parentId}-${this.id}`;
   }
 
-  /**
-   * Apply all of the behavioral forces to determine the boids acceleration
-   */
   public applyForces({
     neighbors,
     obstacles = [],
@@ -233,20 +224,27 @@ export default class Boid implements Node {
       );
     }
 
-    avoidEdges(
-      this.position,
-      this.velocity,
-      boundary,
-      edgeMargin,
-      maxSpeed,
-      maxForce,
-      tempForce,
-    );
-    this.accumulate(
-      forceFactors.avoidEdgesFactor,
-      this.forces.avoidEdges,
-      tempForce,
-    );
+    /* skipped rather than multiplied away: the factor ships at zero and the
+       flock settles outside the box, which is where avoidEdges' per-axis skip
+       stops firing and every re-aiming boid steers off three walls for nothing */
+    if (forceFactors.avoidEdgesFactor === 0) {
+      clearForce(this.forces.avoidEdges);
+    } else {
+      avoidEdges(
+        this.position,
+        this.velocity,
+        boundary,
+        edgeMargin,
+        maxSpeed,
+        maxForce,
+        tempForce,
+      );
+      this.accumulate(
+        forceFactors.avoidEdgesFactor,
+        this.forces.avoidEdges,
+        tempForce,
+      );
+    }
 
     avoidObstacles(
       this.position,
@@ -287,10 +285,9 @@ export default class Boid implements Node {
    * through here as well as into `applyVelocity`; integrating it raw would make
    * how hard a boid can steer a function of the frame rate.
    *
-   * Speed is held above `minSpeed` as well as under `maxSpeed`. Steering is a
-   * force budget, so a boid turns through `maxForce / speed` radians a second:
-   * cohesion and separation oppose each other in a packed flock and the balance
-   * between them settles at a crawl, where that budget becomes a spin.
+   * Speed is held above `minSpeed` as well as under `maxSpeed`, because a boid
+   * turns through `maxForce / speed` radians a second and one left at a crawl
+   * spins instead of flying.
    */
   public applyAcceleration(
     delta: number,
@@ -311,9 +308,6 @@ export default class Boid implements Node {
     );
   }
 
-  /**
-   * apply the current velocity scaled by the time delta to position
-   */
   public applyVelocity(delta: number): void {
     this.position.addScaledVector(this.velocity, delta);
   }
@@ -321,18 +315,13 @@ export default class Boid implements Node {
   /**
    * Work out what this boid's neighbourhood wants it to do.
    *
-   * Two neighbourhoods, each capped at `neighbourLimit`: its own flock, which
-   * alignment and cohesion read, and everything around it, which separation
-   * reads. Sharing one would let a boid surrounded by other flocks find nothing
-   * to fly with, and capping is what makes the answer independent of how
-   * crowded the world happens to be. Uncapped, a boid in a dense patch averages
-   * every heading in range, and the more of them there are the more they
-   * cancel, leaving a weak consensus that the steering forces then act on at
-   * full strength, since seekVelocity normalises whatever it is handed.
+   * Every force reads the nearest `neighbourLimit` of what is in view, which is
+   * what makes the answer independent of how crowded the world happens to be.
    *
-   * Real flocks work the same way round: starlings track a fixed number of
-   * nearest birds rather than everything within a distance (Ballerini et al.,
-   * 2008), which is what keeps a flock coherent as it compresses and spreads.
+   * Two neighbourhoods, because who counts differs: alignment and cohesion ask
+   * what this boid's own flock is doing, separation asks who is crowding it,
+   * which is no respecter of flocks. Sharing one would let a boid surrounded by
+   * another flock fill up on strangers and find nothing of its own to fly with.
    */
   public determineFlockingTargets(
     neighbors: NeighbourList<Boid>,
@@ -406,12 +395,11 @@ export default class Boid implements Node {
         continue;
       }
 
-      /* nearer neighbours pull the direction harder. Only the direction
-         survives - seekVelocity normalises this - so there is nothing to
-         divide by the count afterwards.
-         A neighbour in this boid's exact position leaves a zero-length
-         direction, where 1/0 would scale it to NaN and poison the accumulator
-         for the rest of the run. It pushes nowhere either way. */
+      /* nearer neighbours pull the direction harder, and only the direction
+         survives, so there is nothing to divide by the count afterwards. The
+         floor is for a neighbour in this boid's exact position, where 1/0 would
+         scale a zero-length direction to NaN and poison the accumulator for the
+         rest of the run. */
       const distSq = Math.max(distance * distance, 1e-7);
       tempDiff
         .subVectors(nearestAnyone.at(index).position, this.position)

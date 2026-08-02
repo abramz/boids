@@ -4,7 +4,7 @@ import Boid from "../Boid";
 import Candidates from "../../storage/Candidates";
 import deriveBoidProperties from "../deriveBoidProperties";
 import { isInFOV } from "../../helpers/math";
-import { DENSE_CONFIG, runSimulation } from "./helpers/simulate";
+import { FLOCKING_CONFIG, runSimulation } from "./helpers/simulate";
 
 /**
  * A boid with flockmates in range must actually steer by them.
@@ -16,7 +16,7 @@ import { DENSE_CONFIG, runSimulation } from "./helpers/simulate";
  * agreed.
  */
 describe("neighbour discovery", () => {
-  const properties = deriveBoidProperties(DENSE_CONFIG.properties);
+  const properties = deriveBoidProperties(FLOCKING_CONFIG.properties);
 
   it("hands every boid the flockmates it can see, and steers it by them", () => {
     const { simulation, boids } = runSimulation({ steps: 300 });
@@ -31,8 +31,8 @@ describe("neighbour discovery", () => {
     for (let pass = 0; pass < 2; pass++) {
       simulation.step({
         delta: 0,
-        properties: DENSE_CONFIG.properties,
-        forceFactors: DENSE_CONFIG.forceFactors,
+        properties: FLOCKING_CONFIG.properties,
+        forceFactors: FLOCKING_CONFIG.forceFactors,
       });
     }
 

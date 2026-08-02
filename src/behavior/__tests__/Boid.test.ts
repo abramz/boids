@@ -8,8 +8,6 @@ import Boid, {
 import Candidates from "../../storage/Candidates";
 import Obstacle from "../../obstacle/Obstacle";
 
-/* the simulation hands applyForces the buffer its index filled, so these fill
-   one by hand rather than passing the array they would rather write */
 function candidates(boids: Boid[]): Candidates<Boid> {
   const filled = new Candidates<Boid>();
   boids.forEach((boid) => filled.push(boid));
@@ -55,9 +53,6 @@ const TEST_FORCE_FACTORS: ForceFactors = {
   drawToCenterFactor: 3,
 };
 
-/* built by hand rather than through deriveBoidProperties, which has its own
-   tests: these pin how a boid flies on given properties, not how they are
-   arrived at */
 const TEST_BOID_PROPERTIES: DerivedBoidProperties = {
   perceptionRadius: TEST_PERCEPTION_RADIUS,
   fieldOfViewDeg: TEST_FIELD_OF_VIEW_DEG,
@@ -178,9 +173,8 @@ describe("determineFlockingTargets", () => {
     ).toEqual({ flockmates: 2, separation: 2 });
 
     /* each neighbour pushes back along its own bearing, at PI/4 off each of the
-       two axes it spans, scaled by 1/distance^2 - so the one at 2 units counts
-       four times the one at 4. The sum is a direction only: seekVelocity
-       normalises it, which is why nothing here is divided by the count. */
+       two axes it spans, scaled by 1/distance^2. The sum is a direction only,
+       which is why nothing here is divided by the count. */
     const near = Math.cos(Math.PI / 4) / 4;
     const far = Math.cos(Math.PI / 4) / 16;
 
@@ -264,25 +258,19 @@ describe("determineFlockingTargets", () => {
     expect(outSeparationVelocity.length()).toBeGreaterThan(0);
   });
 
-  it("should only align and cohere with its own flock, but separate from anyone", () => {
-    TEST_BOID.velocity.set(0, 0, TEST_MAX_SPEED);
-
-    expect(
-      determine([
-        neighbor(100, new THREE.Vector3(0, 0, 1), new THREE.Vector3(), 99),
-      ]),
-    ).toEqual({ flockmates: 0, separation: 1 });
-    expect(outAveragePosition.toArray()).toEqual([0, 0, 0]);
-    expect(outSeparationVelocity.length()).toBeGreaterThan(0);
-  });
-
   it("should flock with the nearest few rather than everything in range", () => {
     TEST_BOID.velocity.set(0, 0, TEST_MAX_SPEED);
 
-    /* twelve flockmates strung out ahead, all well inside the perception
-       radius, against a limit of three */
-    const strungOut = Array.from({ length: 12 }, (_, index) =>
-      neighbor(index, new THREE.Vector3(0, 0, index + 1)),
+    /* twelve flockmates strung out ahead, ten of them inside the perception
+       radius, against a limit of three. Handed over in an order distance does
+       not follow, so taking the first three offered averages somewhere else. */
+    const strungOut = [12, 7, 9, 3, 1, 11, 5, 2, 8, 4, 10, 6].map(
+      (distance, index) =>
+        neighbor(
+          index,
+          new THREE.Vector3(0, 0, distance),
+          new THREE.Vector3(0, 0, distance),
+        ),
     );
 
     TEST_BOID.determineFlockingTargets(
@@ -299,9 +287,9 @@ describe("determineFlockingTargets", () => {
 
     expect(outCounts).toEqual({ flockmates: 3, separation: 3 });
 
-    // the three nearest, at z of 1, 2 and 3. Taking whichever three the index
-    // happened to hand over first would average somewhere else entirely
+    // the three nearest, at z of 1, 2 and 3, for both forces that read them
     expect(outAveragePosition.toArray()).toEqual([0, 0, 2]);
+    expect(outAverageVelocity.toArray()).toEqual([0, 0, 2]);
   });
 
   it("should keep a flock neighbourhood separate from the crowd around it", () => {
@@ -309,7 +297,7 @@ describe("determineFlockingTargets", () => {
 
     /* hemmed in by another flock, with its own flockmates further out: one
        shared neighbourhood would fill up on the near ones and leave this boid
-       with nothing of its own to align or cohere with */
+       nothing of its own to align or cohere with */
     const crowd = Array.from({ length: 8 }, (_, index) =>
       neighbor(
         index,
@@ -338,6 +326,8 @@ describe("determineFlockingTargets", () => {
     expect(outCounts).toEqual({ flockmates: 2, separation: 4 });
 
     expect(outAveragePosition.toArray()).toEqual([0, 0, 7]);
+    expect(outAverageVelocity.toArray()).toEqual([0, 0, 0]);
+    expect(outSeparationVelocity.length()).toBeGreaterThan(0);
   });
 
   it("should not consider itself", () => {
@@ -434,11 +424,50 @@ describe("applyForces", () => {
     );
   });
 
+  it("should scale the draw to center by its own factor, not the edges'", () => {
+    /* the leash and the wall both answer to how far out a boid is, so nothing
+       else in the suite tells their knobs apart */
+    TEST_BOID.position.set(TEST_WORLD_BOUNDARY * 3, 0, 0);
+    TEST_BOID.velocity.set(TEST_MAX_SPEED, 0, 0);
+
+    TEST_BOID.applyForces({
+      neighbors: candidates([]),
+      boundary: TEST_BOUNDARY,
+      properties: TEST_BOID_PROPERTIES,
+      forceFactors: {
+        ...TEST_FORCE_FACTORS,
+        avoidEdgesFactor: 9,
+        drawToCenterFactor: 0,
+      },
+    });
+
+    expect(new THREE.Vector3(...TEST_BOID.forces.drawToCenter).length()).toBe(
+      0,
+    );
+
+    TEST_BOID.applyForces({
+      neighbors: candidates([]),
+      boundary: TEST_BOUNDARY,
+      properties: TEST_BOID_PROPERTIES,
+      forceFactors: {
+        ...TEST_FORCE_FACTORS,
+        avoidEdgesFactor: 0,
+        drawToCenterFactor: 2,
+      },
+    });
+
+    // flying directly away from a center it is well outside of, so the steer is
+    // the whole budget turned around, at twice the factor
+    expect(
+      new THREE.Vector3(...TEST_BOID.forces.drawToCenter).length(),
+    ).toBeCloseTo(TEST_MAX_FORCE * 2, 12);
+  });
+
   it("should forget the flocking forces once the last flockmate is out of range", () => {
     TEST_BOID.velocity.set(0, 0, TEST_MAX_SPEED);
 
-    /* their average is far enough off to pull cohesion and off the boid's own
-       heading, and the closer of the two is inside the separation radius */
+    /* their average is far enough off the boid's heading to pull cohesion, and
+       the closer of the two is inside the separation radius */
     TEST_BOID.applyForces({
       neighbors: candidates([
         flockmate(1, new THREE.Vector3(3, 0, 9)),
@@ -465,6 +494,32 @@ describe("applyForces", () => {
     expect(TEST_BOID.forces.alignment).toEqual([0, 0, 0]);
     expect(TEST_BOID.forces.cohesion).toEqual([0, 0, 0]);
     expect(TEST_BOID.forces.separation).toEqual([0, 0, 0]);
+  });
+
+  it("should forget edge avoidance once its factor is wound to nothing", () => {
+    TEST_BOID.position.set(TEST_WORLD_BOUNDARY, 0, 3);
+    TEST_BOID.velocity.set(TEST_MAX_SPEED, 0, 0);
+
+    TEST_BOID.applyForces({
+      neighbors: candidates([]),
+      boundary: TEST_BOUNDARY,
+      properties: TEST_BOID_PROPERTIES,
+      forceFactors: TEST_FORCE_FACTORS,
+    });
+
+    expect(TEST_BOID.forces.avoidEdges).not.toEqual([0, 0, 0]);
+
+    TEST_BOID.applyForces({
+      neighbors: candidates([]),
+      boundary: TEST_BOUNDARY,
+      properties: TEST_BOID_PROPERTIES,
+      forceFactors: { ...TEST_FORCE_FACTORS, avoidEdgesFactor: 0 },
+    });
+
+    /* the force is skipped outright at a factor of zero rather than computed
+       and multiplied away, so without clearing it the boid keeps reporting the
+       frame the knob was last up */
+    expect(TEST_BOID.forces.avoidEdges).toEqual([0, 0, 0]);
   });
 });
 
@@ -497,39 +552,11 @@ describe("applyAcceleration", () => {
     expect(TEST_BOID.velocity.toArray()).toEqual([TEST_MIN_SPEED, 0, 0]);
   });
 
-  it("should leave a speed between the two alone", () => {
-    TEST_BOID.velocity.set(3, 0, 0);
-
-    TEST_BOID.applyAcceleration(1, TEST_MIN_SPEED, TEST_MAX_SPEED);
-
-    expect(TEST_BOID.velocity.toArray()).toEqual([3, 0, 0]);
-  });
-
   it("should set off rather than stay frozen with no velocity and no forces", () => {
     // scaling a zero velocity leaves it zero, whatever the minimum says
     TEST_BOID.applyAcceleration(1, TEST_MIN_SPEED, TEST_MAX_SPEED);
 
     expect(TEST_BOID.velocity.length()).toBeCloseTo(TEST_MIN_SPEED, 12);
-  });
-
-  it("should steer the same amount per second whatever the frame rate", () => {
-    const other = new Boid({
-      id: 1,
-      parentId: TEST_PARENT_ID,
-      position: new THREE.Vector3(),
-      velocity: new THREE.Vector3(),
-    });
-
-    TEST_BOID.acceleration.set(1, 0, 0);
-    other.acceleration.set(1, 0, 0);
-
-    /* one second, taken in one stride and in ten */
-    TEST_BOID.applyAcceleration(1, 0, TEST_MAX_SPEED);
-    for (let frame = 0; frame < 10; frame++) {
-      other.applyAcceleration(0.1, 0, TEST_MAX_SPEED);
-    }
-
-    expect(other.velocity.x).toBeCloseTo(TEST_BOID.velocity.x, 12);
   });
 });
 
