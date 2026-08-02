@@ -3,13 +3,26 @@ import { CreateSimulationOptions } from "../behavior/createSimulation";
 import { pinnedWorld } from "./pinnedWorld";
 import { seededRandom } from "./seededRandom";
 
-export const FLOCK_SIZE = 5;
+/**
+ * Small enough to record and diff by hand, dense enough that the flocking
+ * forces actually fire.
+ *
+ * A flock of five scattered through a world of ten never puts a boid within
+ * range of one of its own, so a fixture recorded there pins the edge, obstacle
+ * and leash forces and nothing else: all three flocking forces can be deleted
+ * and the trajectory holds. Ten to a flock in a world of six is what brings a
+ * boid's own flock into range often enough for the recording to move when
+ * flocking does.
+ */
+export const FLOCK_SIZE = 10;
 export const FLOCK_COUNT = 5;
-export const WORLD_SIZE = 10;
+export const WORLD_SIZE = 6;
 
 export const BOID_PROPERTIES: BoidProperties = {
   perceptionRadius: 2,
-  fieldOfViewDeg: 110,
+  /* production's, rather than a narrower one no configuration ships: the field
+     of view decides most of what a boid ends up flocking with */
+  fieldOfViewDeg: 230,
   desiredSeparation: 1,
   neighbourLimit: 8,
   minSpeed: 2.5,
@@ -34,7 +47,7 @@ export const FORCE_FACTORS: ForceFactors = {
  * Every number is pinned here rather than read from config.ts, so the fixtures
  * move when behaviour changes and hold still when production is retuned: an
  * obstacle lattice tuned for a 75-unit world would otherwise silently re-place
- * the obstacles this 10-unit one flies around.
+ * the obstacles this small one flies around.
  */
 export function seededWorld(): CreateSimulationOptions {
   return {

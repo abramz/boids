@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import Boid from "../../Boid";
-import createSimulation, { Simulation } from "../../createSimulation";
+import createSimulation from "../../createSimulation";
 import * as seeded from "../../../__fixtures__/seededConfig";
 import { FRAME_DELTA } from "./simulate";
 
@@ -40,13 +40,7 @@ function sample(boids: readonly Boid[]): Record<string, number[]> {
   );
 }
 
-export interface GoldenCapture {
-  fixture: GoldenFixture;
-  /** the run that produced it, so invariants can be checked against its world */
-  simulation: Simulation;
-}
-
-export function captureGolden(steps = Math.max(...CHECKPOINTS)): GoldenCapture {
+export function captureGolden(steps = Math.max(...CHECKPOINTS)): GoldenFixture {
   const simulation = createSimulation(seeded.seededWorld());
   const { boids } = simulation;
   const frames: GoldenFixture["frames"] = {};
@@ -65,17 +59,14 @@ export function captureGolden(steps = Math.max(...CHECKPOINTS)): GoldenCapture {
   }
 
   return {
-    fixture: {
-      meta: {
-        three: THREE.REVISION,
-        delta: FRAME_DELTA,
-        checkpoints: [...CHECKPOINTS],
-        boidCount: boids.length,
-      },
-      initial,
-      frames,
+    meta: {
+      three: THREE.REVISION,
+      delta: FRAME_DELTA,
+      checkpoints: [...CHECKPOINTS],
+      boidCount: boids.length,
     },
-    simulation,
+    initial,
+    frames,
   };
 }
 
@@ -128,7 +119,9 @@ export function compare(
 
     values.forEach((value, index) => {
       const absolute = Math.abs(value - other[index]);
-      if (absolute > tolerance) {
+      /* negated rather than `absolute > tolerance`: a run gone non-finite makes
+         every comparison against NaN false, and would pass as a match */
+      if (!(absolute <= tolerance)) {
         divergences.push({
           where: `${label} ${id}.${fields[index]}`,
           expected: value,
