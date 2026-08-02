@@ -20,8 +20,10 @@ beforeEach(() => {
   for (let i = 0; i < BOID_COUNT; i++) {
     BOIDS.push(
       new Boid({
+        /* flocks of two, so a boid's id is not its flock's: anything reading
+           the wrong one of the two draws a different colour */
         id: i,
-        parentId: i % 5,
+        parentId: Math.floor(i / 2) % 3,
         position: new THREE.Vector3(i, i, i),
         velocity: new THREE.Vector3(),
       }),
@@ -42,6 +44,30 @@ it("should draw the whole flock as one instanced mesh", async () => {
   // one draw call spanning the world, so there is nothing for culling to save
   // and a stale bounding sphere would drop the lot at once
   expect(mesh.frustumCulled).toBe(false);
+
+  // one group per material, or three draws the whole dart with one of them
+  expect(mesh.geometry.groups.map((group) => group.materialIndex)).toEqual([
+    0, 1,
+  ]);
+});
+
+it("should light the hull and add the plume over whatever it crosses", async () => {
+  const renderer = await ReactThreeTestRenderer.create(
+    <Boids boidSize={BOID_RADIUS} boids={BOIDS} />,
+  );
+
+  const mesh = renderer.scene.findByType("Mesh")
+    .instance as unknown as THREE.InstancedMesh;
+  const [hull, plume] = mesh.material as THREE.Material[];
+
+  // the hull is a surface the scene's lights reach
+  expect(hull).toBeInstanceOf(THREE.MeshStandardMaterial);
+
+  /* and the plume is thrust rather than surface: additive so it brightens what
+     it crosses, depth-writing off so a flock's plumes pile up rather than
+     occluding each other */
+  expect(plume.blending).toEqual(THREE.AdditiveBlending);
+  expect(plume.depthWrite).toBe(false);
 });
 
 it("should reach as far forward as the maths take a boid to reach", async () => {
@@ -88,6 +114,10 @@ it("should give each flock its own colour, per instance", async () => {
      the emissive floor goes with it */
   expect(mesh.instanceColor, "no per-instance colour buffer").toBeTruthy();
 
+  /* three uploads the buffer only once it has been marked dirty, and the
+     colours are written once at mount: unmarked, the flock draws black */
+  expect(mesh.instanceColor?.version).toBeGreaterThan(0);
+
   const drawn = new THREE.Color();
   BOIDS.forEach((boid) => {
     mesh.getColorAt(boid.id, drawn);
@@ -100,25 +130,6 @@ it("should give each flock its own colour, per instance", async () => {
   });
 });
 
-it("should draw the hull lit and the plume additively", async () => {
-  const renderer = await ReactThreeTestRenderer.create(
-    <Boids boidSize={BOID_RADIUS} boids={BOIDS} />,
-  );
-
-  const mesh = renderer.scene.findByType("Mesh")
-    .instance as unknown as THREE.InstancedMesh;
-  const [hull, plume] = mesh.material as THREE.Material[];
-
-  // one group per material, or three draws the whole dart with one of them
-  expect(mesh.geometry.groups.map((group) => group.materialIndex)).toEqual([
-    0, 1,
-  ]);
-
-  expect(hull).toBeInstanceOf(THREE.MeshStandardMaterial);
-  expect(plume.blending).toEqual(THREE.AdditiveBlending);
-  expect(plume.depthWrite).toBe(false);
-});
-
 it("should point each dart along the velocity of its boid", async () => {
   BOIDS.forEach((boid) => boid.velocity.set(0, 0, 3));
 
@@ -126,7 +137,8 @@ it("should point each dart along the velocity of its boid", async () => {
     <Boids boidSize={BOID_RADIUS} boids={BOIDS} />,
   );
 
-  await renderer.advanceFrames(2, 0.01); // the Instances component is 1 frame behind
+  // the first frame draws whatever the instance buffer was initialised to
+  await renderer.advanceFrames(2, 0.01);
 
   const mesh = renderer.scene.findByType("Mesh")
     .instance as unknown as THREE.InstancedMesh;
@@ -144,56 +156,40 @@ it("should point each dart along the velocity of its boid", async () => {
   }
 });
 
-it("should position the instances to match the positions of the boids", async () => {
+it("should position the instances where the boids are, and keep up as they move", async () => {
   const renderer = await ReactThreeTestRenderer.create(
     <Boids boidSize={BOID_RADIUS} boids={BOIDS} />,
   );
 
-  await renderer.advanceFrames(1, 0.01);
-
-  const mesh = renderer.scene.findByType("Mesh")
-    .instance as unknown as THREE.InstancedMesh;
-
-  expect(mesh.instanceMatrix.count).toEqual(BOID_COUNT);
-
-  const tempMatrix = new THREE.Matrix4();
-  const position = new THREE.Vector3();
-  for (const boid of BOIDS) {
-    mesh.getMatrixAt(boid.id, tempMatrix);
-    position.setFromMatrixPosition(tempMatrix);
-
-    expect(position.toArray()).toEqual([boid.id, boid.id, boid.id]);
-  }
-});
-
-it("should update the instances' position if the boids move", async () => {
-  const renderer = await ReactThreeTestRenderer.create(
-    <Boids boidSize={BOID_RADIUS} boids={BOIDS} />,
-  );
-
-  await renderer.advanceFrames(2, 0.01); // the Instances component is 1 frame behind, so skip 2
-
-  BOIDS.forEach((boid) =>
-    boid.position.set(boid.parentId, boid.parentId, boid.parentId),
-  );
-
+  // r3f runs useFrame subscribers after the render that mounted them, so the
+  // first frame draws whatever the instance buffer was initialised to
   await renderer.advanceFrames(2, 0.01);
 
   const mesh = renderer.scene.findByType("Mesh")
     .instance as unknown as THREE.InstancedMesh;
-
-  expect(mesh.instanceMatrix.count).toEqual(BOID_COUNT);
-
   const tempMatrix = new THREE.Matrix4();
   const position = new THREE.Vector3();
-  for (const boid of BOIDS) {
+  const drawnAt = (boid: Boid): number[] => {
     mesh.getMatrixAt(boid.id, tempMatrix);
-    position.setFromMatrixPosition(tempMatrix);
 
-    expect(position.toArray()).toEqual([
-      boid.parentId,
-      boid.parentId,
-      boid.parentId,
-    ]);
-  }
+    return position.setFromMatrixPosition(tempMatrix).toArray();
+  };
+
+  expect(mesh.instanceMatrix.count).toEqual(BOID_COUNT);
+  BOIDS.forEach((boid) =>
+    expect(drawnAt(boid)).toEqual([boid.id, boid.id, boid.id]),
+  );
+
+  /* written every frame but uploaded only when marked dirty, so unmarked the
+     flock is drawn wherever it was on the frame the buffer was first sent */
+  const uploaded = mesh.instanceMatrix.version;
+  expect(uploaded).toBeGreaterThan(0);
+
+  BOIDS.forEach((boid) => boid.position.set(-boid.id, boid.id, -boid.id));
+  await renderer.advanceFrames(2, 0.01);
+
+  BOIDS.forEach((boid) =>
+    expect(drawnAt(boid)).toEqual([-boid.id, boid.id, -boid.id]),
+  );
+  expect(mesh.instanceMatrix.version).toBeGreaterThan(uploaded);
 });

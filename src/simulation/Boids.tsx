@@ -39,8 +39,8 @@ const HULL = 0;
 const PLUME = 1;
 
 /**
- * A dart standing on +Y, which Boid.tsx rotates onto the boid's velocity, with
- * a plume trailing off its blunt end down -Y.
+ * A dart standing on +Y, which the frame loop below rotates onto the boid's
+ * velocity, with a plume trailing off its blunt end down -Y.
  *
  * The two are merged into one geometry with one group each so a boid stays a
  * single instance: they need different blending, which one material cannot do,
@@ -188,6 +188,11 @@ function Boids({ boidSize, boids }: BoidProps): ReactNode {
     if (!mesh) {
       return;
     }
+
+    /* the matrices are rewritten every frame, and three's default hint says the
+       opposite. It cannot be changed once the buffer has been used, so it is
+       set here rather than alongside the writes. */
+    mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
 
     boids.forEach((boid, index) => {
       mesh.setColorAt(

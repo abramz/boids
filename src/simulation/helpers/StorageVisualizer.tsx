@@ -1,5 +1,5 @@
 import { useFrame } from "@react-three/fiber";
-import { ReactNode, useRef } from "react";
+import { ReactNode, useLayoutEffect, useRef } from "react";
 import * as THREE from "three";
 
 export const GROUP_NAME = "StorageVisualizer";
@@ -25,6 +25,12 @@ export default function StorageVisualizer({
 }: StorageVisualizerProps): ReactNode {
   const meshRef = useRef<THREE.InstancedMesh | null>(null);
 
+  /* rewritten every frame, and three's default hint says the opposite. It
+     cannot be changed once the buffer has been used. */
+  useLayoutEffect(() => {
+    meshRef.current?.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  }, []);
+
   useFrame(() => {
     const mesh = meshRef.current;
     if (!show || !mesh) {
@@ -45,10 +51,15 @@ export default function StorageVisualizer({
   });
 
   return (
+    /* culling off for the same reason as the flock: an InstancedMesh computes
+       its bounding sphere once and writing instance matrices does not
+       invalidate it, so the overlay would be tested against wherever the cells
+       happened to be on the frame it was switched on */
     <instancedMesh
       ref={meshRef}
       args={[undefined, undefined, CAPACITY]}
       visible={show}
+      frustumCulled={false}
       name={GROUP_NAME}
     >
       <boxGeometry args={[1, 1, 1]} />
