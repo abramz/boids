@@ -6,6 +6,7 @@ import { AlertContext } from "../hooks/alertContext";
 import { WORLD_SIZE } from "../config";
 import { CAMERA_FOV, TONE_MAPPING_EXPOSURE, cameraDistance } from "../theme";
 import ErrorFallback from "../simulation/ErrorFallback";
+import ErrorPanel from "../simulation/ErrorPanel";
 
 const Simulation = lazy(() => import("../simulation/Simulation"));
 const UI = lazy(() => import("./UI"));
@@ -51,22 +52,33 @@ export default function Canvas(): ReactNode {
     }
 
     const root = createRoot(canvas);
-    root.configure({
-      ...RENDERER_CONFIG,
-      // set up once and then owned by OrbitControls, so it is deliberately not
-      // part of what the resize handler re-applies
-      camera: {
-        fov: CAMERA_FOV,
-        near: CAMERA_NEAR,
-        /* how big a world this machine earns is not known until detect-gpu has
-           run inside the tree, so start on the largest one; World pulls the
-           camera in to the world it actually built */
-        position: [0, 0, cameraDistance(WORLD_SIZE)],
-      },
-    });
+
+    /* configure is where the WebGLRenderer is built, and r3f leaves the tree
+       unmounted when that throws, so the boundary below never sees it. A
+       browser with WebGL blocked would otherwise get a blank page. */
+    const reportFailure = (error: unknown) =>
+      setAlertContents(<ErrorPanel error={error} />);
+
+    root
+      .configure({
+        ...RENDERER_CONFIG,
+        // set up once and then owned by OrbitControls, so it is deliberately
+        // not part of what the resize handler re-applies
+        camera: {
+          fov: CAMERA_FOV,
+          near: CAMERA_NEAR,
+          /* how big a world this machine earns is not known until detect-gpu
+             has run inside the tree, so start on the largest one; World pulls
+             the camera in to the world it actually built */
+          position: [0, 0, cameraDistance(WORLD_SIZE)],
+        },
+      })
+      .catch(reportFailure);
 
     // the canvas will be resized for us as long as we call configure
-    const listener = () => root.configure(RENDERER_CONFIG);
+    const listener = () => {
+      root.configure(RENDERER_CONFIG).catch(reportFailure);
+    };
     window.addEventListener("resize", listener);
     listener();
 
@@ -97,9 +109,13 @@ export default function Canvas(): ReactNode {
       {/* the role belongs to whatever is showing: loading is a status, an error
           is an alert, and the instructions are neither */}
       {alertContents ? <div className="alert">{alertContents}</div> : null}
-      <Suspense fallback={null}>
-        <UI />
-      </Suspense>
+      {/* its own boundary: a control panel that fails to load is no reason to
+          take the canvas down with it */}
+      <ErrorBoundary FallbackComponent={ErrorPanel}>
+        <Suspense fallback={null}>
+          <UI />
+        </Suspense>
+      </ErrorBoundary>
     </>
   );
 }

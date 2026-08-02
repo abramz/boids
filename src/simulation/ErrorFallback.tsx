@@ -1,21 +1,16 @@
 import { ReactNode } from "react";
 import { FallbackProps } from "react-error-boundary";
 import Alert from "./Alert";
+import ErrorPanel from "./ErrorPanel";
 
 /**
- * Crude error window to surface any errors in the simulation
+ * What the boundary inside the r3f tree shows. The panel is drawn by the DOM
+ * root rather than here, so this hands it up through Alert.
  */
 export default function ErrorFallback({ error }: FallbackProps): ReactNode {
-  // react-error-boundary v6 types `error` as unknown - anything can be thrown,
-  // so narrow rather than assume a message
-  const message = error instanceof Error ? error.message : String(error);
-
   return (
     <Alert>
-      <div className="panel panel--error" role="alert">
-        <h1>{"Something went wrong"}</h1>
-        <pre>{message}</pre>
-      </div>
+      <ErrorPanel error={error} />
     </Alert>
   );
 }
