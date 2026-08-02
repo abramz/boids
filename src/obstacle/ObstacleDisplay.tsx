@@ -18,7 +18,6 @@ export const GROUP_NAME = "Obstacles";
 
 const tempObject = new THREE.Object3D();
 
-/** A rim on the silhouette, which is what gives a dark body an edge to read. */
 const createRimMaterial = () =>
   createFacingGlow({
     color: OBSTACLE_RIM_COLOR,
@@ -43,33 +42,41 @@ export default function ObstacleDisplay({
 
   /* the shell is a sphere, so spinning it would not show; place it once */
   useLayoutEffect(() => {
-    if (rimRef.current) {
-      obstacles.forEach((obstacle, i) => {
-        tempObject.position.copy(obstacle.position);
-        tempObject.rotation.set(0, 0, 0);
-        tempObject.updateMatrix();
-        rimRef.current!.setMatrixAt(i, tempObject.matrix);
-      });
-
-      rimRef.current.instanceMatrix.needsUpdate = true;
+    const rim = rimRef.current;
+    if (!rim) {
+      return;
     }
+
+    obstacles.forEach((obstacle, index) => {
+      tempObject.position.copy(obstacle.position);
+      tempObject.rotation.set(0, 0, 0);
+      tempObject.updateMatrix();
+      rim.setMatrixAt(index, tempObject.matrix);
+    });
+
+    rim.instanceMatrix.needsUpdate = true;
   }, [obstacles]);
 
   useFrame((_, delta) => {
-    if (!coreRef.current) {
+    const core = coreRef.current;
+    if (!core) {
       return;
     }
 
     spin.current += delta * OBSTACLE_SPIN_SPEED;
-    obstacles.forEach((obstacle, i) => {
+    obstacles.forEach((obstacle, index) => {
       tempObject.position.copy(obstacle.position);
       /* offset each obstacle so the cluster does not turn as one piece */
-      tempObject.rotation.set(spin.current * 0.6 + i, spin.current + i * 2, 0);
+      tempObject.rotation.set(
+        spin.current * 0.6 + index,
+        spin.current + index * 2,
+        0,
+      );
       tempObject.updateMatrix();
-      coreRef.current!.setMatrixAt(i, tempObject.matrix);
+      core.setMatrixAt(index, tempObject.matrix);
     });
 
-    coreRef.current.instanceMatrix.needsUpdate = true;
+    core.instanceMatrix.needsUpdate = true;
   });
 
   if (obstacles.length === 0) {

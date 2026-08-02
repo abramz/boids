@@ -34,12 +34,16 @@ const LIVE_SCENE_BYTES = 100_000;
  * A leva folder that only exists once World has mounted, which is to say once
  * Suspense has resolved and the flock has been built. Nothing else the
  * app renders past that point is DOM - it is all canvas - so this is the signal
- * that the simulation is up and it is fair to start asserting on it.
+ * that the simulation is up and it is fair to start asserting on it. It is also
+ * the only check that leva rendered at all, by its text rather than by the
+ * hashed class names emotion generates for it.
  */
 const SIMULATION_READY = "Boid Properties";
 
 test.describe("boids renders and runs", () => {
-  test("loads, acquires WebGL, and animates", async ({ page }) => {
+  test("loads, acquires a live WebGL surface, and draws to it", async ({
+    page,
+  }) => {
     const consoleErrors: string[] = [];
     const pageErrors: string[] = [];
     const failedRequests: string[] = [];
@@ -119,26 +123,9 @@ test.describe("boids renders and runs", () => {
     expect(pageErrors).toEqual([]);
     expect(consoleErrors).toEqual([]);
 
-    // NOT a check that the app is animating: an injected rAF loop ticks at
-    // 60Hz even if React and r3f are dead. golden.render.test.tsx covers that,
-    // where instance matrices can be read directly.
-  });
-
-  test("renders the leva control panel", async ({ page }) => {
-    await page.goto(APP_PATH);
-    await expect(page.locator("canvas")).toBeVisible();
-
-    // leva is the entire control surface; the goldens are structurally blind
-    // to it, so this is the only thing that checks it.
-    // leva styles via emotion, so class names are hashed (leva-c-<hash>) and
-    // there is no stable id - match the prefix rather than a generated hash.
-    await expect(page.locator('[class*="leva-c-"]').first()).toBeVisible();
-
-    // the panel is configured with oneLineLabels; this proves our props reach
-    // leva rather than just that leva mounted
-    await expect(
-      page.locator('[class*="oneLineLabels-true"]').first(),
-    ).toBeAttached();
+    // Nothing here checks that the app is animating: an injected rAF loop ticks
+    // at 60Hz even if React and r3f are dead. golden.render.test.tsx covers
+    // that, where instance matrices can be read directly.
   });
 });
 

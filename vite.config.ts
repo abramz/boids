@@ -39,13 +39,15 @@ export default defineConfig({
         "src/vite-env.d.ts",
       ],
       /* set just under where the suite stands, so this gates rather than
-         reports: the scene composition and the DOM shell are covered by the
-         browser smoke test instead, which is what leaves headroom here */
+         reports. Global rather than per file, so a well covered directory
+         carries a thin one: what is left under the line is the DOM shell and
+         the panels around the canvas, and the smoke test that loads the real
+         app only walks the happy path through them. */
       thresholds: {
-        statements: 85,
-        branches: 85,
-        lines: 85,
-        functions: 75,
+        statements: 96,
+        branches: 92,
+        lines: 96,
+        functions: 90,
       },
     },
   },

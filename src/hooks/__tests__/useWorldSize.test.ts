@@ -55,16 +55,14 @@ describe("useWorldSize", () => {
     );
   });
 
-  it("gives a machine it could not benchmark the smallest flock", () => {
+  it("gives a machine with no usable benchmark the smallest flock", () => {
     // detect-gpu reports no fps for a GPU it does not recognise, which Firefox
     // behind resistFingerprinting and every blocklisted card arrive as. Read it
     // as a full score and the weakest machines would earn the largest flock.
     expect(sizeFor(undefined).flockSize).toBe(config.MIN_FLOCK_SIZE);
-  });
 
-  it("gives a machine that benchmarked below zero the smallest flock", () => {
-    // detect-gpu answers -1 for a card it benchmarked and then blocklisted, and
-    // lerp does not clamp, so this lands under MIN_FLOCK_SIZE unguarded
+    // and -1 for a card it benchmarked and then blocklisted, which lands under
+    // MIN_FLOCK_SIZE unguarded, since lerp does not clamp
     expect(sizeFor(-1).flockSize).toBe(config.MIN_FLOCK_SIZE);
   });
 

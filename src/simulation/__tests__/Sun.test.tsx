@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { expect, it, vi } from "vitest";
 import { create } from "@react-three/test-renderer";
 import { SUN_POSITION, shadowFrustum } from "../../theme";
-import Sun from "../Sun";
+import Sun, { GROUP_NAME } from "../Sun";
 
 const WORLD_SIZE = 30;
 
@@ -13,14 +13,19 @@ vi.mock("../../hooks/useWorldSize", () => ({
 async function renderSun() {
   const renderer = await create(<Sun />);
 
-  return renderer.scene
+  const light = renderer.scene
     .findAllByType("DirectionalLight")
     .map((node) => node.instance as unknown as THREE.DirectionalLight)
-    .find((light) => light.castShadow);
+    .find((node) => node.castShadow);
+  const disc = renderer.scene
+    .findAllByType("Group")
+    .find((node) => node.instance.name === GROUP_NAME);
+
+  return { light, disc: disc?.instance as THREE.Object3D | undefined };
 }
 
 it("casts through a frustum sized to the world it was given", async () => {
-  const light = await renderSun();
+  const { light } = await renderSun();
   expect(light, "no shadow-casting light").toBeTruthy();
 
   /* three reads the shadow camera's projection as it stands, so a frustum left
@@ -40,9 +45,11 @@ it("casts through a frustum sized to the world it was given", async () => {
 });
 
 it("throws the key light from where the sun is drawn", async () => {
-  const light = await renderSun();
+  const { light, disc } = await renderSun();
+  expect(disc, "nothing drawn for the sun itself").toBeTruthy();
 
   // the light and the disc are one thing to a viewer, so a lit face has to
   // agree with where the sun appears to be
+  expect(light!.position.toArray()).toEqual(disc!.position.toArray());
   expect(light!.position.toArray()).toEqual(SUN_POSITION);
 });

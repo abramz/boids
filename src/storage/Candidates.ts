@@ -1,19 +1,13 @@
 /**
- * What a spatial index hands back: whatever it found in range, in the order it
- * found it.
- *
- * Reset and refilled rather than allocated. A query runs for every boid that
- * re-aims, every frame, and a fresh array out of each one is thousands of
- * throwaway arrays a second on the one path that cannot afford them.
- *
- * The backing array only grows, so it settles at the largest neighbourhood a
- * run has turned up and stops allocating there.
+ * What a spatial index hands back, reset and refilled rather than allocated: a
+ * query runs for every boid that re-aims, every frame, and a fresh array out of
+ * each one is thousands of throwaway arrays a second on the one path that
+ * cannot afford them.
  */
 export default class Candidates<T> {
   private readonly items: T[] = [];
   private count = 0;
 
-  /** How many are held. */
   public get size(): number {
     return this.count;
   }
@@ -31,7 +25,7 @@ export default class Candidates<T> {
     this.count++;
   }
 
-  /** For tests and assertions; the hot path reads `size` and `at` instead. */
+  /** For assertions; the hot path reads `size` and `at` instead. */
   public *[Symbol.iterator](): IterableIterator<T> {
     for (let index = 0; index < this.count; index++) {
       yield this.items[index];
