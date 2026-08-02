@@ -1,0 +1,1 @@
+import{H as e}from"./index-DZ88Wcbc.js";import{t}from"./leva.esm-DX5rkc24.js";var n=e();function r(){return(0,n.jsx)(t,{oneLineLabels:!0})}export{r as default};

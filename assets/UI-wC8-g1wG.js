@@ -1,1 +1,0 @@
-import{V as e}from"./index-WsVTZnce.js";import{t}from"./leva.esm-CTHSMq1o.js";var n=e();function r(){return(0,n.jsx)(t,{oneLineLabels:!0})}export{r as default};
