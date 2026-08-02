@@ -1,6 +1,10 @@
 import * as THREE from "three";
 import { beforeEach, describe, expect, it } from "vitest";
-import Boid, { DerivedBoidProperties, ForceFactors } from "../Boid";
+import Boid, {
+  DerivedBoidProperties,
+  FlockingCounts,
+  ForceFactors,
+} from "../Boid";
 import Candidates from "../../storage/Candidates";
 import Obstacle from "../../obstacle/Obstacle";
 
@@ -89,14 +93,19 @@ describe("determineFlockingTargets", () => {
   const outAverageVelocity = new THREE.Vector3();
   const outSeparationVelocity = new THREE.Vector3();
 
+  /* dirtied rather than cleared: these are the caller's vectors and clearing
+     them is determineFlockingTargets' job, which every expectation below then
+     depends on */
   beforeEach(() => {
-    outAveragePosition.set(0, 0, 0);
-    outAverageVelocity.set(0, 0, 0);
-    outSeparationVelocity.set(0, 0, 0);
+    outAveragePosition.set(9, 9, 9);
+    outAverageVelocity.set(9, 9, 9);
+    outSeparationVelocity.set(9, 9, 9);
   });
 
-  function determine(neighbors: Boid[]): [number, number] {
-    return TEST_BOID.determineFlockingTargets(
+  const outCounts: FlockingCounts = { flockmates: 0, separation: 0 };
+
+  function determine(neighbors: Boid[]): FlockingCounts {
+    TEST_BOID.determineFlockingTargets(
       candidates(neighbors),
       TEST_PERCEPTION_RADIUS,
       TEST_COS_HALF_FOV,
@@ -105,7 +114,10 @@ describe("determineFlockingTargets", () => {
       outAveragePosition,
       outAverageVelocity,
       outSeparationVelocity,
+      outCounts,
     );
+
+    return outCounts;
   }
 
   function neighbor(
@@ -125,7 +137,7 @@ describe("determineFlockingTargets", () => {
         neighbor(100, new THREE.Vector3(TEST_SEPARATION, 0, 1)),
         neighbor(101, new THREE.Vector3(0, TEST_SEPARATION, 1)),
       ]),
-    ).toEqual([2, 0]);
+    ).toEqual({ flockmates: 2, separation: 0 });
 
     expect(outAveragePosition.toArray()).toEqual([
       TEST_SEPARATION / 2,
@@ -150,7 +162,7 @@ describe("determineFlockingTargets", () => {
           new THREE.Vector3(0, 2, -1),
         ),
       ]),
-    ).toEqual([2, 0]);
+    ).toEqual({ flockmates: 2, separation: 0 });
 
     expect(outAverageVelocity.toArray()).toEqual([1, 1, -1]);
   });
@@ -163,7 +175,7 @@ describe("determineFlockingTargets", () => {
         neighbor(100, new THREE.Vector3(1, 0, 1).normalize().multiplyScalar(2)),
         neighbor(101, new THREE.Vector3(0, 1, 1).normalize().multiplyScalar(4)),
       ]),
-    ).toEqual([2, 2]);
+    ).toEqual({ flockmates: 2, separation: 2 });
 
     /* each neighbour pushes back along its own bearing, at PI/4 off each of the
        two axes it spans, scaled by 1/distance^2 - so the one at 2 units counts
@@ -175,13 +187,6 @@ describe("determineFlockingTargets", () => {
     expect(outSeparationVelocity.x).toBeCloseTo(-near, 12);
     expect(outSeparationVelocity.y).toBeCloseTo(-far, 12);
     expect(outSeparationVelocity.z).toBeCloseTo(-(near + far), 12);
-  });
-
-  it("should not modify targets if there are no neighbors", () => {
-    expect(determine([])).toEqual([0, 0]);
-    expect(outAveragePosition.toArray()).toEqual([0, 0, 0]);
-    expect(outAverageVelocity.toArray()).toEqual([0, 0, 0]);
-    expect(outSeparationVelocity.toArray()).toEqual([0, 0, 0]);
   });
 
   it("should not consider neighbors out of range", () => {
@@ -197,7 +202,7 @@ describe("determineFlockingTargets", () => {
             .multiplyScalar(TEST_PERCEPTION_RADIUS + 1),
         ),
       ]),
-    ).toEqual([0, 0]);
+    ).toEqual({ flockmates: 0, separation: 0 });
     expect(outAveragePosition.toArray()).toEqual([0, 0, 0]);
     expect(outAverageVelocity.toArray()).toEqual([0, 0, 0]);
     expect(outSeparationVelocity.toArray()).toEqual([0, 0, 0]);
@@ -215,7 +220,7 @@ describe("determineFlockingTargets", () => {
         neighbor(102, new THREE.Vector3(0, 1, 0)),
         neighbor(103, new THREE.Vector3(0, 0, -1)),
       ]),
-    ).toEqual([0, 0]);
+    ).toEqual({ flockmates: 0, separation: 0 });
     expect(outAveragePosition.toArray()).toEqual([0, 0, 0]);
     expect(outAverageVelocity.toArray()).toEqual([0, 0, 0]);
     expect(outSeparationVelocity.toArray()).toEqual([0, 0, 0]);
@@ -224,9 +229,10 @@ describe("determineFlockingTargets", () => {
   it("should still see a neighbour dead ahead", () => {
     TEST_BOID.velocity.set(0, 0, TEST_MAX_SPEED);
 
-    expect(determine([neighbor(100, new THREE.Vector3(0, 0, 1))])).toEqual([
-      1, 1,
-    ]);
+    expect(determine([neighbor(100, new THREE.Vector3(0, 0, 1))])).toEqual({
+      flockmates: 1,
+      separation: 1,
+    });
   });
 
   it("should only align and cohere with its own flock, but separate from anyone", () => {
@@ -236,7 +242,7 @@ describe("determineFlockingTargets", () => {
       determine([
         neighbor(100, new THREE.Vector3(0, 0, 1), new THREE.Vector3(), 99),
       ]),
-    ).toEqual([0, 1]);
+    ).toEqual({ flockmates: 0, separation: 1 });
     expect(outAveragePosition.toArray()).toEqual([0, 0, 0]);
     expect(outSeparationVelocity.length()).toBeGreaterThan(0);
   });
@@ -250,18 +256,19 @@ describe("determineFlockingTargets", () => {
       neighbor(index, new THREE.Vector3(0, 0, index + 1)),
     );
 
-    expect(
-      TEST_BOID.determineFlockingTargets(
-        candidates(strungOut),
-        TEST_PERCEPTION_RADIUS,
-        TEST_COS_HALF_FOV,
-        TEST_SEPARATION,
-        3,
-        outAveragePosition,
-        outAverageVelocity,
-        outSeparationVelocity,
-      ),
-    ).toEqual([3, 3]);
+    TEST_BOID.determineFlockingTargets(
+      candidates(strungOut),
+      TEST_PERCEPTION_RADIUS,
+      TEST_COS_HALF_FOV,
+      TEST_SEPARATION,
+      3,
+      outAveragePosition,
+      outAverageVelocity,
+      outSeparationVelocity,
+      outCounts,
+    );
+
+    expect(outCounts).toEqual({ flockmates: 3, separation: 3 });
 
     // the three nearest, at z of 1, 2 and 3. Taking whichever three the index
     // happened to hand over first would average somewhere else entirely
@@ -287,18 +294,19 @@ describe("determineFlockingTargets", () => {
       neighbor(101, new THREE.Vector3(0, 0, 8)),
     ];
 
-    expect(
-      TEST_BOID.determineFlockingTargets(
-        candidates([...crowd, ...flockmates]),
-        TEST_PERCEPTION_RADIUS,
-        TEST_COS_HALF_FOV,
-        TEST_SEPARATION,
-        4,
-        outAveragePosition,
-        outAverageVelocity,
-        outSeparationVelocity,
-      ),
-    ).toEqual([2, 4]);
+    TEST_BOID.determineFlockingTargets(
+      candidates([...crowd, ...flockmates]),
+      TEST_PERCEPTION_RADIUS,
+      TEST_COS_HALF_FOV,
+      TEST_SEPARATION,
+      4,
+      outAveragePosition,
+      outAverageVelocity,
+      outSeparationVelocity,
+      outCounts,
+    );
+
+    expect(outCounts).toEqual({ flockmates: 2, separation: 4 });
 
     expect(outAveragePosition.toArray()).toEqual([0, 0, 7]);
   });
@@ -306,7 +314,7 @@ describe("determineFlockingTargets", () => {
   it("should not consider itself", () => {
     TEST_BOID.velocity.set(0, 0, TEST_MAX_SPEED);
 
-    expect(determine([TEST_BOID])).toEqual([0, 0]);
+    expect(determine([TEST_BOID])).toEqual({ flockmates: 0, separation: 0 });
     expect(outAveragePosition.toArray()).toEqual([0, 0, 0]);
     expect(outAverageVelocity.toArray()).toEqual([0, 0, 0]);
     expect(outSeparationVelocity.toArray()).toEqual([0, 0, 0]);

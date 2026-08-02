@@ -75,6 +75,18 @@ export interface ApplyForcesOptions {
   forceFactors: ForceFactors;
 }
 
+/**
+ * How many neighbours the flocking forces found to steer by. A force with none
+ * is skipped rather than steered on, so these are what say which of them ran.
+ * Filled into a caller's object rather than returned, like the vectors
+ * alongside them, since this is read for every re-aiming boid every frame.
+ */
+export interface FlockingCounts {
+  /** Alignment and cohesion both steer by these, so they share a count. */
+  flockmates: number;
+  separation: number;
+}
+
 /* this is all single threaded so Boid instances can share temp variables */
 const tempAveragePosition = new THREE.Vector3();
 const tempAverageVelocity = new THREE.Vector3();
@@ -87,6 +99,7 @@ const tempForce = new THREE.Vector3();
    it, reused between boids like the vectors above */
 const nearestFlockmates = new NearestNeighbours<Boid>();
 const nearestAnyone = new NearestNeighbours<Boid>();
+const tempCounts: FlockingCounts = { flockmates: 0, separation: 0 };
 
 /* a boid with no velocity at all has no heading to hold, so it needs one from
    somewhere rather than sitting still forever */
@@ -153,16 +166,13 @@ export default class Boid implements Node {
     forceFactors,
   }: ApplyForcesOptions): void {
     this.acceleration.set(0, 0, 0);
-    tempAveragePosition.set(0, 0, 0);
-    tempAverageVelocity.set(0, 0, 0);
-    tempSeparationVelocity.set(0, 0, 0);
     /* the flocking forces below are skipped outright when nothing is in range,
        so clear them here or they report the last frame a flockmate was seen */
     clearForce(this.forces.alignment);
     clearForce(this.forces.cohesion);
     clearForce(this.forces.separation);
 
-    const [count, separationCount] = this.determineFlockingTargets(
+    this.determineFlockingTargets(
       neighbors,
       perceptionRadius,
       cosHalfFieldOfView,
@@ -171,9 +181,10 @@ export default class Boid implements Node {
       tempAveragePosition,
       tempAverageVelocity,
       tempSeparationVelocity,
+      tempCounts,
     );
 
-    if (count > 0) {
+    if (tempCounts.flockmates > 0) {
       // ALIGNMENT: fly the way the neighbourhood is already going
       seekVelocity(
         this.velocity,
@@ -206,7 +217,7 @@ export default class Boid implements Node {
       );
     }
 
-    if (separationCount > 0) {
+    if (tempCounts.separation > 0) {
       // SEPARATION: away from the crowd, weighted towards the nearest of it
       seekVelocity(
         this.velocity,
@@ -332,7 +343,11 @@ export default class Boid implements Node {
     /* OUT */ outAveragePosition: THREE.Vector3,
     /* OUT */ outAverageVelocity: THREE.Vector3,
     /* OUT */ outSeparationVelocity: THREE.Vector3,
-  ): [number, number] {
+    /* OUT */ outCounts: FlockingCounts,
+  ): void {
+    outAveragePosition.set(0, 0, 0);
+    outAverageVelocity.set(0, 0, 0);
+    outSeparationVelocity.set(0, 0, 0);
     nearestFlockmates.reset(neighbourLimit);
     nearestAnyone.reset(neighbourLimit);
     tempForward.copy(this.velocity).normalize();
@@ -365,15 +380,15 @@ export default class Boid implements Node {
       }
     }
 
-    const count = nearestFlockmates.size;
-    for (let index = 0; index < count; index++) {
+    const flockmateCount = nearestFlockmates.size;
+    for (let index = 0; index < flockmateCount; index++) {
       const flockmate = nearestFlockmates.at(index);
       outAveragePosition.add(flockmate.position);
       outAverageVelocity.add(flockmate.velocity);
     }
-    if (count > 0) {
-      outAveragePosition.divideScalar(count);
-      outAverageVelocity.divideScalar(count);
+    if (flockmateCount > 0) {
+      outAveragePosition.divideScalar(flockmateCount);
+      outAverageVelocity.divideScalar(flockmateCount);
     }
 
     let separationCount = 0;
@@ -397,7 +412,8 @@ export default class Boid implements Node {
       separationCount++;
     }
 
-    return [count, separationCount];
+    outCounts.flockmates = flockmateCount;
+    outCounts.separation = separationCount;
   }
 
   /** Scale a behaviour's steering into the acceleration, and record it. */
