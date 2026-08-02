@@ -16,7 +16,7 @@
     "bench": "vitest bench --run",
     "test:coverage": "vitest run --coverage",
     "prepare": "husky",
-    "lint": "tools/lint/node_modules/.bin/eslint src e2e test-setup.ts",
+    "lint": "tools/lint/node_modules/.bin/eslint src e2e test-setup.ts vite.config.ts playwright.config.ts",
     "test:e2e": "playwright test",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json",
     "format": "prettier --check .",

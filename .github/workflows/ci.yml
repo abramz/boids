@@ -33,8 +33,9 @@ jobs:
         run: node -p "require('./tools/lint/node_modules/typescript/package.json').version" | grep -q '^6\.'
       - run: npm run lint
       - run: npm run typecheck
-      # eslint carries prettier over src and e2e only, so this is what covers
-      # the markdown, YAML, JSON and root config files
+      # eslint carries prettier over the TypeScript it lints, so this is what
+      # covers everything the lint run does not reach: the markdown, YAML and
+      # JSON, the HTML entry point, and the eslint configs themselves
       - run: npm run format
 
   test:

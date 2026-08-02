@@ -33,8 +33,8 @@ export default tseslint.config(
       "import-x": importX,
     },
     rules: {
-      // v7's `recommended` also bundles the React Compiler rules, which flag
-      // real issues in World.tsx and MouseVisualizer but are a separate change:
+      // v7's `recommended` also bundles the React Compiler rules, which are a
+      // separate change:
       //   ...reactHooks.configs.recommended.rules
       "react-hooks/rules-of-hooks": "error",
       "react-hooks/exhaustive-deps": "warn",

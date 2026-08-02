@@ -5,6 +5,9 @@ import react from "@vitejs/plugin-react";
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  /* no trailing slash, deliberately: vite derives the served base by adding one
+     and builds the dev server's open URL from the raw value, so `vite --open
+     boids/index.html` resolves against this rather than against "/boids/" */
   base: "/boids",
   plugins: [react()],
   optimizeDeps: {
